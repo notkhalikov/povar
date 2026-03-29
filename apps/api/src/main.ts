@@ -24,6 +24,8 @@ await app.register(corsPlugin)
 await app.register(dbPlugin)
 await app.register(authPlugin)
 
+// temporary comment for redeploy
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 await app.register(authRoutes)
 await app.register(chefsRoutes)
