@@ -21,12 +21,12 @@ for (const key of REQUIRED_ENV) {
 const app = Fastify({ logger: true })
 
 async function bootstrap() {
-  // ─── Plugins ────────────────────────────────────────────────────────────────
+  // Plugins
   await app.register(corsPlugin)
   await app.register(dbPlugin)
   await app.register(authPlugin)
 
-  // ─── Routes ────────────────────────────────────────────────────────────────
+  // Routes
   await app.register(authRoutes)
   await app.register(chefsRoutes)
   await app.register(ordersRoutes)
@@ -34,11 +34,11 @@ async function bootstrap() {
 
   app.get('/health', async () => ({ status: 'ok' }))
 
-  // ─── Start ─────────────────────────────────────────────────────────────────
+  // Start
   try {
     await app.listen({
       port: Number(process.env.PORT ?? 3000),
-      host: '0.0.0.0',
+      host: '0.0.0.0'
     })
   } catch (err) {
     app.log.error(err)
