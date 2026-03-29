@@ -6,7 +6,7 @@
   ],
   "scripts": {
     "dev:api": "npm run dev --workspace=apps/api",
-    "dev:bot": "npm run dev --workspace=apps/bot",
+    "dev:bot": "cd apps/bot && npm run dev",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:admin": "npm run dev --workspace=apps/admin",
     "build": "npm run build --workspaces --if-present",
@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@anthropic-ai/claude-code": "^2.1.87",
+    "drizzle-orm": "^0.45.2",
     "typescript": "^5.4.5"
   },
   "engines": {

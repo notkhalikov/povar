@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose:*)",
+      "Bash(npm run:*)",
+      "Bash(node -e \"console.log\\(require\\(''./node_modules/drizzle-orm/package.json''\\).version, require\\(''./node_modules/drizzle-kit/package.json''\\).version\\)\")",
+      "Bash(npm install:*)",
+      "Bash(../../node_modules/.bin/drizzle-kit generate:*)",
+      "Bash(node:*)",
+      "Bash(grep -r 'latest version of drizzle-orm' '/Users/marianaumcik/povar bot/cd/node_modules/drizzle-kit/' --include=*.js -l)",
+      "Bash(node_modules/.bin/drizzle-kit --version)",
+      "Bash(cd:*)",
+      "Bash(curl:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pkill -f \"tsx src/bot.ts\")"
+    ]
+  }
+}
