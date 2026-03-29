@@ -1,14 +1,6 @@
 import 'dotenv/config'
 import Fastify from 'fastify'
 
-// Fail fast if required env vars are missing
-const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET', 'BOT_TOKEN'] as const
-for (const key of REQUIRED_ENV) {
-  if (!process.env[key]) {
-    console.error(`Missing required env variable: ${key}`)
-    process.exit(1)
-  }
-}
 import corsPlugin from './plugins/cors.js'
 import dbPlugin from './plugins/db.js'
 import authPlugin from './plugins/auth.js'
@@ -17,30 +9,41 @@ import chefsRoutes from './routes/chefs.js'
 import ordersRoutes from './routes/orders.js'
 import paymentsRoutes from './routes/payments.js'
 
+// Fail fast if required env vars are missing
+const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET', 'BOT_TOKEN'] as const
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    console.error(`Missing required env variable: ${key}`)
+    process.exit(1)
+  }
+}
+
 const app = Fastify({ logger: true })
 
-// ─── Plugins ──────────────────────────────────────────────────────────────────
-await app.register(corsPlugin)
-await app.register(dbPlugin)
-await app.register(authPlugin)
+async function bootstrap() {
+  // ─── Plugins ────────────────────────────────────────────────────────────────
+  await app.register(corsPlugin)
+  await app.register(dbPlugin)
+  await app.register(authPlugin)
 
-// temporary comment for redeploy
+  // ─── Routes ────────────────────────────────────────────────────────────────
+  await app.register(authRoutes)
+  await app.register(chefsRoutes)
+  await app.register(ordersRoutes)
+  await app.register(paymentsRoutes)
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
-await app.register(authRoutes)
-await app.register(chefsRoutes)
-await app.register(ordersRoutes)
-await app.register(paymentsRoutes)
+  app.get('/health', async () => ({ status: 'ok' }))
 
-app.get('/health', async () => ({ status: 'ok' }))
-
-// ─── Start ────────────────────────────────────────────────────────────────────
-try {
-  await app.listen({
-    port: Number(process.env.PORT ?? 3000),
-    host: '0.0.0.0',
-  })
-} catch (err) {
-  app.log.error(err)
-  process.exit(1)
+  // ─── Start ─────────────────────────────────────────────────────────────────
+  try {
+    await app.listen({
+      port: Number(process.env.PORT ?? 3000),
+      host: '0.0.0.0',
+    })
+  } catch (err) {
+    app.log.error(err)
+    process.exit(1)
+  }
 }
+
+bootstrap()
