@@ -50,9 +50,9 @@ export const users = pgTable('users', {
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
 
-// ─── chef_profiles ────────────────────────────────────────────────────────────
+// ─── chefprofiles ─────────────────────────────────────────────────────────────
 
-export const chefProfiles = pgTable('chef_profiles', {
+export const chefProfiles = pgTable('chefprofiles', {
   id: serial('id').primaryKey(),
   userId: integer('user_id')
     .notNull()
