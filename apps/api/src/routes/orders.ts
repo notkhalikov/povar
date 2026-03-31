@@ -1,8 +1,16 @@
 import type { FastifyInstance } from 'fastify'
 import { eq, or, and, sql, inArray } from 'drizzle-orm'
-import { orders, chefProfiles, payments, users } from '../db/schema.js'
+import { orders, chefProfiles, payments, users, reviews } from '../db/schema.js'
 import { canTransition } from '../services/order-state.js'
-import { notifyUser, statusNotifyText } from '../services/notify.js'
+import {
+  notifyUser,
+  notifyOrderCreated,
+  notifyOrderCancelled,
+  notifyOrderCompleted,
+  scheduleReviewReminder,
+  statusNotifyText,
+} from '../services/notify.js'
+import { reviews } from '../db/schema.js'
 import type { OrderStatus, ProductsBuyer, WorkFormat } from '../types/index.js'
 
 interface CreateOrderBody {
@@ -94,14 +102,8 @@ export default async function ordersRoutes(app: FastifyInstance) {
     const customer = participants.find(u => u.id === customerId)
 
     if (chef) {
-      const date = new Date(body.scheduledAt).toLocaleString('ru-RU', {
-        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-      })
-      notifyUser(
-        chef.telegramId,
-        `🍽 Новый заказ #${order.id} от ${customer?.name ?? 'клиента'}\n📅 ${date} · 👥 ${body.persons} чел.`,
-        order.id,
-      ).catch(err => app.log.warn({ err }, 'notify chef failed'))
+      notifyOrderCreated(order, chef.telegramId, customer?.name)
+        .catch(err => app.log.warn({ err }, 'notify chef new order failed'))
     }
 
     return reply.code(201).send(order)
@@ -258,6 +260,68 @@ export default async function ordersRoutes(app: FastifyInstance) {
     return reply.send({ invoiceUrl: tgJson.result })
   })
 
+  // ─── POST /orders/:id/complete ───────────────────────────────────────────────
+  // Authenticated (customer only). Marks an order as completed.
+  // Works from both 'paid' (chef never moved it) and 'in_progress' states.
+
+  app.post<{ Params: { id: number } }>('/orders/:id/complete', {
+    onRequest: [app.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer' } },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.user.sub
+    const { id } = request.params
+
+    const [order] = await app.db
+      .select()
+      .from(orders)
+      .where(and(eq(orders.id, id), eq(orders.customerId, userId)))
+      .limit(1)
+
+    if (!order) return reply.code(404).send({ error: 'Order not found' })
+    if (order.status !== 'paid' && order.status !== 'in_progress') {
+      return reply.code(422).send({ error: `Cannot complete order in status "${order.status}"` })
+    }
+
+    const [updated] = await app.db
+      .update(orders)
+      .set({ status: 'completed', updatedAt: new Date() })
+      .where(eq(orders.id, id))
+      .returning()
+
+    // Increment chef's completed orders counter
+    await app.db
+      .update(chefProfiles)
+      .set({ ordersCount: sql`${chefProfiles.ordersCount} + 1` })
+      .where(eq(chefProfiles.userId, order.chefId))
+
+    // Notify chef + schedule review reminder for customer (fire-and-forget)
+    const [chef, customer] = await Promise.all([
+      app.db.select({ telegramId: users.telegramId }).from(users).where(eq(users.id, order.chefId)).limit(1),
+      app.db.select({ telegramId: users.telegramId }).from(users).where(eq(users.id, order.customerId)).limit(1),
+    ])
+
+    if (chef[0]) {
+      notifyOrderCompleted(updated, chef[0].telegramId)
+        .catch(err => app.log.warn({ err }, 'notify chef complete failed'))
+    }
+
+    if (customer[0]) {
+      scheduleReviewReminder(
+        updated,
+        customer[0].telegramId,
+        () => app.db.select({ id: reviews.id }).from(reviews).where(eq(reviews.orderId, id)).limit(1).then(r => r.length > 0),
+      )
+    }
+
+    return updated
+  })
+
   // ─── PATCH /orders/:id/status ────────────────────────────────────────────────
 
   app.patch<{ Params: { id: number }; Body: PatchStatusBody }>('/orders/:id/status', {
@@ -310,16 +374,27 @@ export default async function ordersRoutes(app: FastifyInstance) {
       .returning()
 
     // Notify the other party (fire-and-forget)
-    const otherUserId = userId === order.customerId ? order.chefId : order.customerId
-    const [otherUser] = await app.db
-      .select({ telegramId: users.telegramId })
-      .from(users)
-      .where(eq(users.id, otherUserId))
-      .limit(1)
+    if (nextStatus === 'cancelled') {
+      const [chefUser, customerUser] = await Promise.all([
+        app.db.select({ telegramId: users.telegramId }).from(users).where(eq(users.id, order.chefId)).limit(1),
+        app.db.select({ telegramId: users.telegramId }).from(users).where(eq(users.id, order.customerId)).limit(1),
+      ])
+      if (chefUser[0] && customerUser[0]) {
+        notifyOrderCancelled(updated, chefUser[0].telegramId, customerUser[0].telegramId)
+          .catch(err => app.log.warn({ err }, 'notify cancelled failed'))
+      }
+    } else {
+      const otherUserId = userId === order.customerId ? order.chefId : order.customerId
+      const [otherUser] = await app.db
+        .select({ telegramId: users.telegramId })
+        .from(users)
+        .where(eq(users.id, otherUserId))
+        .limit(1)
 
-    if (otherUser) {
-      notifyUser(otherUser.telegramId, statusNotifyText(nextStatus, id), id)
-        .catch(err => app.log.warn({ err }, 'notify status change failed'))
+      if (otherUser) {
+        notifyUser(otherUser.telegramId, statusNotifyText(nextStatus, id), id)
+          .catch(err => app.log.warn({ err }, 'notify status change failed'))
+      }
     }
 
     return updated

@@ -26,8 +26,15 @@ export function getOrder(id: number): Promise<Order> {
   return apiFetch<Order>(`/orders/${id}`)
 }
 
-export function createInvoice(id: number): Promise<{ invoiceUrl: string }> {
-  return apiFetch<{ invoiceUrl: string }>(`/orders/${id}/invoice`, { method: 'POST' })
+export function createInvoice(orderId: number): Promise<{ invoiceUrl: string }> {
+  return apiFetch<{ invoiceUrl: string }>('/payments/invoice', {
+    method: 'POST',
+    body: JSON.stringify({ orderId }),
+  })
+}
+
+export function completeOrder(id: number): Promise<Order> {
+  return apiFetch<Order>(`/orders/${id}/complete`, { method: 'POST' })
 }
 
 export function patchOrderStatus(id: number, status: string): Promise<Order> {

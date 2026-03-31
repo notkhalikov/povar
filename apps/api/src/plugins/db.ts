@@ -13,7 +13,12 @@ declare module 'fastify' {
 }
 
 export default fp(async (app: FastifyInstance) => {
-  const sql = postgres(process.env.DATABASE_URL!)
+  const url = process.env.DATABASE_URL
+  if (!url) {
+    throw new Error('Missing required env variable DATABASE_URL')
+  }
+
+  const sql = postgres(url)
   const db = drizzle(sql, { schema })
 
   app.decorate('db', db)

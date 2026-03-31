@@ -52,7 +52,7 @@ export type NewUser = typeof users.$inferInsert
 
 // ─── chefprofiles ─────────────────────────────────────────────────────────────
 
-export const chefProfiles = pgTable('chefprofiles', {
+export const chefProfiles = pgTable('chef_profiles', {
   id: serial('id').primaryKey(),
   userId: integer('user_id')
     .notNull()
@@ -141,3 +141,104 @@ export const payments = pgTable('payments', {
 })
 
 export type Payment = typeof payments.$inferSelect
+
+// ─── reviews ──────────────────────────────────────────────────────────────────
+
+export const reviews = pgTable('reviews', {
+  id: serial('id').primaryKey(),
+  orderId: integer('order_id').notNull().unique().references(() => orders.id),
+  authorId: integer('author_id').notNull().references(() => users.id),
+  chefId: integer('chef_id').notNull().references(() => users.id),
+  rating: integer('rating').notNull(),
+  tagsQuality: text('tags_quality').array().default([]).notNull(),
+  text: text('text'),
+  photoIds: text('photo_ids').array().default([]).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export type Review = typeof reviews.$inferSelect
+export type NewReview = typeof reviews.$inferInsert
+
+// ─── disputes ─────────────────────────────────────────────────────────────────
+
+export const disputeOpenedByEnum = pgEnum('dispute_opened_by', [
+  'customer',
+  'chef',
+])
+
+export const disputeStatusEnum = pgEnum('dispute_status', [
+  'open',
+  'awaiting_other_party',
+  'support_review',
+  'resolved',
+])
+
+export const disputeResolutionTypeEnum = pgEnum('dispute_resolution_type', [
+  'full_refund',
+  'partial_refund',
+  'no_refund',
+])
+
+export const disputes = pgTable('disputes', {
+  id: serial('id').primaryKey(),
+  orderId: integer('order_id').notNull().references(() => orders.id),
+  openedBy: disputeOpenedByEnum('opened_by').notNull(),
+  reasonCode: varchar('reason_code', { length: 100 }).notNull(),
+  description: text('description'),
+  attachments: text('attachments').array().default([]).notNull(),
+  status: disputeStatusEnum('status').default('open').notNull(),
+  resolutionType: disputeResolutionTypeEnum('resolution_type'),
+  resolutionComment: text('resolution_comment'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+export type Dispute = typeof disputes.$inferSelect
+export type NewDispute = typeof disputes.$inferInsert
+
+// ─── requests ─────────────────────────────────────────────────────────────────
+
+export const requestFormatEnum = pgEnum('request_format', [
+  'home_visit',
+  'delivery',
+])
+
+export const requestStatusEnum = pgEnum('request_status', ['open', 'closed'])
+
+export const requests = pgTable('requests', {
+  id: serial('id').primaryKey(),
+  customerId: integer('customer_id').notNull().references(() => users.id),
+  city: varchar('city', { length: 100 }).notNull(),
+  district: varchar('district', { length: 100 }),
+  scheduledAt: timestamp('scheduled_at').notNull(),
+  format: requestFormatEnum('format').notNull(),
+  persons: integer('persons').notNull(),
+  description: text('description'),
+  budget: numeric('budget', { precision: 10, scale: 2 }),
+  status: requestStatusEnum('status').default('open').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export type Request = typeof requests.$inferSelect
+export type NewRequest = typeof requests.$inferInsert
+
+// ─── chef_responses ───────────────────────────────────────────────────────────
+
+export const chefResponseStatusEnum = pgEnum('chef_response_status', [
+  'new',
+  'accepted',
+  'rejected',
+])
+
+export const chefResponses = pgTable('chef_responses', {
+  id: serial('id').primaryKey(),
+  requestId: integer('request_id').notNull().references(() => requests.id),
+  chefId: integer('chef_id').notNull().references(() => users.id),
+  proposedPrice: numeric('proposed_price', { precision: 10, scale: 2 }),
+  comment: text('comment'),
+  status: chefResponseStatusEnum('status').default('new').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export type ChefResponse = typeof chefResponses.$inferSelect
+export type NewChefResponse = typeof chefResponses.$inferInsert

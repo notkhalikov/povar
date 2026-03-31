@@ -8,6 +8,10 @@ import authRoutes from './routes/auth.js'
 import chefsRoutes from './routes/chefs.js'
 import ordersRoutes from './routes/orders.js'
 import paymentsRoutes from './routes/payments.js'
+import reviewsRoutes from './routes/reviews.js'
+import disputesRoutes from './routes/disputes.js'
+import requestsRoutes from './routes/requests.js'
+import adminRoutes from './routes/admin.js'
 
 // Fail fast if required env vars are missing
 const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET', 'BOT_TOKEN'] as const
@@ -31,6 +35,10 @@ async function bootstrap() {
   await app.register(chefsRoutes)
   await app.register(ordersRoutes)
   await app.register(paymentsRoutes)
+  await app.register(reviewsRoutes)
+  await app.register(disputesRoutes)
+  await app.register(requestsRoutes)
+  await app.register(adminRoutes)
 
   app.get('/health', async () => ({ status: 'ok' }))
 

@@ -1,7 +1,11 @@
 import type { FastifyInstance } from 'fastify'
 import { eq, and } from 'drizzle-orm'
 import { payments, orders, users } from '../db/schema.js'
-import { notifyUser } from '../services/notify.js'
+import { notifyOrderPaid } from '../services/notify.js'
+
+interface CreateInvoiceBody {
+  orderId: number
+}
 
 interface TelegramWebhookBody {
   orderId: number
@@ -12,6 +16,82 @@ interface TelegramWebhookBody {
 }
 
 export default async function paymentsRoutes(app: FastifyInstance) {
+
+  // ─── POST /payments/invoice ───────────────────────────────────────────────────
+  // Authenticated. Creates a Telegram invoice link for the given order.
+  // Returns { invoiceUrl } to be opened via WebApp.openInvoice().
+
+  app.post<{ Body: CreateInvoiceBody }>('/payments/invoice', {
+    onRequest: [app.authenticate],
+    schema: {
+      body: {
+        type: 'object',
+        required: ['orderId'],
+        additionalProperties: false,
+        properties: {
+          orderId: { type: 'integer' },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.user.sub
+    const { orderId } = request.body
+
+    const [order] = await app.db
+      .select()
+      .from(orders)
+      .where(and(eq(orders.id, orderId), eq(orders.customerId, userId)))
+      .limit(1)
+
+    if (!order) return reply.code(404).send({ error: 'Order not found' })
+    if (order.status !== 'awaiting_payment') {
+      return reply.code(422).send({ error: `Cannot invoice order in status "${order.status}"` })
+    }
+    if (!order.agreedPrice) {
+      return reply.code(422).send({ error: 'Agreed price must be set before creating an invoice' })
+    }
+
+    const paymentsToken = process.env.PAYMENTS_TOKEN
+    if (!paymentsToken) {
+      return reply.code(503).send({ error: 'Payment provider not configured (PAYMENTS_TOKEN missing)' })
+    }
+
+    // Telegram requires amount in smallest currency unit (tetri: 1 GEL = 100 tetri)
+    const amountTetri = Math.round(Number(order.agreedPrice) * 100)
+
+    const tgRes = await fetch(
+      `https://api.telegram.org/bot${process.env.BOT_TOKEN}/createInvoiceLink`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `Заказ #${order.id}`,
+          description: `${order.type === 'home_visit' ? 'Повар на дом' : 'Доставка'} · ${order.persons} чел. · ${order.city}`,
+          payload: `order:${order.id}`,
+          provider_token: paymentsToken,
+          currency: 'GEL',
+          prices: [{ label: 'Итого', amount: amountTetri }],
+        }),
+      },
+    )
+
+    const tgJson = await tgRes.json() as { ok: boolean; result?: string; description?: string }
+    if (!tgJson.ok) {
+      app.log.error({ tgJson, orderId }, 'createInvoiceLink failed')
+      return reply.code(502).send({ error: 'Failed to create invoice', detail: tgJson.description })
+    }
+
+    // Record the pending payment so the webhook can match it later
+    await app.db.insert(payments).values({
+      orderId: order.id,
+      amount: order.agreedPrice,
+      currency: 'GEL',
+      provider: 'telegram',
+      status: 'created',
+    })
+
+    return reply.send({ invoiceUrl: tgJson.result })
+  })
 
   // ─── POST /payments/telegram-webhook ─────────────────────────────────────────
   // Called internally by the bot when it receives a successful_payment update.
@@ -95,7 +175,7 @@ export default async function paymentsRoutes(app: FastifyInstance) {
       .limit(1)
 
     if (chef) {
-      notifyUser(chef.telegramId, `💳 Заказ #${orderId} оплачен! Клиент ждёт вас.`, orderId)
+      notifyOrderPaid(order, chef.telegramId)
         .catch(err => app.log.warn({ err }, 'notify chef paid failed'))
     }
 

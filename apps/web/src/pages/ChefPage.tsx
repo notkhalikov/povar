@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
-import { getChef } from '../api/chefs'
-import type { ChefProfile } from '../types'
+import { getChef, getChefReviews, chefPhotoUrl } from '../api/chefs'
+import type { ChefProfile, ReviewItem } from '../types'
 
 export default function ChefPage() {
   const { id } = useParams<{ id: string }>()
@@ -10,6 +10,7 @@ export default function ChefPage() {
   const [chef, setChef] = useState<ChefProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reviews, setReviews] = useState<ReviewItem[]>([])
 
   // Stable callback ref so offClick can remove the correct listener
   const goBack = useCallback(() => navigate(-1), [navigate])
@@ -30,6 +31,9 @@ export default function ChefPage() {
       .then(setChef)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
+    getChefReviews(Number(id), { limit: 5 })
+      .then(res => setReviews(res.data))
+      .catch(() => {}) // reviews are non-critical
   }, [id])
 
   if (loading) {
@@ -112,6 +116,57 @@ export default function ChefPage() {
         </section>
       )}
 
+      {/* Portfolio */}
+      {chef.portfolioMediaIds.length > 0 && (
+        <section style={sectionStyle}>
+          <SectionLabel>Портфолио</SectionLabel>
+          <div style={portfolioScrollStyle}>
+            {chef.portfolioMediaIds.map(fileId => (
+              <img
+                key={fileId}
+                src={chefPhotoUrl(chef.id, fileId)}
+                alt='portfolio'
+                style={portfolioImgStyle}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Reviews */}
+      {reviews.length > 0 && (
+        <section style={sectionStyle}>
+          <SectionLabel>Отзывы</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {reviews.map(review => (
+              <div key={review.id} style={reviewCardStyle}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>{review.authorName}</span>
+                  <span style={{ color: '#f5a623', fontSize: 14 }}>
+                    {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                  </span>
+                </div>
+                {review.tagsQuality.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+                    {review.tagsQuality.map(tag => (
+                      <span key={tag} style={reviewTagStyle}>{tag}</span>
+                    ))}
+                  </div>
+                )}
+                {review.text && (
+                  <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'var(--tg-theme-text-color)' }}>
+                    {review.text}
+                  </p>
+                )}
+                <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)', marginTop: 6 }}>
+                  {new Date(review.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Order CTA — Stage 2 */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px 16px', background: 'var(--tg-theme-bg-color)', borderTop: '1px solid var(--tg-theme-hint-color)' }}>
         <button
@@ -182,4 +237,34 @@ const buttonStyle: React.CSSProperties = {
   fontSize: 16,
   fontWeight: 600,
   cursor: 'pointer',
+}
+
+const reviewCardStyle: React.CSSProperties = {
+  padding: '14px',
+  borderRadius: 12,
+  background: 'var(--tg-theme-secondary-bg-color)',
+}
+
+const reviewTagStyle: React.CSSProperties = {
+  padding: '2px 8px',
+  borderRadius: 10,
+  fontSize: 12,
+  background: 'var(--tg-theme-hint-color)22',
+  color: 'var(--tg-theme-hint-color)',
+}
+
+const portfolioScrollStyle: React.CSSProperties = {
+  display: 'flex',
+  gap: 10,
+  overflowX: 'auto',
+  paddingBottom: 4,
+  scrollbarWidth: 'none',
+}
+
+const portfolioImgStyle: React.CSSProperties = {
+  flexShrink: 0,
+  width: 140,
+  height: 140,
+  objectFit: 'cover',
+  borderRadius: 12,
 }

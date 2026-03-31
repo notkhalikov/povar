@@ -15,6 +15,13 @@
       "when": 1774792841466,
       "tag": "0001_absent_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774859959066,
+      "tag": "0002_melted_satana",
+      "breakpoints": true
     }
   ]
 }

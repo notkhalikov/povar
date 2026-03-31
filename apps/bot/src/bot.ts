@@ -13,19 +13,42 @@ console.log('Mini app URL:', MINI_APP_URL)
 const bot = new Bot(token)
 
 // ─── /start ───────────────────────────────────────────────────────────────────
+// Supports deep links: /start order_123  /start request_456  /start dispute_789
+// The start_param is forwarded to the mini app via ?startapp=<param> so the
+// web app can navigate to the correct page on first load.
 
 bot.command('start', async (ctx) => {
   const name = ctx.from?.first_name ?? 'друг'
+  const param = (ctx.match as string | undefined)?.trim() ?? ''
 
-  const keyboard = new InlineKeyboard().webApp('🍽️ Открыть Mini App', MINI_APP_URL)
-
-  await ctx.reply(
+  let appUrl = MINI_APP_URL
+  let buttonLabel = '🍽️ Открыть Mini App'
+  let replyText =
     `Привет, ${name}! 👋\n\n` +
     `Я помогу тебе найти домашнего повара в Тбилиси или Батуми — ` +
     `или заказать готовую еду с доставкой.\n\n` +
-    `Нажми кнопку ниже, чтобы открыть каталог поваров.`,
-    { reply_markup: keyboard },
-  )
+    `Нажми кнопку ниже, чтобы открыть каталог поваров.`
+
+  if (param.startsWith('order_')) {
+    const id = param.slice('order_'.length)
+    appUrl = `${MINI_APP_URL}?startapp=order_${id}`
+    buttonLabel = '📦 Открыть заказ'
+    replyText = `${name}, вот ваш заказ #${id}:`
+  } else if (param.startsWith('request_')) {
+    const id = param.slice('request_'.length)
+    appUrl = `${MINI_APP_URL}?startapp=request_${id}`
+    buttonLabel = '📋 Открыть запрос'
+    replyText = `${name}, вот запрос #${id}:`
+  } else if (param.startsWith('dispute_')) {
+    const id = param.slice('dispute_'.length)
+    appUrl = `${MINI_APP_URL}?startapp=dispute_${id}`
+    buttonLabel = '⚖️ Открыть спор'
+    replyText = `${name}, вот детали спора #${id}:`
+  }
+
+  const keyboard = new InlineKeyboard().webApp(buttonLabel, appUrl)
+
+  await ctx.reply(replyText, { reply_markup: keyboard })
 })
 
 // ─── /help ────────────────────────────────────────────────────────────────────
@@ -50,8 +73,16 @@ bot.command('orders', async (ctx) => {
 
 // ─── Telegram Payments ────────────────────────────────────────────────────────
 
-// Validate the order is still payable before Telegram charges the user.
+// Validate the order payload is well-formed before Telegram charges the user.
 bot.on('pre_checkout_query', async (ctx) => {
+  const payload = ctx.preCheckoutQuery.invoice_payload
+  const orderId = parseInt(payload.split(':')[1] ?? '', 10)
+
+  if (!payload.startsWith('order:') || isNaN(orderId) || orderId <= 0) {
+    await ctx.answerPreCheckoutQuery(false, 'Некорректный заказ. Попробуйте ещё раз.')
+    return
+  }
+
   await ctx.answerPreCheckoutQuery(true)
 })
 

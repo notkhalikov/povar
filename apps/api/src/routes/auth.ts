@@ -5,6 +5,11 @@ import { validateInitData } from '../services/telegram-auth.js'
 
 interface AuthBody {
   initData: string
+  utmSource?:   string
+  utmMedium?:   string
+  utmCampaign?: string
+  utmContent?:  string
+  utmTerm?:     string
 }
 
 export default async function authRoutes(app: FastifyInstance) {
@@ -22,13 +27,18 @@ export default async function authRoutes(app: FastifyInstance) {
           type: 'object',
           required: ['initData'],
           properties: {
-            initData: { type: 'string', minLength: 1 },
+            initData:    { type: 'string', minLength: 1 },
+            utmSource:   { type: 'string', maxLength: 100 },
+            utmMedium:   { type: 'string', maxLength: 100 },
+            utmCampaign: { type: 'string', maxLength: 100 },
+            utmContent:  { type: 'string', maxLength: 100 },
+            utmTerm:     { type: 'string', maxLength: 100 },
           },
         },
       },
     },
     async (request, reply) => {
-      const { initData } = request.body
+      const { initData, utmSource, utmMedium, utmCampaign, utmContent, utmTerm } = request.body
 
       const botToken = process.env.BOT_TOKEN
       if (!botToken) {
@@ -64,6 +74,12 @@ export default async function authRoutes(app: FastifyInstance) {
             telegramId,
             name,
             lang: tgUser.language_code ?? 'ru',
+            // Only set UTM on first creation; never overwrite existing values
+            utmSource:   utmSource   ?? null,
+            utmMedium:   utmMedium   ?? null,
+            utmCampaign: utmCampaign ?? null,
+            utmContent:  utmContent  ?? null,
+            utmTerm:     utmTerm     ?? null,
           })
           .returning()
 
