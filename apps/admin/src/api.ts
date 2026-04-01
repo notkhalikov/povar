@@ -44,6 +44,9 @@ export interface AdminUser {
   role: string
   status: string
   city: string | null
+  utmSource: string | null
+  utmMedium: string | null
+  utmCampaign: string | null
   createdAt: string
 }
 

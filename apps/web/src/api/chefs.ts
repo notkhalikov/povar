@@ -39,6 +39,7 @@ export interface ChefsQuery {
   cuisine?: string
   format?: 'home_visit' | 'delivery'
   sort?: 'rating' | 'price'
+  minRating?: number
   limit?: number
   offset?: number
 }

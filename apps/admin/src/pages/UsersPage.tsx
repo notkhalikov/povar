@@ -65,6 +65,9 @@ export default function UsersPage() {
                 <th>Роль</th>
                 <th>Статус</th>
                 <th>Город</th>
+                <th>UTM Source</th>
+                <th>UTM Medium</th>
+                <th>UTM Campaign</th>
                 <th>Дата</th>
                 <th></th>
               </tr>
@@ -78,6 +81,9 @@ export default function UsersPage() {
                   <td><span className={`badge role-${u.role}`}>{u.role}</span></td>
                   <td><span className={`badge ${u.status === 'banned' ? 'red' : 'green'}`}>{u.status}</span></td>
                   <td>{u.city ?? '—'}</td>
+                  <td>{u.utmSource ?? '—'}</td>
+                  <td>{u.utmMedium ?? '—'}</td>
+                  <td>{u.utmCampaign ?? '—'}</td>
                   <td>{new Date(u.createdAt).toLocaleDateString('ru-RU')}</td>
                   <td>
                     <button

@@ -11,6 +11,7 @@ interface ChefsQuery {
   cuisine?: string
   format?: WorkFormat
   sort?: 'rating' | 'price'
+  minRating?: number
   limit?: number
   offset?: number
 }
@@ -71,13 +72,14 @@ export default async function chefsRoutes(app: FastifyInstance) {
       querystring: {
         type: 'object',
         properties: {
-          city:     { type: 'string' },
-          district: { type: 'string' },
-          cuisine:  { type: 'string' },
-          format:   { type: 'string', enum: ['home_visit', 'delivery'] },
-          sort:     { type: 'string', enum: ['rating', 'price'] },
-          limit:    { type: 'integer', minimum: 1, maximum: 100, default: 20 },
-          offset:   { type: 'integer', minimum: 0, default: 0 },
+          city:      { type: 'string' },
+          district:  { type: 'string' },
+          cuisine:   { type: 'string' },
+          format:    { type: 'string', enum: ['home_visit', 'delivery'] },
+          sort:      { type: 'string', enum: ['rating', 'price'] },
+          minRating: { type: 'number', minimum: 0, maximum: 5 },
+          limit:     { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+          offset:    { type: 'integer', minimum: 0, default: 0 },
         },
       },
     },
@@ -88,6 +90,7 @@ export default async function chefsRoutes(app: FastifyInstance) {
       cuisine,
       format,
       sort = 'rating',
+      minRating,
       limit = 20,
       offset = 0,
     } = request.query
@@ -95,12 +98,14 @@ export default async function chefsRoutes(app: FastifyInstance) {
     const conditions = [
       eq(chefProfiles.isActive, true),
       eq(chefProfiles.verificationStatus, 'approved'),
+      eq(users.status, 'active'),
     ]
 
-    if (city)     conditions.push(eq(users.city, city))
-    if (district) conditions.push(sql`${chefProfiles.districts} @> ARRAY[${district}]::text[]`)
-    if (cuisine)  conditions.push(sql`${chefProfiles.cuisineTags} @> ARRAY[${cuisine}]::text[]`)
-    if (format)   conditions.push(sql`${chefProfiles.workFormats} @> ARRAY[${format}]::text[]`)
+    if (city)      conditions.push(eq(users.city, city))
+    if (district)  conditions.push(sql`${chefProfiles.districts} @> ARRAY[${district}]::text[]`)
+    if (cuisine)   conditions.push(sql`${chefProfiles.cuisineTags} @> ARRAY[${cuisine}]::text[]`)
+    if (format)    conditions.push(sql`${chefProfiles.workFormats} @> ARRAY[${format}]::text[]`)
+    if (minRating) conditions.push(sql`${chefProfiles.ratingCache} >= ${minRating}`)
 
     const orderBy = sort === 'price'
       ? asc(chefProfiles.avgPrice)

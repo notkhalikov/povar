@@ -153,6 +153,9 @@ export const reviews = pgTable('reviews', {
   tagsQuality: text('tags_quality').array().default([]).notNull(),
   text: text('text'),
   photoIds: text('photo_ids').array().default([]).notNull(),
+  chefReply: text('chef_reply'),
+  isHidden: boolean('is_hidden').default(false).notNull(),
+  reportCount: integer('report_count').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

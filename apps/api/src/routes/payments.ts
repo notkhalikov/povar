@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
-import { eq, and } from 'drizzle-orm'
-import { payments, orders, users } from '../db/schema.js'
-import { notifyOrderPaid } from '../services/notify.js'
+import { eq, and, sql } from 'drizzle-orm'
+import { payments, orders, users, chefProfiles, disputes } from '../db/schema.js'
+import { notifyOrderPaid, scheduleAutoComplete } from '../services/notify.js'
 
 interface CreateInvoiceBody {
   orderId: number
@@ -174,9 +174,52 @@ export default async function paymentsRoutes(app: FastifyInstance) {
       .where(eq(users.id, order.chefId))
       .limit(1)
 
+    // Fetch customer telegram id for auto-complete notification
+    const [customer] = await app.db
+      .select({ telegramId: users.telegramId })
+      .from(users)
+      .where(eq(users.id, order.customerId))
+      .limit(1)
+
     if (chef) {
       notifyOrderPaid(order, chef.telegramId)
         .catch(err => app.log.warn({ err }, 'notify chef paid failed'))
+    }
+
+    // Schedule auto-completion: if no dispute opened within 24h, mark as completed
+    if (chef && customer) {
+      scheduleAutoComplete(
+        order,
+        customer.telegramId,
+        chef.telegramId,
+        async () => {
+          const [dispute] = await app.db
+            .select({ id: disputes.id })
+            .from(disputes)
+            .where(eq(disputes.orderId, orderId))
+            .limit(1)
+          return !!dispute
+        },
+        async () => {
+          // Only complete if still in paid/in_progress (not already completed/cancelled/disputed)
+          const [current] = await app.db
+            .select({ status: orders.status })
+            .from(orders)
+            .where(eq(orders.id, orderId))
+            .limit(1)
+          if (!current || !['paid', 'in_progress'].includes(current.status)) return
+
+          await app.db
+            .update(orders)
+            .set({ status: 'completed', updatedAt: new Date() })
+            .where(eq(orders.id, orderId))
+
+          await app.db
+            .update(chefProfiles)
+            .set({ ordersCount: sql`orders_count + 1` })
+            .where(eq(chefProfiles.userId, order.chefId))
+        },
+      )
     }
 
     return reply.send({ ok: true })

@@ -70,6 +70,7 @@ export interface ReviewItem {
   tagsQuality: string[]
   text: string | null
   photoIds: string[]
+  chefReply: string | null
   createdAt: string
   authorName: string
 }
@@ -86,11 +87,13 @@ export interface RequestItem {
   status: 'open' | 'closed'
   createdAt: string
   responseCount: number
+  hasResponded?: boolean
 }
 
 export interface ChefResponseItem {
   id: number
   chefId: number
+  chefProfileId: number
   proposedPrice: string | null
   comment: string | null
   status: 'new' | 'accepted' | 'rejected'

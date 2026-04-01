@@ -84,7 +84,7 @@ export default function ChefRequestsPage() {
             />
 
             {/* Inline respond form */}
-            {respondingTo === item.id && (
+            {respondingTo === item.id && !item.hasResponded && (
               <form onSubmit={handleRespond} style={respondFormStyle}>
                 <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12 }}>Ваш отклик</div>
 
@@ -173,13 +173,17 @@ function RequestCard({
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)' }}>📅 {date}</span>
-        <button
-          style={{ ...respondBtnStyle, opacity: isResponding ? 0.5 : 1 }}
-          onClick={onRespond}
-          disabled={isResponding}
-        >
-          Откликнуться
-        </button>
+        {item.hasResponded ? (
+          <span style={respondedBadgeStyle}>✓ Отклик отправлен</span>
+        ) : (
+          <button
+            style={{ ...respondBtnStyle, opacity: isResponding ? 0.5 : 1 }}
+            onClick={onRespond}
+            disabled={isResponding}
+          >
+            Откликнуться
+          </button>
+        )}
       </div>
     </div>
   )
@@ -259,4 +263,15 @@ const linkBtnStyle: React.CSSProperties = {
   color: 'var(--tg-theme-text-color)',
   fontSize: 14,
   cursor: 'pointer',
+}
+
+const respondedBadgeStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '6px 12px',
+  borderRadius: 10,
+  fontSize: 13,
+  fontWeight: 600,
+  background: '#34c75922',
+  color: '#34c759',
 }

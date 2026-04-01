@@ -19,6 +19,10 @@ interface ChefReviewsQuery {
   offset?: number
 }
 
+interface ReplyBody {
+  reply: string
+}
+
 export default async function reviewsRoutes(app: FastifyInstance) {
 
   // ─── POST /reviews ────────────────────────────────────────────────────────────
@@ -136,12 +140,13 @@ export default async function reviewsRoutes(app: FastifyInstance) {
         tagsQuality: reviews.tagsQuality,
         text:        reviews.text,
         photoIds:    reviews.photoIds,
+        chefReply:   reviews.chefReply,
         createdAt:   reviews.createdAt,
         authorName:  users.name,
       })
       .from(reviews)
       .innerJoin(users, eq(users.id, reviews.authorId))
-      .where(eq(reviews.chefId, profile.userId))
+      .where(and(eq(reviews.chefId, profile.userId), eq(reviews.isHidden, false)))
       .orderBy(desc(reviews.createdAt))
       .limit(limit)
       .offset(offset)
@@ -149,8 +154,95 @@ export default async function reviewsRoutes(app: FastifyInstance) {
     const [{ total }] = await app.db
       .select({ total: sql<number>`count(*)::int` })
       .from(reviews)
-      .where(eq(reviews.chefId, profile.userId))
+      .where(and(eq(reviews.chefId, profile.userId), eq(reviews.isHidden, false)))
 
     return { data: rows, total, limit, offset }
+  })
+
+  // ─── PATCH /reviews/:id/reply ─────────────────────────────────────────────────
+  // Chef only. Add or update a reply to a review left on their profile.
+
+  app.patch<{ Params: { id: number }; Body: ReplyBody }>('/reviews/:id/reply', {
+    onRequest: [app.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer' } },
+      },
+      body: {
+        type: 'object',
+        required: ['reply'],
+        additionalProperties: false,
+        properties: {
+          reply: { type: 'string', minLength: 1, maxLength: 2000 },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.user.sub
+    const role = request.user.role
+    const { id } = request.params
+    const { reply: replyText } = request.body
+
+    if (role !== 'chef') {
+      return reply.code(403).send({ error: 'Only chefs can reply to reviews' })
+    }
+
+    // Verify this review belongs to the requesting chef
+    const [profile] = await app.db
+      .select({ userId: chefProfiles.userId })
+      .from(chefProfiles)
+      .where(eq(chefProfiles.userId, userId))
+      .limit(1)
+
+    if (!profile) return reply.code(404).send({ error: 'Chef profile not found' })
+
+    const [review] = await app.db
+      .select({ id: reviews.id })
+      .from(reviews)
+      .where(and(eq(reviews.id, id), eq(reviews.chefId, userId)))
+      .limit(1)
+
+    if (!review) return reply.code(404).send({ error: 'Review not found' })
+
+    const [updated] = await app.db
+      .update(reviews)
+      .set({ chefReply: replyText })
+      .where(eq(reviews.id, id))
+      .returning()
+
+    return updated
+  })
+
+  // ─── POST /reviews/:id/report ─────────────────────────────────────────────────
+  // Authenticated. Flag a review for admin moderation. Increments reportCount.
+
+  app.post<{ Params: { id: number } }>('/reviews/:id/report', {
+    onRequest: [app.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer' } },
+      },
+    },
+  }, async (request, reply) => {
+    const { id } = request.params
+
+    const [review] = await app.db
+      .select({ id: reviews.id })
+      .from(reviews)
+      .where(eq(reviews.id, id))
+      .limit(1)
+
+    if (!review) return reply.code(404).send({ error: 'Review not found' })
+
+    await app.db
+      .update(reviews)
+      .set({ reportCount: sql`${reviews.reportCount} + 1` })
+      .where(eq(reviews.id, id))
+
+    return reply.code(204).send()
   })
 }

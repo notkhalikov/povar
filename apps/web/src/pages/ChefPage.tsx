@@ -2,15 +2,21 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { getChef, getChefReviews, chefPhotoUrl } from '../api/chefs'
+import { reportReview, replyToReview } from '../api/reviews'
+import { useAuth } from '../context/AuthContext'
 import type { ChefProfile, ReviewItem } from '../types'
 
 export default function ChefPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [chef, setChef] = useState<ChefProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reviews, setReviews] = useState<ReviewItem[]>([])
+  const [replyingTo, setReplyingTo] = useState<number | null>(null)
+  const [replyText, setReplyText] = useState('')
+  const [sendingReply, setSendingReply] = useState(false)
 
   // Stable callback ref so offClick can remove the correct listener
   const goBack = useCallback(() => navigate(-1), [navigate])
@@ -36,6 +42,30 @@ export default function ChefPage() {
       .catch(() => {}) // reviews are non-critical
   }, [id])
 
+  async function handleReport(reviewId: number) {
+    try {
+      await reportReview(reviewId)
+      WebApp.showAlert('Отзыв отправлен на проверку. Спасибо!')
+    } catch {
+      WebApp.showAlert('Не удалось отправить жалобу')
+    }
+  }
+
+  async function handleReply(reviewId: number) {
+    if (!replyText.trim()) return
+    setSendingReply(true)
+    try {
+      const updated = await replyToReview(reviewId, replyText.trim())
+      setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, chefReply: updated.chefReply } : r))
+      setReplyingTo(null)
+      setReplyText('')
+    } catch {
+      WebApp.showAlert('Не удалось сохранить ответ')
+    } finally {
+      setSendingReply(false)
+    }
+  }
+
   if (loading) {
     return <div style={{ padding: 24, textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>Загрузка…</div>
   }
@@ -45,6 +75,7 @@ export default function ChefPage() {
   if (!chef) return null
 
   const rating = Number(chef.ratingCache)
+  const isOwnProfile = user?.id === chef.userId
 
   return (
     <div style={{ padding: '12px 16px', paddingBottom: 80 }}>
@@ -161,6 +192,62 @@ export default function ChefPage() {
                 <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)', marginTop: 6 }}>
                   {new Date(review.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </div>
+
+                {/* Chef reply */}
+                {review.chefReply && (
+                  <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--tg-theme-bg-color)', fontSize: 13 }}>
+                    <span style={{ fontWeight: 600, color: 'var(--tg-theme-hint-color)' }}>Ответ повара: </span>
+                    {review.chefReply}
+                  </div>
+                )}
+
+                {/* Chef: inline reply form */}
+                {isOwnProfile && !review.chefReply && replyingTo !== review.id && (
+                  <button
+                    style={{ marginTop: 8, fontSize: 12, color: 'var(--tg-theme-link-color)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    onClick={() => { setReplyingTo(review.id); setReplyText('') }}
+                  >
+                    Ответить
+                  </button>
+                )}
+                {isOwnProfile && replyingTo === review.id && (
+                  <div style={{ marginTop: 8 }}>
+                    <textarea
+                      value={replyText}
+                      onChange={e => setReplyText(e.target.value)}
+                      placeholder='Ваш ответ на отзыв…'
+                      rows={2}
+                      maxLength={2000}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--tg-theme-hint-color)', background: 'var(--tg-theme-secondary-bg-color)', color: 'var(--tg-theme-text-color)', fontSize: 13, boxSizing: 'border-box', resize: 'vertical' }}
+                    />
+                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                      <button
+                        style={{ flex: 1, padding: '7px', borderRadius: 8, border: '1px solid var(--tg-theme-hint-color)', background: 'transparent', color: 'var(--tg-theme-text-color)', fontSize: 13, cursor: 'pointer' }}
+                        onClick={() => setReplyingTo(null)}
+                        disabled={sendingReply}
+                      >
+                        Отмена
+                      </button>
+                      <button
+                        style={{ flex: 2, padding: '7px', borderRadius: 8, border: 'none', background: 'var(--tg-theme-button-color)', color: 'var(--tg-theme-button-text-color)', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: sendingReply ? 0.6 : 1 }}
+                        onClick={() => handleReply(review.id)}
+                        disabled={sendingReply}
+                      >
+                        {sendingReply ? 'Сохраняем…' : 'Сохранить'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Customer: report button */}
+                {!isOwnProfile && (
+                  <button
+                    style={{ marginTop: 8, fontSize: 11, color: 'var(--tg-theme-hint-color)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    onClick={() => handleReport(review.id)}
+                  >
+                    Пожаловаться
+                  </button>
+                )}
               </div>
             ))}
           </div>

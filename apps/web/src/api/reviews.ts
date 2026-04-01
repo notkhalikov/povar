@@ -14,3 +14,14 @@ export function createReview(input: CreateReviewInput): Promise<ReviewItem> {
     body: JSON.stringify(input),
   })
 }
+
+export function replyToReview(reviewId: number, reply: string): Promise<ReviewItem> {
+  return apiFetch<ReviewItem>(`/reviews/${reviewId}/reply`, {
+    method: 'PATCH',
+    body: JSON.stringify({ reply }),
+  })
+}
+
+export function reportReview(reviewId: number): Promise<void> {
+  return apiFetch<void>(`/reviews/${reviewId}/report`, { method: 'POST' })
+}

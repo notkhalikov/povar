@@ -224,6 +224,36 @@ export async function notifyNewResponse(
 }
 
 /**
+ * Auto-complete an order 24 h after payment if no dispute has been opened.
+ * Calls `completeOrder()` which should update the DB status and ordersCount.
+ * Fires only if `hasDispute()` returns false at the time of the check.
+ */
+export function scheduleAutoComplete(
+  order: NotifyOrder,
+  customerTelegramId: number,
+  chefTelegramId: number,
+  hasDispute: () => Promise<boolean>,
+  completeOrder: () => Promise<void>,
+  delayMs = 24 * 60 * 60 * 1000,
+): void {
+  setTimeout(async () => {
+    try {
+      if (await hasDispute()) return
+      await completeOrder()
+      const text =
+        `✅ <b>Заказ #${order.id} автоматически завершён.</b>\n` +
+        `Спор не был открыт в течение 24 часов после оплаты.`
+      await Promise.allSettled([
+        sendMessage(customerTelegramId, text, orderKeyboard(order.id)),
+        sendMessage(chefTelegramId, text, orderKeyboard(order.id)),
+      ])
+    } catch (err) {
+      console.error('auto-complete failed', err)
+    }
+  }, delayMs)
+}
+
+/**
  * Remind the customer to leave a review 2 hours after order completion.
  * Fires only if `hasReview()` returns false at the time of the reminder.
  */

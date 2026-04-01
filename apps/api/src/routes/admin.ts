@@ -85,13 +85,16 @@ export default async function adminRoutes(app: FastifyInstance) {
 
     const rows = await app.db
       .select({
-        id:         users.id,
-        telegramId: users.telegramId,
-        name:       users.name,
-        role:       users.role,
-        status:     users.status,
-        city:       users.city,
-        createdAt:  users.createdAt,
+        id:          users.id,
+        telegramId:  users.telegramId,
+        name:        users.name,
+        role:        users.role,
+        status:      users.status,
+        city:        users.city,
+        utmSource:   users.utmSource,
+        utmMedium:   users.utmMedium,
+        utmCampaign: users.utmCampaign,
+        createdAt:   users.createdAt,
       })
       .from(users)
       .where(conditions.length ? and(...conditions) : undefined)
@@ -345,6 +348,9 @@ export default async function adminRoutes(app: FastifyInstance) {
         rating:      reviews.rating,
         tagsQuality: reviews.tagsQuality,
         text:        reviews.text,
+        chefReply:   reviews.chefReply,
+        isHidden:    reviews.isHidden,
+        reportCount: reviews.reportCount,
         createdAt:   reviews.createdAt,
         authorName:  authorUser.name,
       })
@@ -355,6 +361,44 @@ export default async function adminRoutes(app: FastifyInstance) {
       .offset(offset)
 
     return { data: rows, limit, offset }
+  })
+
+  /**
+   * PATCH /admin/reviews/:id/hide
+   * Admin/support. Toggles isHidden on a review.
+   */
+  app.patch<{ Params: { id: number }; Body: { hidden: boolean } }>('/admin/reviews/:id/hide', {
+    onRequest: [app.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer' } },
+      },
+      body: {
+        type: 'object',
+        required: ['hidden'],
+        additionalProperties: false,
+        properties: {
+          hidden: { type: 'boolean' },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    if (!isAdminOrSupport(request.user.role)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+    const { id } = request.params
+    const { hidden } = request.body
+
+    const [updated] = await app.db
+      .update(reviews)
+      .set({ isHidden: hidden })
+      .where(eq(reviews.id, id))
+      .returning()
+
+    if (!updated) return reply.code(404).send({ error: 'Review not found' })
+    return updated
   })
 
   /**

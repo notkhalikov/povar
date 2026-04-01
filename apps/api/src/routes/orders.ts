@@ -10,7 +10,6 @@ import {
   scheduleReviewReminder,
   statusNotifyText,
 } from '../services/notify.js'
-import { reviews } from '../db/schema.js'
 import type { OrderStatus, ProductsBuyer, WorkFormat } from '../types/index.js'
 
 interface CreateOrderBody {
@@ -29,6 +28,17 @@ interface CreateOrderBody {
 
 interface PatchStatusBody {
   status: OrderStatus
+}
+
+interface PatchOrderBody {
+  scheduledAt?:   string
+  address?:       string
+  district?:      string
+  persons?:       number
+  description?:   string
+  agreedPrice?:   number
+  productsBuyer?: ProductsBuyer
+  productsBudget?: number
 }
 
 export default async function ordersRoutes(app: FastifyInstance) {
@@ -187,6 +197,67 @@ export default async function ordersRoutes(app: FastifyInstance) {
 
     if (!row) return reply.code(404).send({ error: 'Order not found' })
     return row
+  })
+
+  // ─── PATCH /orders/:id ───────────────────────────────────────────────────────
+  // Authenticated (customer). Edits mutable fields while order is awaiting_payment.
+
+  app.patch<{ Params: { id: number }; Body: PatchOrderBody }>('/orders/:id', {
+    onRequest: [app.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer' } },
+      },
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          scheduledAt:    { type: 'string' },
+          address:        { type: 'string' },
+          district:       { type: 'string' },
+          persons:        { type: 'integer', minimum: 1, maximum: 50 },
+          description:    { type: 'string', maxLength: 2000 },
+          agreedPrice:    { type: 'number', minimum: 0 },
+          productsBuyer:  { type: 'string', enum: ['customer', 'chef'] },
+          productsBudget: { type: 'number', minimum: 0 },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.user.sub
+    const { id } = request.params
+    const body = request.body
+
+    const [order] = await app.db
+      .select()
+      .from(orders)
+      .where(and(eq(orders.id, id), eq(orders.customerId, userId)))
+      .limit(1)
+
+    if (!order) return reply.code(404).send({ error: 'Order not found' })
+    if (order.status !== 'awaiting_payment') {
+      return reply.code(422).send({ error: 'Order can only be edited in awaiting_payment status' })
+    }
+
+    const updates: Record<string, unknown> = { updatedAt: new Date() }
+    if (body.scheduledAt   !== undefined) updates.scheduledAt   = new Date(body.scheduledAt)
+    if (body.address       !== undefined) updates.address       = body.address
+    if (body.district      !== undefined) updates.district      = body.district
+    if (body.persons       !== undefined) updates.persons       = body.persons
+    if (body.description   !== undefined) updates.description   = body.description
+    if (body.agreedPrice   !== undefined) updates.agreedPrice   = String(body.agreedPrice)
+    if (body.productsBuyer !== undefined) updates.productsBuyer = body.productsBuyer
+    if (body.productsBudget !== undefined) updates.productsBudget = String(body.productsBudget)
+
+    const [updated] = await app.db
+      .update(orders)
+      .set(updates)
+      .where(eq(orders.id, id))
+      .returning()
+
+    return updated
   })
 
   // ─── POST /orders/:id/invoice ────────────────────────────────────────────────

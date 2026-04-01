@@ -11,12 +11,23 @@ const FORMATS = [
   { value: 'delivery', label: 'Доставка' },
 ] as const
 
+const DEFAULT_QUERY: ChefsQuery = { sort: 'rating' }
+
 export default function CatalogPage() {
   const [chefs, setChefs] = useState<ChefListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [query, setQuery] = useState<ChefsQuery>({ sort: 'rating' })
+  const [query, setQuery] = useState<ChefsQuery>(DEFAULT_QUERY)
   const [cuisineInput, setCuisineInput] = useState('')
+
+  const hasActiveFilters = Boolean(
+    query.city || query.format || query.cuisine || query.minRating
+  )
+
+  function resetFilters() {
+    setQuery(DEFAULT_QUERY)
+    setCuisineInput('')
+  }
 
   // Debounce cuisine input → query
   useEffect(() => {
@@ -89,6 +100,31 @@ export default function CatalogPage() {
             <option value='rating'>По рейтингу</option>
             <option value='price'>По цене</option>
           </select>
+        </div>
+
+        {/* Row 3: minRating + reset */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <select
+            value={query.minRating ?? ''}
+            onChange={e =>
+              setQuery(q => ({ ...q, minRating: e.target.value ? Number(e.target.value) : undefined }))
+            }
+            style={{ ...selectStyle, flex: 1 }}
+          >
+            <option value=''>Любой рейтинг</option>
+            <option value='3'>от 3 ★</option>
+            <option value='4'>от 4 ★</option>
+            <option value='4.5'>от 4.5 ★</option>
+          </select>
+
+          {hasActiveFilters && (
+            <button
+              onClick={resetFilters}
+              style={resetBtnStyle}
+            >
+              Сбросить
+            </button>
+          )}
         </div>
       </div>
 
@@ -205,4 +241,15 @@ const formatTagStyle: React.CSSProperties = {
   background: 'var(--tg-theme-bg-color)',
   color: 'var(--tg-theme-text-color)',
   border: '1px solid var(--tg-theme-hint-color)',
+}
+
+const resetBtnStyle: React.CSSProperties = {
+  padding: '8px 14px',
+  borderRadius: 10,
+  border: '1px solid var(--tg-theme-hint-color)',
+  background: 'transparent',
+  color: 'var(--tg-theme-hint-color)',
+  fontSize: 13,
+  cursor: 'pointer',
+  whiteSpace: 'nowrap',
 }

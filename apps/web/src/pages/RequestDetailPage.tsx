@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { getRequest, acceptResponse, closeRequest } from '../api/requests'
 import { useAuth } from '../context/AuthContext'
@@ -153,7 +153,12 @@ function ResponseCard({
     <div style={responseCardStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <div>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>{response.chefName}</div>
+          <Link
+            to={`/chefs/${response.chefProfileId}`}
+            style={{ fontWeight: 600, fontSize: 15, color: 'var(--tg-theme-text-color)', textDecoration: 'none' }}
+          >
+            {response.chefName} →
+          </Link>
           <div style={{ fontSize: 13, color: '#f5a623', marginTop: 2 }}>
             {'★'.repeat(Math.round(rating))}{'☆'.repeat(5 - Math.round(rating))}
             <span style={{ color: 'var(--tg-theme-hint-color)', marginLeft: 4 }}>
@@ -162,6 +167,7 @@ function ResponseCard({
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+
           {response.proposedPrice && (
             <span style={{ fontWeight: 700, fontSize: 16 }}>{response.proposedPrice} ₾</span>
           )}

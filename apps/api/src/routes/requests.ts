@@ -87,13 +87,14 @@ export default async function requestsRoutes(app: FastifyInstance) {
         .select({
           city:        users.city,
           workFormats: chefProfiles.workFormats,
+          isActive:    chefProfiles.isActive,
         })
         .from(chefProfiles)
         .innerJoin(users, eq(users.id, chefProfiles.userId))
         .where(eq(chefProfiles.userId, userId))
         .limit(1)
 
-      if (!profile) return { data: [] }
+      if (!profile || !profile.isActive) return { data: [] }
 
       const rows = await app.db
         .select({
@@ -109,6 +110,10 @@ export default async function requestsRoutes(app: FastifyInstance) {
           createdAt:   requests.createdAt,
           responseCount: sql<number>`(
             SELECT count(*)::int FROM chef_responses r WHERE r.request_id = ${requests.id}
+          )`,
+          hasResponded: sql<boolean>`EXISTS(
+            SELECT 1 FROM chef_responses r
+            WHERE r.request_id = ${requests.id} AND r.chef_id = ${userId}
           )`,
         })
         .from(requests)
@@ -182,14 +187,15 @@ export default async function requestsRoutes(app: FastifyInstance) {
 
     const responses = await app.db
       .select({
-        id:            chefResponses.id,
-        chefId:        chefResponses.chefId,
-        proposedPrice: chefResponses.proposedPrice,
-        comment:       chefResponses.comment,
-        status:        chefResponses.status,
-        createdAt:     chefResponses.createdAt,
-        chefName:      users.name,
-        ratingCache:   chefProfiles.ratingCache,
+        id:              chefResponses.id,
+        chefId:          chefResponses.chefId,
+        chefProfileId:   chefProfiles.id,
+        proposedPrice:   chefResponses.proposedPrice,
+        comment:         chefResponses.comment,
+        status:          chefResponses.status,
+        createdAt:       chefResponses.createdAt,
+        chefName:        users.name,
+        ratingCache:     chefProfiles.ratingCache,
       })
       .from(chefResponses)
       .innerJoin(users, eq(users.id, chefResponses.chefId))
@@ -228,6 +234,17 @@ export default async function requestsRoutes(app: FastifyInstance) {
 
     if (role !== 'chef') {
       return reply.code(403).send({ error: 'Only chefs can respond to requests' })
+    }
+
+    // Block inactive chefs from responding
+    const [chefProfile] = await app.db
+      .select({ isActive: chefProfiles.isActive })
+      .from(chefProfiles)
+      .where(eq(chefProfiles.userId, chefId))
+      .limit(1)
+
+    if (!chefProfile?.isActive) {
+      return reply.code(422).send({ error: 'Your profile is currently inactive' })
     }
 
     const [req] = await app.db
