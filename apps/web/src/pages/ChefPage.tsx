@@ -4,31 +4,46 @@ import WebApp from '@twa-dev/sdk'
 import { getChef, getChefReviews, chefPhotoUrl } from '../api/chefs'
 import { reportReview, replyToReview } from '../api/reviews'
 import { useAuth } from '../context/AuthContext'
+import { StarRating } from '../components/StarRating'
 import type { ChefProfile, ReviewItem } from '../types'
+
+const AVATAR_COLORS = [
+  '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+  '#C89FE0', '#F4A261', '#52B788', '#E76F51',
+]
+function avatarColor(name: string): string {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h << 5) - h + name.charCodeAt(i)
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]
+}
+function initials(name: string): string {
+  return name.split(' ').map(w => w[0] ?? '').slice(0, 2).join('').toUpperCase() || '?'
+}
+function plural(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10, mod100 = n % 100
+  if (mod10 === 1 && mod100 !== 11) return one
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few
+  return many
+}
 
 export default function ChefPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [chef, setChef] = useState<ChefProfile | null>(null)
+  const [chef, setChef]       = useState<ChefProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError]     = useState<string | null>(null)
   const [reviews, setReviews] = useState<ReviewItem[]>([])
-  const [replyingTo, setReplyingTo] = useState<number | null>(null)
-  const [replyText, setReplyText] = useState('')
+  const [replyingTo, setReplyingTo]   = useState<number | null>(null)
+  const [replyText, setReplyText]     = useState('')
   const [sendingReply, setSendingReply] = useState(false)
 
-  // Stable callback ref so offClick can remove the correct listener
   const goBack = useCallback(() => navigate(-1), [navigate])
 
-  // Telegram BackButton
   useEffect(() => {
     WebApp.BackButton.show()
     WebApp.BackButton.onClick(goBack)
-    return () => {
-      WebApp.BackButton.hide()
-      WebApp.BackButton.offClick(goBack)
-    }
+    return () => { WebApp.BackButton.hide(); WebApp.BackButton.offClick(goBack) }
   }, [goBack])
 
   useEffect(() => {
@@ -39,16 +54,14 @@ export default function ChefPage() {
       .finally(() => setLoading(false))
     getChefReviews(Number(id), { limit: 5 })
       .then(res => setReviews(res.data))
-      .catch(() => {}) // reviews are non-critical
+      .catch(() => {})
   }, [id])
 
   async function handleReport(reviewId: number) {
     try {
       await reportReview(reviewId)
       WebApp.showAlert('Отзыв отправлен на проверку. Спасибо!')
-    } catch {
-      WebApp.showAlert('Не удалось отправить жалобу')
-    }
+    } catch { WebApp.showAlert('Не удалось отправить жалобу') }
   }
 
   async function handleReply(reviewId: number) {
@@ -59,299 +72,283 @@ export default function ChefPage() {
       setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, chefReply: updated.chefReply } : r))
       setReplyingTo(null)
       setReplyText('')
-    } catch {
-      WebApp.showAlert('Не удалось сохранить ответ')
-    } finally {
-      setSendingReply(false)
-    }
+    } catch { WebApp.showAlert('Не удалось сохранить ответ') }
+    finally { setSendingReply(false) }
   }
 
-  if (loading) {
-    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>Загрузка…</div>
-  }
-  if (error) {
-    return <div style={{ padding: 24, color: 'red' }}>Ошибка: {error}</div>
-  }
+  if (loading) return (
+    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '24px 0' }}>
+        <div className='sk' style={{ width: 88, height: 88, borderRadius: 44 }} />
+        <div className='sk' style={{ height: 22, width: 160, borderRadius: 8 }} />
+        <div className='sk' style={{ height: 16, width: 100, borderRadius: 8 }} />
+      </div>
+    </div>
+  )
+  if (error) return <div style={{ padding: 24, color: 'var(--color-danger)' }}>Ошибка: {error}</div>
   if (!chef) return null
 
   const rating = Number(chef.ratingCache)
   const isOwnProfile = user?.id === chef.userId
 
-  return (
-    <div style={{ padding: '12px 16px', paddingBottom: 80 }}>
+  // Badges
+  const badges: { label: string; color: string; bg: string }[] = []
+  if (chef.verificationStatus === 'approved') badges.push({ label: '✓ Проверен', color: '#34c759', bg: '#34c75922' })
+  if (rating >= 4.5 && chef.ordersCount >= 10)  badges.push({ label: '🏆 Топ', color: '#f5a623', bg: '#f5a62322' })
+  if (chef.ordersCount < 5)                      badges.push({ label: '🆕 Новый', color: '#007aff', bg: '#007aff22' })
 
-      {/* Header */}
-      <div style={{ marginBottom: 20 }}>
-        <h2 style={{ margin: '0 0 4px', fontSize: 22 }}>{chef.name}</h2>
+  return (
+    <div style={{ paddingBottom: 88 }}>
+
+      {/* ── Hero ─────────────────────────────────────────────────── */}
+      <div className='chef-hero' style={{ background: 'var(--tg-theme-secondary-bg-color)' }}>
+        <div className='chef-avatar-lg' style={{ background: avatarColor(chef.name) }}>
+          {chef.portfolioMediaIds.length > 0
+            ? <img src={chefPhotoUrl(chef.id, chef.portfolioMediaIds[0])} alt={chef.name}
+                style={{ width: '100%', height: '100%', borderRadius: 44, objectFit: 'cover' }} />
+            : initials(chef.name)
+          }
+        </div>
+
+        <h1 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 700 }}>{chef.name}</h1>
+
         {chef.city && (
-          <div style={{ fontSize: 14, color: 'var(--tg-theme-hint-color)' }}>
+          <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginBottom: 10 }}>
             📍 {chef.city}
           </div>
         )}
-        <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 14 }}>
-          <span>★ {rating > 0 ? rating.toFixed(1) : '—'}</span>
-          <span style={{ color: 'var(--tg-theme-hint-color)' }}>
-            {chef.ordersCount} {plural(chef.ordersCount, 'заказ', 'заказа', 'заказов')}
+
+        {/* Rating row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <StarRating value={Math.round(rating)} size={20} />
+          <span style={{ fontSize: 18, fontWeight: 700 }}>
+            {rating > 0 ? rating.toFixed(1) : '—'}
+          </span>
+          <span style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)' }}>
+            · {chef.ordersCount} {plural(chef.ordersCount, 'заказ', 'заказа', 'заказов')}
           </span>
         </div>
-      </div>
 
-      {/* Bio */}
-      {chef.bio && (
-        <section style={sectionStyle}>
-          <p style={{ margin: 0, lineHeight: 1.6, fontSize: 15 }}>{chef.bio}</p>
-        </section>
-      )}
-
-      {/* Cuisine tags */}
-      {chef.cuisineTags.length > 0 && (
-        <section style={sectionStyle}>
-          <SectionLabel>Кухня</SectionLabel>
-          <div style={tagsRow}>
-            {chef.cuisineTags.map(tag => (
-              <span key={tag} style={cuisineTagStyle}>{tag}</span>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Work formats */}
-      {chef.workFormats.length > 0 && (
-        <section style={sectionStyle}>
-          <SectionLabel>Формат работы</SectionLabel>
-          <div style={tagsRow}>
-            {chef.workFormats.map(f => (
-              <span key={f} style={formatTagStyle}>
-                {f === 'home_visit' ? '🏠 Повар на дом' : '🚚 Доставка'}
+        {/* Badges */}
+        {badges.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {badges.map(b => (
+              <span key={b.label} style={{
+                padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                background: b.bg, color: b.color,
+              }}>
+                {b.label}
               </span>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </div>
 
-      {/* Districts */}
-      {chef.districts.length > 0 && (
-        <section style={sectionStyle}>
-          <SectionLabel>Районы</SectionLabel>
-          <div style={{ fontSize: 14, color: 'var(--tg-theme-hint-color)' }}>
-            {chef.districts.join(', ')}
-          </div>
-        </section>
-      )}
+      <div style={{ padding: '16px 16px 0' }}>
 
-      {/* Average price */}
-      {chef.avgPrice && (
-        <section style={sectionStyle}>
-          <SectionLabel>Средний чек</SectionLabel>
-          <div style={{ fontSize: 20, fontWeight: 600 }}>от {chef.avgPrice} ₾</div>
-        </section>
-      )}
+        {/* ── Portfolio horizontal scroll ───────────────────────── */}
+        {chef.portfolioMediaIds.length > 0 && (
+          <section style={{ marginBottom: 24 }}>
+            <div className='section-label'>Портфолио</div>
+            <div style={{
+              display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
+              WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none',
+            }}>
+              {chef.portfolioMediaIds.map(fileId => (
+                <img
+                  key={fileId}
+                  src={chefPhotoUrl(chef.id, fileId)}
+                  alt='portfolio'
+                  style={{
+                    width: 140, height: 140, borderRadius: 12,
+                    objectFit: 'cover', flexShrink: 0,
+                  }}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
-      {/* Portfolio */}
-      {chef.portfolioMediaIds.length > 0 && (
-        <section style={sectionStyle}>
-          <SectionLabel>Портфолио</SectionLabel>
-          <div style={portfolioScrollStyle}>
-            {chef.portfolioMediaIds.map(fileId => (
-              <img
-                key={fileId}
-                src={chefPhotoUrl(chef.id, fileId)}
-                alt='portfolio'
-                style={portfolioImgStyle}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+        {/* ── Bio ──────────────────────────────────────────────────── */}
+        {chef.bio && (
+          <section className='card' style={{ marginBottom: 12 }}>
+            <div className='section-label'>О себе</div>
+            <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: 'var(--tg-theme-text-color)' }}>
+              {chef.bio}
+            </p>
+          </section>
+        )}
 
-      {/* Reviews */}
-      {reviews.length > 0 && (
-        <section style={sectionStyle}>
-          <SectionLabel>Отзывы</SectionLabel>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {reviews.map(review => (
-              <div key={review.id} style={reviewCardStyle}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontWeight: 600, fontSize: 14 }}>{review.authorName}</span>
-                  <span style={{ color: '#f5a623', fontSize: 14 }}>
-                    {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
-                  </span>
+        {/* ── Cuisine tags ──────────────────────────────────────── */}
+        {chef.cuisineTags.length > 0 && (
+          <section className='card' style={{ marginBottom: 12 }}>
+            <div className='section-label'>Кухня</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {chef.cuisineTags.map(tag => (
+                <span key={tag} className='tag-cuisine'>{tag}</span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Work formats ─────────────────────────────────────── */}
+        {chef.workFormats.length > 0 && (
+          <section className='card' style={{ marginBottom: 12 }}>
+            <div className='section-label'>Формат работы</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {chef.workFormats.map(f => (
+                <div key={f} style={{
+                  padding: '10px 14px', borderRadius: 10,
+                  background: 'var(--tg-theme-bg-color)',
+                  fontSize: 14, fontWeight: 500,
+                }}>
+                  {f === 'home_visit' ? '🏠 Повар на дом' : '🚚 Доставка'}
                 </div>
-                {review.tagsQuality.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
-                    {review.tagsQuality.map(tag => (
-                      <span key={tag} style={reviewTagStyle}>{tag}</span>
-                    ))}
-                  </div>
-                )}
-                {review.text && (
-                  <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'var(--tg-theme-text-color)' }}>
-                    {review.text}
-                  </p>
-                )}
-                <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)', marginTop: 6 }}>
-                  {new Date(review.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
-                {/* Chef reply */}
-                {review.chefReply && (
-                  <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--tg-theme-bg-color)', fontSize: 13 }}>
-                    <span style={{ fontWeight: 600, color: 'var(--tg-theme-hint-color)' }}>Ответ повара: </span>
-                    {review.chefReply}
-                  </div>
-                )}
+        {/* ── Districts ────────────────────────────────────────── */}
+        {chef.districts.length > 0 && (
+          <section className='card' style={{ marginBottom: 12 }}>
+            <div className='section-label'>Районы</div>
+            <div style={{ fontSize: 14, color: 'var(--tg-theme-text-color)', lineHeight: 1.6 }}>
+              {chef.districts.join(', ')}
+            </div>
+          </section>
+        )}
 
-                {/* Chef: inline reply form */}
-                {isOwnProfile && !review.chefReply && replyingTo !== review.id && (
-                  <button
-                    style={{ marginTop: 8, fontSize: 12, color: 'var(--tg-theme-link-color)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                    onClick={() => { setReplyingTo(review.id); setReplyText('') }}
-                  >
-                    Ответить
-                  </button>
-                )}
-                {isOwnProfile && replyingTo === review.id && (
-                  <div style={{ marginTop: 8 }}>
-                    <textarea
-                      value={replyText}
-                      onChange={e => setReplyText(e.target.value)}
-                      placeholder='Ваш ответ на отзыв…'
-                      rows={2}
-                      maxLength={2000}
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--tg-theme-hint-color)', background: 'var(--tg-theme-secondary-bg-color)', color: 'var(--tg-theme-text-color)', fontSize: 13, boxSizing: 'border-box', resize: 'vertical' }}
-                    />
-                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                      <button
-                        style={{ flex: 1, padding: '7px', borderRadius: 8, border: '1px solid var(--tg-theme-hint-color)', background: 'transparent', color: 'var(--tg-theme-text-color)', fontSize: 13, cursor: 'pointer' }}
-                        onClick={() => setReplyingTo(null)}
-                        disabled={sendingReply}
-                      >
-                        Отмена
-                      </button>
-                      <button
-                        style={{ flex: 2, padding: '7px', borderRadius: 8, border: 'none', background: 'var(--tg-theme-button-color)', color: 'var(--tg-theme-button-text-color)', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: sendingReply ? 0.6 : 1 }}
-                        onClick={() => handleReply(review.id)}
-                        disabled={sendingReply}
-                      >
-                        {sendingReply ? 'Сохраняем…' : 'Сохранить'}
-                      </button>
+        {/* ── Avg price ────────────────────────────────────────── */}
+        {chef.avgPrice && (
+          <section className='card' style={{ marginBottom: 12 }}>
+            <div className='section-label'>Средний чек</div>
+            <div style={{ fontSize: 24, fontWeight: 700 }}>от {chef.avgPrice} ₾</div>
+          </section>
+        )}
+
+        {/* ── Reviews ──────────────────────────────────────────── */}
+        {reviews.length > 0 && (
+          <section style={{ marginBottom: 12 }}>
+            <div className='section-label'>Отзывы ({reviews.length})</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {reviews.map(review => (
+                <div key={review.id} className='card'>
+                  {/* Author + stars */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{review.authorName}</span>
+                    <StarRating value={review.rating} size={14} />
+                  </div>
+
+                  {/* Quality tags */}
+                  {review.tagsQuality.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+                      {review.tagsQuality.map(tag => (
+                        <span key={tag} style={{
+                          padding: '2px 8px', borderRadius: 10, fontSize: 11,
+                          background: 'var(--tg-theme-bg-color)',
+                          color: 'var(--tg-theme-hint-color)',
+                        }}>
+                          {tag}
+                        </span>
+                      ))}
                     </div>
+                  )}
+
+                  {review.text && (
+                    <p style={{ margin: '0 0 8px', fontSize: 14, lineHeight: 1.5 }}>
+                      {review.text}
+                    </p>
+                  )}
+
+                  <div style={{ fontSize: 11, color: 'var(--tg-theme-hint-color)' }}>
+                    {new Date(review.createdAt).toLocaleDateString('ru-RU', {
+                      day: 'numeric', month: 'long', year: 'numeric',
+                    })}
                   </div>
-                )}
 
-                {/* Customer: report button */}
-                {!isOwnProfile && (
-                  <button
-                    style={{ marginTop: 8, fontSize: 11, color: 'var(--tg-theme-hint-color)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                    onClick={() => handleReport(review.id)}
-                  >
-                    Пожаловаться
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+                  {/* Chef reply */}
+                  {review.chefReply && (
+                    <div style={{
+                      marginTop: 10, padding: '8px 10px', borderRadius: 8,
+                      background: 'var(--tg-theme-bg-color)', fontSize: 13,
+                      borderLeft: '3px solid var(--tg-theme-button-color)',
+                    }}>
+                      <div style={{ fontWeight: 600, fontSize: 11, color: 'var(--tg-theme-hint-color)', marginBottom: 4 }}>
+                        Ответ повара
+                      </div>
+                      {review.chefReply}
+                    </div>
+                  )}
 
-      {/* Order CTA — Stage 2 */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px 16px', background: 'var(--tg-theme-bg-color)', borderTop: '1px solid var(--tg-theme-hint-color)' }}>
+                  {/* Reply button (own profile, no reply yet) */}
+                  {isOwnProfile && !review.chefReply && replyingTo !== review.id && (
+                    <button
+                      style={{
+                        marginTop: 8, fontSize: 12, color: 'var(--tg-theme-button-color)',
+                        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                        minHeight: 44, display: 'flex', alignItems: 'center',
+                      }}
+                      onClick={() => { setReplyingTo(review.id); setReplyText('') }}
+                    >
+                      Ответить на отзыв
+                    </button>
+                  )}
+
+                  {/* Inline reply form */}
+                  {isOwnProfile && replyingTo === review.id && (
+                    <div style={{ marginTop: 10 }}>
+                      <textarea
+                        className='field-input'
+                        value={replyText}
+                        onChange={e => setReplyText(e.target.value)}
+                        placeholder='Ваш ответ…'
+                        rows={2}
+                        maxLength={2000}
+                        style={{ resize: 'vertical', marginBottom: 8 }}
+                      />
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button className='btn-secondary' style={{ flex: 1, padding: '9px' }}
+                          onClick={() => setReplyingTo(null)} disabled={sendingReply}>
+                          Отмена
+                        </button>
+                        <button className='btn-primary' style={{ flex: 2, padding: '9px', opacity: sendingReply ? .6 : 1 }}
+                          onClick={() => handleReply(review.id)} disabled={sendingReply}>
+                          {sendingReply ? 'Сохраняем…' : 'Сохранить'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Report */}
+                  {!isOwnProfile && (
+                    <button
+                      style={{
+                        marginTop: 6, fontSize: 11, color: 'var(--tg-theme-hint-color)',
+                        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                        minHeight: 44, display: 'flex', alignItems: 'center',
+                      }}
+                      onClick={() => handleReport(review.id)}
+                    >
+                      Пожаловаться
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* ── Sticky order button ───────────────────────────────────── */}
+      <div className='action-bar'>
         <button
-          style={buttonStyle}
+          className='btn-primary'
           onClick={() => navigate(`/orders/new?chefId=${chef.id}`)}
         >
-          Заказать
+          Заказать у {chef.name.split(' ')[0]}
         </button>
       </div>
     </div>
   )
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 13, color: 'var(--tg-theme-hint-color)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-      {children}
-    </div>
-  )
-}
-
-function plural(n: number, one: string, few: string, many: string) {
-  const mod10 = n % 10
-  const mod100 = n % 100
-  if (mod10 === 1 && mod100 !== 11) return one
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few
-  return many
-}
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const sectionStyle: React.CSSProperties = {
-  marginBottom: 20,
-}
-
-const tagsRow: React.CSSProperties = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: 8,
-}
-
-const cuisineTagStyle: React.CSSProperties = {
-  padding: '5px 12px',
-  borderRadius: 20,
-  fontSize: 13,
-  background: 'var(--tg-theme-button-color)',
-  color: 'var(--tg-theme-button-text-color)',
-}
-
-const formatTagStyle: React.CSSProperties = {
-  padding: '5px 12px',
-  borderRadius: 20,
-  fontSize: 13,
-  background: 'var(--tg-theme-secondary-bg-color)',
-  color: 'var(--tg-theme-text-color)',
-  border: '1px solid var(--tg-theme-hint-color)',
-}
-
-const buttonStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '14px',
-  borderRadius: 12,
-  border: 'none',
-  background: 'var(--tg-theme-button-color)',
-  color: 'var(--tg-theme-button-text-color)',
-  fontSize: 16,
-  fontWeight: 600,
-  cursor: 'pointer',
-}
-
-const reviewCardStyle: React.CSSProperties = {
-  padding: '14px',
-  borderRadius: 12,
-  background: 'var(--tg-theme-secondary-bg-color)',
-}
-
-const reviewTagStyle: React.CSSProperties = {
-  padding: '2px 8px',
-  borderRadius: 10,
-  fontSize: 12,
-  background: 'var(--tg-theme-hint-color)22',
-  color: 'var(--tg-theme-hint-color)',
-}
-
-const portfolioScrollStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: 10,
-  overflowX: 'auto',
-  paddingBottom: 4,
-  scrollbarWidth: 'none',
-}
-
-const portfolioImgStyle: React.CSSProperties = {
-  flexShrink: 0,
-  width: 140,
-  height: 140,
-  objectFit: 'cover',
-  borderRadius: 12,
 }

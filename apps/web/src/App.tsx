@@ -98,8 +98,8 @@ function NavItem({ to, icon, label }: { to: string; icon: string; label: string 
           : 'var(--tg-theme-hint-color)',
       })}
     >
-      <span style={{ fontSize: 22 }}>{icon}</span>
-      <span style={{ fontSize: 11 }}>{label}</span>
+      <span style={{ fontSize: 24, lineHeight: 1 }}>{icon}</span>
+      <span style={{ fontSize: 10, fontWeight: 500 }}>{label}</span>
     </NavLink>
   )
 }
@@ -112,8 +112,9 @@ const navStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-around',
   background: 'var(--tg-theme-bg-color)',
-  borderTop: '1px solid var(--tg-theme-hint-color)',
-  padding: '8px 0 max(8px, env(safe-area-inset-bottom))',
+  borderTop: '1px solid color-mix(in srgb, var(--tg-theme-hint-color) 25%, transparent)',
+  padding: '6px 0 max(10px, env(safe-area-inset-bottom))',
+  zIndex: 100,
 }
 
 const navItemStyle: React.CSSProperties = {
@@ -122,5 +123,7 @@ const navItemStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: 2,
   textDecoration: 'none',
-  minWidth: 52,
+  minWidth: 60,
+  minHeight: 44,
+  justifyContent: 'center',
 }
