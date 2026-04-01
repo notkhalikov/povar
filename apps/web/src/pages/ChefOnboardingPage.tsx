@@ -119,7 +119,7 @@ export default function ChefOnboardingPage() {
   }
 
   return (
-    <div style={{ padding: '24px 16px', paddingBottom: 80 }}>
+    <div style={{ padding: '24px 16px', paddingBottom: 'calc(72px + env(safe-area-inset-bottom))' }}>
       <h2 style={{ margin: '0 0 6px' }}>Анкета повара</h2>
       <p style={{ margin: '0 0 24px', color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>
         Заполните профиль, чтобы заказчики могли вас найти

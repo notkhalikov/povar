@@ -85,7 +85,7 @@ export default function App() {
           <DeepLinkRedirect />
           <OfflineToast />
           <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <main style={{ flex: 1, paddingBottom: 60 }}>
+            <main style={{ flex: 1, paddingBottom: 'calc(60px + env(safe-area-inset-bottom))' }}>
               <Routes>
                 <Route path='/'                element={<CatalogPage />} />
                 <Route path='/chefs/:id'       element={<ChefPage />} />
