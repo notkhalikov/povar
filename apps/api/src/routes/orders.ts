@@ -71,6 +71,20 @@ export default async function ordersRoutes(app: FastifyInstance) {
     const customerId = request.user.sub
     const body = request.body
 
+    // Validate scheduledAt is not in the past
+    const scheduledDate = new Date(body.scheduledAt)
+    if (isNaN(scheduledDate.getTime())) {
+      return reply.code(400).send({ error: 'Invalid scheduledAt date', code: 'INVALID_DATE' })
+    }
+    if (scheduledDate <= new Date()) {
+      return reply.code(422).send({ error: 'scheduledAt must be in the future', code: 'DATE_IN_PAST' })
+    }
+
+    // Validate agreedPrice
+    if (body.agreedPrice !== undefined && body.agreedPrice <= 0) {
+      return reply.code(422).send({ error: 'agreedPrice must be greater than 0', code: 'INVALID_PRICE' })
+    }
+
     // Resolve chefProfileId → chef users.id
     const [profile] = await app.db
       .select({ userId: chefProfiles.userId, isActive: chefProfiles.isActive, verificationStatus: chefProfiles.verificationStatus })
@@ -101,6 +115,8 @@ export default async function ordersRoutes(app: FastifyInstance) {
         status: 'awaiting_payment',
       })
       .returning()
+
+    app.log.info({ event: 'order_created', orderId: order.id, customerId, chefId: profile.userId, amount: body.agreedPrice })
 
     // Notify chef about the new order (fire-and-forget)
     const participants = await app.db
@@ -239,6 +255,20 @@ export default async function ordersRoutes(app: FastifyInstance) {
     if (!order) return reply.code(404).send({ error: 'Order not found' })
     if (order.status !== 'awaiting_payment') {
       return reply.code(422).send({ error: 'Order can only be edited in awaiting_payment status' })
+    }
+
+    if (body.scheduledAt !== undefined) {
+      const scheduledDate = new Date(body.scheduledAt)
+      if (isNaN(scheduledDate.getTime())) {
+        return reply.code(400).send({ error: 'Invalid scheduledAt date', code: 'INVALID_DATE' })
+      }
+      if (scheduledDate <= new Date()) {
+        return reply.code(422).send({ error: 'scheduledAt must be in the future', code: 'DATE_IN_PAST' })
+      }
+    }
+
+    if (body.agreedPrice !== undefined && body.agreedPrice <= 0) {
+      return reply.code(422).send({ error: 'agreedPrice must be greater than 0', code: 'INVALID_PRICE' })
     }
 
     const updates: Record<string, unknown> = { updatedAt: new Date() }

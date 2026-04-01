@@ -1,5 +1,9 @@
 import 'dotenv/config'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import Fastify from 'fastify'
+import rateLimit from '@fastify/rate-limit'
+import * as Sentry from '@sentry/node'
 
 import corsPlugin from './plugins/cors.js'
 import dbPlugin from './plugins/db.js'
@@ -23,10 +27,63 @@ for (const key of REQUIRED_ENV) {
   }
 }
 
+// ─── Sentry ───────────────────────────────────────────────────────────────────
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({ dsn: process.env.SENTRY_DSN })
+}
+
+// ─── App version ─────────────────────────────────────────────────────────────
+
+// __dirname is a CJS global (module: "commonjs")
+const { version: APP_VERSION } = JSON.parse(
+  readFileSync(join(__dirname, '../../package.json'), 'utf-8'),
+) as { version: string }
+
+// ─── In-memory request counter (rolling 1-hour window) ───────────────────────
+
+const REQUEST_WINDOW_MS = 60 * 60 * 1000 // 1 hour
+const requestTimestamps: number[] = []
+
+function recordRequest() {
+  const now = Date.now()
+  requestTimestamps.push(now)
+  // Evict entries older than 1 hour to keep the array bounded
+  const cutoff = now - REQUEST_WINDOW_MS
+  while (requestTimestamps.length > 0 && requestTimestamps[0] < cutoff) {
+    requestTimestamps.shift()
+  }
+}
+
 const app = Fastify({ logger: true })
+
+// ─── Global error handler ─────────────────────────────────────────────────────
+
+app.setErrorHandler((err, _request, reply) => {
+  app.log.error(err)
+
+  const status = err.statusCode ?? 500
+  const code   = err.code ?? 'INTERNAL_ERROR'
+
+  // Fastify validation errors
+  if (err.validation) {
+    return reply.code(400).send({ error: err.message, code: 'VALIDATION_ERROR' })
+  }
+
+  // Rate limit errors come with statusCode 429
+  if (status === 429) {
+    return reply.code(429).send({ error: 'Too many requests, please slow down', code: 'RATE_LIMITED' })
+  }
+
+  const message = status < 500 ? err.message : 'Internal server error'
+  return reply.code(status).send({ error: message, code })
+})
+
+// ─── Bootstrap ────────────────────────────────────────────────────────────────
 
 async function bootstrap() {
   // Plugins
+  await app.register(rateLimit, { max: 60, timeWindow: '1 minute' })
   await app.register(corsPlugin)
   await app.register(dbPlugin)
   await app.register(authPlugin)
@@ -43,6 +100,38 @@ async function bootstrap() {
   await app.register(devRoutes)
 
   app.get('/health', async () => ({ status: 'ok' }))
+
+  // ─── Metrics (Railway health check / ops dashboard) ─────────────────────────
+  app.get('/metrics', { config: { rateLimit: false } }, async () => ({
+    uptime:           process.uptime(),
+    requestsLastHour: requestTimestamps.length,
+    version:          APP_VERSION,
+  }))
+
+  // ─── Client error sink ───────────────────────────────────────────────────────
+  app.post<{ Body: { message: string; stack?: string; url?: string } }>('/client-error', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['message'],
+        additionalProperties: true,
+        properties: {
+          message: { type: 'string', maxLength: 2000 },
+          stack:   { type: 'string', maxLength: 5000 },
+          url:     { type: 'string', maxLength: 500 },
+        },
+      },
+    },
+  }, async (request) => {
+    app.log.error({ event: 'client_error', ...request.body })
+    if (process.env.SENTRY_DSN) {
+      Sentry.captureException(new Error(request.body.message))
+    }
+    return { ok: true }
+  })
+
+  // Count every request for /metrics
+  app.addHook('onRequest', async () => { recordRequest() })
 
   // Start
   try {

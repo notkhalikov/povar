@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { getOrders } from '../api/orders'
 import { StatusBadge } from '../components/StatusBadge'
 import { OrderCardSkeleton } from '../components/LoadingSkeleton'
+import { ErrorScreen } from '../components/ErrorScreen'
+import { EmptyState } from '../components/EmptyState'
 import type { Order, OrderStatus } from '../types'
 
 const ACTIVE_STATUSES: OrderStatus[] = ['draft', 'awaiting_payment', 'paid', 'in_progress', 'dispute_pending']
@@ -15,12 +17,16 @@ export default function OrdersPage() {
   const [error, setError]     = useState<string | null>(null)
   const [tab, setTab]         = useState<'active' | 'done'>('active')
 
-  useEffect(() => {
+  function load() {
+    setLoading(true)
+    setError(null)
     getOrders()
       .then(res => setOrders(res.data))
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { load() }, [])
 
   const active = orders.filter(o => ACTIVE_STATUSES.includes(o.status))
   const done   = orders.filter(o => DONE_STATUSES.includes(o.status))
@@ -60,21 +66,22 @@ export default function OrdersPage() {
         {loading && Array.from({ length: 3 }, (_, i) => <OrderCardSkeleton key={i} />)}
 
         {!loading && error && (
-          <div style={{ color: 'var(--color-danger)', fontSize: 14, padding: '8px 0' }}>Ошибка: {error}</div>
+          <ErrorScreen message={error} onRetry={load} />
         )}
 
         {!loading && !error && shown.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '48px 0' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>{tab === 'active' ? '📋' : '✅'}</div>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>
-              {tab === 'active' ? 'Активных заказов нет' : 'Завершённых заказов нет'}
-            </div>
-            {tab === 'active' && (
-              <p style={{ color: 'var(--tg-theme-hint-color)', fontSize: 14, margin: 0 }}>
-                Перейдите в каталог, чтобы найти повара
-              </p>
-            )}
-          </div>
+          tab === 'active' ? (
+            <EmptyState
+              title='У вас пока нет заказов'
+              subtitle='Найдите повара в каталоге!'
+              illustration={<div style={{ fontSize: 64 }}>📋</div>}
+            />
+          ) : (
+            <EmptyState
+              title='Завершённых заказов нет'
+              illustration={<div style={{ fontSize: 64 }}>✅</div>}
+            />
+          )
         )}
 
         {!loading && shown.map(order => (

@@ -1,0 +1,9 @@
+{
+  "name": "Повар",
+  "short_name": "Повар",
+  "description": "Домашняя еда в Тбилиси и Батуми",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff"
+}

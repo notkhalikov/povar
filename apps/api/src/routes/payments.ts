@@ -77,7 +77,7 @@ export default async function paymentsRoutes(app: FastifyInstance) {
 
     const tgJson = await tgRes.json() as { ok: boolean; result?: string; description?: string }
     if (!tgJson.ok) {
-      app.log.error({ tgJson, orderId }, 'createInvoiceLink failed')
+      app.log.error({ event: 'payment_failed', orderId, error: tgJson.description }, 'createInvoiceLink failed')
       return reply.code(502).send({ error: 'Failed to create invoice', detail: tgJson.description })
     }
 
@@ -165,7 +165,7 @@ export default async function paymentsRoutes(app: FastifyInstance) {
       .set({ status: 'paid', updatedAt: new Date() })
       .where(eq(orders.id, orderId))
 
-    app.log.info({ orderId, telegramPaymentChargeId, totalAmount, currency }, 'Payment confirmed')
+    app.log.info({ event: 'order_paid', orderId, amount: totalAmount / 100, provider: 'telegram', telegramPaymentChargeId })
 
     // Notify chef that the order is paid and they should prepare (fire-and-forget)
     const [chef] = await app.db

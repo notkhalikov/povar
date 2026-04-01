@@ -4,6 +4,8 @@ import type { ChefsQuery } from '../api/chefs'
 import type { ChefListItem } from '../types'
 import { ChefCard } from '../components/ChefCard'
 import { ChefCardSkeleton } from '../components/LoadingSkeleton'
+import { ErrorScreen } from '../components/ErrorScreen'
+import { EmptyState } from '../components/EmptyState'
 
 const CITIES = ['Тбилиси', 'Батуми']
 
@@ -49,14 +51,16 @@ export default function CatalogPage() {
     return () => clearTimeout(t)
   }, [cuisineInput])
 
-  useEffect(() => {
+  function load() {
     setLoading(true)
     setError(null)
     getChefs(query)
       .then(res => setChefs(res.data))
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [query])
+  }
+
+  useEffect(() => { load() }, [query])
 
   return (
     <div style={{ paddingBottom: 80 }}>
@@ -146,19 +150,15 @@ export default function CatalogPage() {
         {loading && Array.from({ length: 4 }, (_, i) => <ChefCardSkeleton key={i} />)}
 
         {!loading && error && (
-          <div style={{ color: 'var(--color-danger)', fontSize: 14, padding: '8px 0' }}>
-            Ошибка: {error}
-          </div>
+          <ErrorScreen message={error} onRetry={load} />
         )}
 
         {!loading && !error && chefs.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '48px 0' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🍽️</div>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>Поваров не найдено</div>
-            <div style={{ color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>
-              Попробуйте изменить фильтры
-            </div>
-          </div>
+          <EmptyState
+            title='Поваров не найдено'
+            subtitle='Поваров по вашему запросу не найдено. Попробуйте изменить фильтры'
+            illustration={<div style={{ fontSize: 64 }}>🍽️</div>}
+          />
         )}
 
         {!loading && chefs.map(chef => <ChefCard key={chef.id} chef={chef} />)}

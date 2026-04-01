@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { getOrder, createInvoice, completeOrder } from '../api/orders'
+import { ApiError } from '../api/client'
 import { createReview } from '../api/reviews'
 import { createDispute, getDisputeByOrder } from '../api/disputes'
 import { useAuth } from '../context/AuthContext'
@@ -78,9 +79,16 @@ export default function OrderDetailPage() {
   const goBack = useCallback(() => navigate('/orders'), [navigate])
 
   useEffect(() => {
-    WebApp.BackButton.show()
-    WebApp.BackButton.onClick(goBack)
-    return () => { WebApp.BackButton.hide(); WebApp.BackButton.offClick(goBack) }
+    try {
+      WebApp.BackButton.show()
+      WebApp.BackButton.onClick(goBack)
+    } catch { /* not in Telegram */ }
+    return () => {
+      try {
+        WebApp.BackButton.hide()
+        WebApp.BackButton.offClick(goBack)
+      } catch { /* not in Telegram */ }
+    }
   }, [goBack])
 
   const refresh = useCallback(async () => {
@@ -94,9 +102,15 @@ export default function OrderDetailPage() {
     if (!id) return
     getOrder(Number(id))
       .then(setOrder)
-      .catch(e => setError(e.message))
+      .catch(e => {
+        if (e instanceof ApiError && e.status === 404) {
+          navigate('/orders', { replace: true })
+        } else {
+          setError(e.message)
+        }
+      })
       .finally(() => setLoading(false))
-  }, [id])
+  }, [id, navigate])
 
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
 
@@ -118,15 +132,24 @@ export default function OrderDetailPage() {
     }, 1000)
   }
 
+  function tgAlert(msg: string) {
+    try { WebApp.showAlert(msg) } catch { alert(msg) }
+  }
+
   async function handlePay() {
     setActionLoading(true)
     try {
       const { invoiceUrl } = await createInvoice(Number(id))
-      WebApp.openInvoice(invoiceUrl, (status) => {
-        if (status === 'paid') pollUntilStatus('paid')
-      })
+      try {
+        WebApp.openInvoice(invoiceUrl, (status) => {
+          if (status === 'paid') pollUntilStatus('paid')
+        })
+      } catch {
+        // Fallback for browser dev mode
+        window.open(invoiceUrl, '_blank')
+      }
     } catch (e: unknown) {
-      WebApp.showAlert(e instanceof Error ? e.message : 'Не удалось создать счёт')
+      tgAlert(e instanceof Error ? e.message : 'Не удалось создать счёт')
     } finally { setActionLoading(false) }
   }
 
@@ -137,18 +160,18 @@ export default function OrderDetailPage() {
       setOrder(updated)
       setReviewStep('form')
     } catch (e: unknown) {
-      WebApp.showAlert(e instanceof Error ? e.message : 'Не удалось завершить заказ')
+      tgAlert(e instanceof Error ? e.message : 'Не удалось завершить заказ')
     } finally { setActionLoading(false) }
   }
 
   async function handleSubmitReview() {
-    if (reviewRating === 0) { WebApp.showAlert('Пожалуйста, выберите оценку'); return }
+    if (reviewRating === 0) { tgAlert('Пожалуйста, выберите оценку'); return }
     setActionLoading(true)
     try {
       await createReview({ orderId: Number(id), rating: reviewRating, tagsQuality: reviewTags, text: reviewText || undefined })
       setReviewStep('done')
     } catch (e: unknown) {
-      WebApp.showAlert(e instanceof Error ? e.message : 'Не удалось отправить отзыв')
+      tgAlert(e instanceof Error ? e.message : 'Не удалось отправить отзыв')
     } finally { setActionLoading(false) }
   }
 
@@ -157,8 +180,8 @@ export default function OrderDetailPage() {
   }
 
   async function handleSubmitDispute() {
-    if (!disputeReason) { WebApp.showAlert('Пожалуйста, выберите причину'); return }
-    if (!disputeDesc.trim()) { WebApp.showAlert('Пожалуйста, опишите проблему'); return }
+    if (!disputeReason) { tgAlert('Пожалуйста, выберите причину'); return }
+    if (!disputeDesc.trim()) { tgAlert('Пожалуйста, опишите проблему'); return }
     setActionLoading(true)
     try {
       const dispute = await createDispute({ orderId: Number(id), reasonCode: disputeReason, description: disputeDesc.trim() })
@@ -167,7 +190,7 @@ export default function OrderDetailPage() {
       const updated = await getOrder(Number(id))
       setOrder(updated)
     } catch (e: unknown) {
-      WebApp.showAlert(e instanceof Error ? e.message : 'Не удалось открыть спор')
+      tgAlert(e instanceof Error ? e.message : 'Не удалось открыть спор')
     } finally { setActionLoading(false) }
   }
 
@@ -176,7 +199,7 @@ export default function OrderDetailPage() {
     try {
       const d = await getDisputeByOrder(Number(id))
       navigate(`/disputes/${d.id}`)
-    } catch { WebApp.showAlert('Спор не найден') }
+    } catch { tgAlert('Спор не найден') }
   }
 
   if (loading) return (

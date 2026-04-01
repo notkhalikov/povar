@@ -54,6 +54,33 @@ export default async function authRoutes(app: FastifyInstance) {
       const { user: tgUser } = parsed
       const telegramId = tgUser.id
 
+      // Extract start_param from initData (Telegram deep link parameter)
+      // and parse UTM tags from it as a server-side fallback.
+      // The frontend (AuthContext) should already send UTMs in the body,
+      // but if it didn't (e.g. old client), we parse them here.
+      let startUtmSource   = utmSource
+      let startUtmMedium   = utmMedium
+      let startUtmCampaign = utmCampaign
+      let startUtmContent  = utmContent
+      let startUtmTerm     = utmTerm
+
+      if (!utmSource) {
+        try {
+          const rawParams = new URLSearchParams(initData)
+          const startParam = rawParams.get('start_param')
+          if (startParam) {
+            const decoded = new URLSearchParams(decodeURIComponent(startParam))
+            startUtmSource   = decoded.get('utm_source')   ?? undefined
+            startUtmMedium   = decoded.get('utm_medium')   ?? undefined
+            startUtmCampaign = decoded.get('utm_campaign') ?? undefined
+            startUtmContent  = decoded.get('utm_content')  ?? undefined
+            startUtmTerm     = decoded.get('utm_term')     ?? undefined
+          }
+        } catch {
+          // start_param is not URL-encoded UTM — ignore silently
+        }
+      }
+
       // Upsert: find or create user
       const existing = await app.db
         .select()
@@ -75,11 +102,11 @@ export default async function authRoutes(app: FastifyInstance) {
             name,
             lang: tgUser.language_code ?? 'ru',
             // Only set UTM on first creation; never overwrite existing values
-            utmSource:   utmSource   ?? null,
-            utmMedium:   utmMedium   ?? null,
-            utmCampaign: utmCampaign ?? null,
-            utmContent:  utmContent  ?? null,
-            utmTerm:     utmTerm     ?? null,
+            utmSource:   startUtmSource   ?? null,
+            utmMedium:   startUtmMedium   ?? null,
+            utmCampaign: startUtmCampaign ?? null,
+            utmContent:  startUtmContent  ?? null,
+            utmTerm:     startUtmTerm     ?? null,
           })
           .returning()
 

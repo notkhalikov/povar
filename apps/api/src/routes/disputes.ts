@@ -70,6 +70,8 @@ export default async function disputesRoutes(app: FastifyInstance) {
       .values({ orderId, openedBy, reasonCode, description, attachments, status: 'open' })
       .returning()
 
+    app.log.info({ event: 'dispute_opened', disputeId: dispute.id, orderId, openedBy })
+
     // Notify the other party (fire-and-forget)
     const otherUserId = userId === order.customerId ? order.chefId : order.customerId
     const [otherUser] = await app.db
