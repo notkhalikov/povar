@@ -1,9 +1,12 @@
+import { useT } from '../i18n'
+
 interface ErrorScreenProps {
   message?: string
   onRetry?: () => void
 }
 
 export function ErrorScreen({ message, onRetry }: ErrorScreenProps) {
+  const t = useT()
   return (
     <div style={{
       display: 'flex',
@@ -21,7 +24,7 @@ export function ErrorScreen({ message, onRetry }: ErrorScreenProps) {
       </svg>
 
       <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8 }}>
-        Что-то пошло не так
+        {t.errors.generic}
       </div>
 
       {message && (
@@ -38,7 +41,7 @@ export function ErrorScreen({ message, onRetry }: ErrorScreenProps) {
 
       {onRetry && (
         <button className="btn-primary" style={{ maxWidth: 200 }} onClick={onRetry}>
-          Попробовать снова
+          {t.errors.retry}
         </button>
       )}
     </div>

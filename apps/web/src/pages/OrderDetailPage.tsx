@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
+import { useHaptic } from '../hooks/useHaptic'
+import { useT } from '../i18n'
 import { getOrder, createInvoice, completeOrder } from '../api/orders'
 import { ApiError } from '../api/client'
 import { createReview } from '../api/reviews'
@@ -16,30 +18,14 @@ export { StatusBadge, STATUS_COLORS, STATUS_LABELS }
 
 type ReviewStep = 'none' | 'form' | 'done'
 
-const QUALITY_TAGS = ['вкус', 'порции', 'подача', 'пунктуальность', 'коммуникация']
-
-const CUSTOMER_REASONS = [
-  { code: 'chef_no_show',  label: 'Повар не пришёл' },
-  { code: 'late_delivery', label: 'Сильное опоздание' },
-  { code: 'wrong_menu',    label: 'Приготовлено не то блюдо' },
-  { code: 'bad_quality',   label: 'Плохое качество еды' },
-  { code: 'other',         label: 'Другое' },
-]
-
-const CHEF_REASONS = [
-  { code: 'customer_no_show', label: 'Заказчик не открыл дверь' },
-  { code: 'wrong_address',    label: 'Неверный адрес' },
-  { code: 'false_complaint',  label: 'Ложная жалоба' },
-  { code: 'other',            label: 'Другое' },
-]
-
-// Timeline: statuses in logical order for display
-const TIMELINE_STEPS: { status: OrderStatus; label: string; icon: string }[] = [
-  { status: 'awaiting_payment', label: 'Ожидает оплаты', icon: '💳' },
-  { status: 'paid',             label: 'Оплачен',        icon: '✅' },
-  { status: 'in_progress',      label: 'В процессе',     icon: '👨‍🍳' },
-  { status: 'completed',        label: 'Завершён',       icon: '🎉' },
-]
+// Timeline icons (labels come from translations)
+const TIMELINE_ICONS: Partial<Record<OrderStatus, string>> = {
+  awaiting_payment: '💳',
+  paid:             '✅',
+  in_progress:      '👨‍🍳',
+  completed:        '🎉',
+}
+const TIMELINE_STATUSES: OrderStatus[] = ['awaiting_payment', 'paid', 'in_progress', 'completed']
 
 const STATUS_ICON: Partial<Record<OrderStatus, string>> = {
   draft:            '📝',
@@ -53,7 +39,7 @@ const STATUS_ICON: Partial<Record<OrderStatus, string>> = {
 }
 
 function timelineIndex(status: OrderStatus): number {
-  return TIMELINE_STEPS.findIndex(s => s.status === status)
+  return TIMELINE_STATUSES.indexOf(status)
 }
 
 export default function OrderDetailPage() {
@@ -76,20 +62,8 @@ export default function OrderDetailPage() {
   const [disputeDesc, setDisputeDesc]           = useState('')
   const [disputeId, setDisputeId]               = useState<number | null>(null)
 
-  const goBack = useCallback(() => navigate('/orders'), [navigate])
-
-  useEffect(() => {
-    try {
-      WebApp.BackButton.show()
-      WebApp.BackButton.onClick(goBack)
-    } catch { /* not in Telegram */ }
-    return () => {
-      try {
-        WebApp.BackButton.hide()
-        WebApp.BackButton.offClick(goBack)
-      } catch { /* not in Telegram */ }
-    }
-  }, [goBack])
+  const haptic = useHaptic()
+  const t = useT()
 
   const refresh = useCallback(async () => {
     if (!id) return
@@ -149,7 +123,7 @@ export default function OrderDetailPage() {
         window.open(invoiceUrl, '_blank')
       }
     } catch (e: unknown) {
-      tgAlert(e instanceof Error ? e.message : 'Не удалось создать счёт')
+      tgAlert(e instanceof Error ? e.message : t.errors.invoiceFail)
     } finally { setActionLoading(false) }
   }
 
@@ -159,19 +133,20 @@ export default function OrderDetailPage() {
       const updated = await completeOrder(Number(id))
       setOrder(updated)
       setReviewStep('form')
+      haptic.success()
     } catch (e: unknown) {
-      tgAlert(e instanceof Error ? e.message : 'Не удалось завершить заказ')
+      tgAlert(e instanceof Error ? e.message : t.errors.completeFail)
     } finally { setActionLoading(false) }
   }
 
   async function handleSubmitReview() {
-    if (reviewRating === 0) { tgAlert('Пожалуйста, выберите оценку'); return }
+    if (reviewRating === 0) { tgAlert(t.review.noRating); return }
     setActionLoading(true)
     try {
       await createReview({ orderId: Number(id), rating: reviewRating, tagsQuality: reviewTags, text: reviewText || undefined })
       setReviewStep('done')
     } catch (e: unknown) {
-      tgAlert(e instanceof Error ? e.message : 'Не удалось отправить отзыв')
+      tgAlert(e instanceof Error ? e.message : t.errors.reviewFail)
     } finally { setActionLoading(false) }
   }
 
@@ -180,8 +155,8 @@ export default function OrderDetailPage() {
   }
 
   async function handleSubmitDispute() {
-    if (!disputeReason) { tgAlert('Пожалуйста, выберите причину'); return }
-    if (!disputeDesc.trim()) { tgAlert('Пожалуйста, опишите проблему'); return }
+    if (!disputeReason) { tgAlert(t.dispute.noReason); return }
+    if (!disputeDesc.trim()) { tgAlert(t.dispute.noDesc); return }
     setActionLoading(true)
     try {
       const dispute = await createDispute({ orderId: Number(id), reasonCode: disputeReason, description: disputeDesc.trim() })
@@ -190,7 +165,7 @@ export default function OrderDetailPage() {
       const updated = await getOrder(Number(id))
       setOrder(updated)
     } catch (e: unknown) {
-      tgAlert(e instanceof Error ? e.message : 'Не удалось открыть спор')
+      tgAlert(e instanceof Error ? e.message : t.errors.disputeFail)
     } finally { setActionLoading(false) }
   }
 
@@ -199,7 +174,7 @@ export default function OrderDetailPage() {
     try {
       const d = await getDisputeByOrder(Number(id))
       navigate(`/disputes/${d.id}`)
-    } catch { tgAlert('Спор не найден') }
+    } catch { tgAlert(t.errors.notFound) }
   }
 
   if (loading) return (
@@ -218,7 +193,13 @@ export default function OrderDetailPage() {
     reviewStep === 'none' &&
     ((order.status === 'paid' && scheduledPassed) || order.status === 'in_progress')
   const isCustomer    = apiUser?.id === order.customerId
-  const disputeReasons = isCustomer ? CUSTOMER_REASONS : CHEF_REASONS
+  const disputeReasonKeys = isCustomer
+    ? ['chef_no_show', 'late_delivery', 'wrong_menu', 'bad_quality', 'other']
+    : ['customer_no_show', 'wrong_address', 'false_complaint', 'other']
+  const disputeReasons = disputeReasonKeys.map(code => ({
+    code,
+    label: t.dispute.reasons[code as keyof typeof t.dispute.reasons],
+  }))
   const statusColor   = STATUS_COLORS[order.status]
   const curTimelineIdx = timelineIndex(order.status)
 
@@ -236,10 +217,10 @@ export default function OrderDetailPage() {
           {STATUS_ICON[order.status] ?? '📋'}
         </div>
         <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginBottom: 6 }}>
-          Заказ #{order.id}
+          {t.order.orderNum} #{order.id}
         </div>
         <div style={{ fontSize: 22, fontWeight: 700, color: statusColor, marginBottom: 8 }}>
-          {STATUS_LABELS[order.status]}
+          {t.order.statuses[order.status]}
         </div>
         {order.agreedPrice && (
           <div style={{ fontSize: 28, fontWeight: 700 }}>{order.agreedPrice} ₾</div>
@@ -254,12 +235,12 @@ export default function OrderDetailPage() {
             display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
             gap: 0, marginBottom: 20,
           }}>
-            {TIMELINE_STEPS.map((ts, i) => {
+            {TIMELINE_STATUSES.map((status, i) => {
               const done    = curTimelineIdx > i || order.status === 'completed'
               const current = curTimelineIdx === i
-              const dot_color = done || current ? ts.status === 'completed' ? '#34c759' : STATUS_COLORS[ts.status] : 'var(--tg-theme-secondary-bg-color)'
+              const dot_color = done || current ? status === 'completed' ? '#34c759' : STATUS_COLORS[status] : 'var(--tg-theme-secondary-bg-color)'
               return (
-                <div key={ts.status} style={{ display: 'flex', alignItems: 'center', flex: i < TIMELINE_STEPS.length - 1 ? '1 1 auto' : 'none' }}>
+                <div key={status} style={{ display: 'flex', alignItems: 'center', flex: i < TIMELINE_STATUSES.length - 1 ? '1 1 auto' : 'none' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 52 }}>
                     <div style={{
                       width: 32, height: 32, borderRadius: 16,
@@ -271,7 +252,7 @@ export default function OrderDetailPage() {
                       boxShadow: current ? `0 0 0 3px ${dot_color}44` : 'none',
                       transition: 'all .2s',
                     }}>
-                      {done ? '✓' : ts.icon}
+                      {done ? '✓' : TIMELINE_ICONS[status]}
                     </div>
                     <div style={{
                       fontSize: 10, marginTop: 4, textAlign: 'center',
@@ -279,10 +260,10 @@ export default function OrderDetailPage() {
                       fontWeight: current ? 600 : 400,
                       lineHeight: 1.2,
                     }}>
-                      {ts.label}
+                      {t.order.timeline[status as keyof typeof t.order.timeline]}
                     </div>
                   </div>
-                  {i < TIMELINE_STEPS.length - 1 && (
+                  {i < TIMELINE_STATUSES.length - 1 && (
                     <div style={{
                       flex: 1, height: 2, marginBottom: 18,
                       background: done ? dot_color : 'var(--tg-theme-secondary-bg-color)',
@@ -306,7 +287,7 @@ export default function OrderDetailPage() {
             👨‍🍳
           </div>
           <div>
-            <div style={{ fontSize: 11, color: 'var(--tg-theme-hint-color)', marginBottom: 2 }}>Повар</div>
+            <div style={{ fontSize: 11, color: 'var(--tg-theme-hint-color)', marginBottom: 2 }}>{t.order.chef}</div>
             <div style={{ fontWeight: 600, fontSize: 15 }}>{order.chefName ?? `#${order.chefId}`}</div>
           </div>
         </div>
@@ -314,11 +295,11 @@ export default function OrderDetailPage() {
         {/* ── Order details ─────────────────────────────────────────── */}
         <div className='card' style={{ marginBottom: 16 }}>
           <div className='detail-row'>
-            <span className='detail-row__label'>Формат</span>
-            <span className='detail-row__value'>{order.type === 'home_visit' ? '🏠 Повар на дом' : '🚚 Доставка'}</span>
+            <span className='detail-row__label'>{t.order.format}</span>
+            <span className='detail-row__value'>{order.type === 'home_visit' ? t.order.homeVisit : t.order.delivery}</span>
           </div>
           <div className='detail-row'>
-            <span className='detail-row__label'>Дата и время</span>
+            <span className='detail-row__label'>{t.order.dateTime}</span>
             <span className='detail-row__value'>
               {new Date(order.scheduledAt).toLocaleString('ru-RU', {
                 day: 'numeric', month: 'long', year: 'numeric',
@@ -327,37 +308,37 @@ export default function OrderDetailPage() {
             </span>
           </div>
           <div className='detail-row'>
-            <span className='detail-row__label'>Людей</span>
+            <span className='detail-row__label'>{t.order.persons}</span>
             <span className='detail-row__value'>{order.persons}</span>
           </div>
           {order.city && (
             <div className='detail-row'>
-              <span className='detail-row__label'>Город</span>
+              <span className='detail-row__label'>{t.order.city}</span>
               <span className='detail-row__value'>{order.city}</span>
             </div>
           )}
           {order.address && (
             <div className='detail-row'>
-              <span className='detail-row__label'>Адрес</span>
+              <span className='detail-row__label'>{t.order.address}</span>
               <span className='detail-row__value'>{order.address}</span>
             </div>
           )}
           {order.description && (
             <div className='detail-row'>
-              <span className='detail-row__label'>Комментарий</span>
+              <span className='detail-row__label'>{t.order.comment}</span>
               <span className='detail-row__value'>{order.description}</span>
             </div>
           )}
           {order.agreedPrice && (
             <div className='detail-row'>
-              <span className='detail-row__label'>Сумма</span>
+              <span className='detail-row__label'>{t.order.amount}</span>
               <span className='detail-row__value' style={{ fontWeight: 700 }}>{order.agreedPrice} ₾</span>
             </div>
           )}
           {order.productsBuyer && (
             <div className='detail-row'>
-              <span className='detail-row__label'>Продукты</span>
-              <span className='detail-row__value'>{order.productsBuyer === 'customer' ? 'Клиент' : 'Повар'}</span>
+              <span className='detail-row__label'>{t.order.products}</span>
+              <span className='detail-row__value'>{order.productsBuyer === 'customer' ? t.order.productsCustomer : t.order.productsChef}</span>
             </div>
           )}
         </div>
@@ -365,21 +346,21 @@ export default function OrderDetailPage() {
         {/* ── Review form ───────────────────────────────────────────── */}
         {reviewStep === 'form' && (
           <div className='card' style={{ marginBottom: 16 }}>
-            <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16 }}>Оставьте отзыв</div>
+            <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16 }}>{t.review.title}</div>
 
             <div style={{ marginBottom: 20 }}>
-              <div className='section-label'>Оценка</div>
+              <div className='section-label'>{t.review.rating}</div>
               <StarRating value={reviewRating} interactive onChange={setReviewRating} size={36} />
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <div className='section-label'>Что понравилось</div>
+              <div className='section-label'>{t.review.liked}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {QUALITY_TAGS.map(tag => (
+                {Object.entries(t.review.tags).map(([key, label]) => (
                   <button
-                    key={tag}
+                    key={key}
                     type='button'
-                    onClick={() => toggleTag(tag)}
+                    onClick={() => toggleTag(key)}
                     style={{
                       padding: '8px 14px',
                       borderRadius: 20,
@@ -387,23 +368,23 @@ export default function OrderDetailPage() {
                       cursor: 'pointer',
                       fontSize: 13,
                       minHeight: 44,
-                      background: reviewTags.includes(tag) ? 'var(--tg-theme-button-color)' : 'transparent',
-                      color: reviewTags.includes(tag) ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
+                      background: reviewTags.includes(key) ? 'var(--tg-theme-button-color)' : 'transparent',
+                      color: reviewTags.includes(key) ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
                     }}
                   >
-                    {tag}
+                    {label}
                   </button>
                 ))}
               </div>
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <div className='section-label'>Комментарий</div>
+              <div className='section-label'>{t.order.comment}</div>
               <textarea
                 className='field-input'
                 value={reviewText}
                 onChange={e => setReviewText(e.target.value)}
-                placeholder='Расскажите подробнее…'
+                placeholder={t.review.commentPlaceholder}
                 maxLength={2000}
                 rows={3}
                 style={{ resize: 'vertical' }}
@@ -416,7 +397,7 @@ export default function OrderDetailPage() {
               disabled={actionLoading}
               onClick={handleSubmitReview}
             >
-              {actionLoading ? 'Отправка…' : 'Отправить отзыв'}
+              {actionLoading ? t.review.submitting : t.review.submit}
             </button>
           </div>
         )}
@@ -424,9 +405,9 @@ export default function OrderDetailPage() {
         {reviewStep === 'done' && (
           <div className='card' style={{ textAlign: 'center', padding: '32px 16px', marginBottom: 16 }}>
             <div style={{ fontSize: 48, marginBottom: 10 }}>⭐</div>
-            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Спасибо за отзыв!</div>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>{t.review.thanks}</div>
             <div style={{ fontSize: 14, color: 'var(--tg-theme-hint-color)' }}>
-              Ваша оценка поможет другим заказчикам
+              {t.review.thanksHint}
             </div>
           </div>
         )}
@@ -441,13 +422,13 @@ export default function OrderDetailPage() {
           }}>
             <div style={{ fontSize: 40, marginBottom: 8 }}>⚠️</div>
             <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6, color: 'var(--color-danger)' }}>
-              Спор открыт
+              {t.order.disputeTitle}
             </div>
             <div style={{ fontSize: 14, color: 'var(--tg-theme-hint-color)', marginBottom: 16, lineHeight: 1.5 }}>
-              Рассматривается службой поддержки в течение 24–48 часов
+              {t.order.disputeInfo}
             </div>
             <button className='btn-secondary' style={{ maxWidth: 240, margin: '0 auto' }} onClick={handleGoToDispute}>
-              Детали спора →
+              {t.order.disputeDetail}
             </button>
           </div>
         )}
@@ -461,7 +442,7 @@ export default function OrderDetailPage() {
             <>
               {!order.agreedPrice && (
                 <p style={{ margin: 0, fontSize: 13, color: 'var(--tg-theme-hint-color)', textAlign: 'center' }}>
-                  Повар ещё не установил цену. Оплата будет доступна после согласования.
+                  {t.order.noPrice}
                 </p>
               )}
               <button
@@ -471,8 +452,8 @@ export default function OrderDetailPage() {
                 onClick={handlePay}
               >
                 {actionLoading
-                  ? 'Открываем счёт…'
-                  : order.agreedPrice ? `Оплатить ${order.agreedPrice} ₾` : 'Оплатить'}
+                  ? t.order.paying
+                  : order.agreedPrice ? `${t.order.pay} ${order.agreedPrice} ${t.common.currency}` : t.order.pay}
               </button>
             </>
           )}
@@ -484,14 +465,14 @@ export default function OrderDetailPage() {
                 disabled={actionLoading}
                 onClick={handleComplete}
               >
-                {actionLoading ? 'Сохраняем…' : '✓ Всё прошло хорошо'}
+                {actionLoading ? t.order.saving : t.order.allGood}
               </button>
               <button
                 className='btn-secondary'
                 disabled={actionLoading}
                 onClick={() => { setDisputeReason(''); setDisputeDesc(''); setShowDisputeModal(true) }}
               >
-                Есть проблема
+                {t.order.problem}
               </button>
             </>
           )}
@@ -502,14 +483,14 @@ export default function OrderDetailPage() {
       <BottomSheet
         open={showDisputeModal}
         onClose={() => setShowDisputeModal(false)}
-        title='Открыть спор'
+        title={t.dispute.openTitle}
       >
         <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
-          Спор рассматривается поддержкой в течение 24–48 часов
+          {t.dispute.openInfo}
         </p>
 
         <div style={{ marginBottom: 20 }}>
-          <div className='section-label'>Причина</div>
+          <div className='section-label'>{t.dispute.reason}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {disputeReasons.map(r => (
               <label key={r.code} style={{
@@ -536,12 +517,12 @@ export default function OrderDetailPage() {
         </div>
 
         <div style={{ marginBottom: 20 }}>
-          <div className='section-label'>Описание</div>
+          <div className='section-label'>{t.dispute.description}</div>
           <textarea
             className='field-input'
             value={disputeDesc}
             onChange={e => setDisputeDesc(e.target.value)}
-            placeholder='Подробно опишите, что произошло…'
+            placeholder={t.dispute.descPlaceholder}
             maxLength={5000}
             rows={4}
             style={{ resize: 'vertical' }}
@@ -555,7 +536,7 @@ export default function OrderDetailPage() {
             onClick={() => setShowDisputeModal(false)}
             disabled={actionLoading}
           >
-            Отмена
+            {t.common.cancel}
           </button>
           <button
             className='btn-primary'
@@ -563,7 +544,7 @@ export default function OrderDetailPage() {
             onClick={handleSubmitDispute}
             disabled={actionLoading}
           >
-            {actionLoading ? 'Открываем…' : 'Открыть спор'}
+            {actionLoading ? t.dispute.submitting : t.dispute.submit}
           </button>
         </div>
       </BottomSheet>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getChefs } from '../api/chefs'
 import type { ChefsQuery } from '../api/chefs'
 import type { ChefListItem } from '../types'
@@ -6,35 +6,39 @@ import { ChefCard } from '../components/ChefCard'
 import { ChefCardSkeleton } from '../components/LoadingSkeleton'
 import { ErrorScreen } from '../components/ErrorScreen'
 import { EmptyState } from '../components/EmptyState'
+import { useT } from '../i18n'
 
 const CITIES = ['Тбилиси', 'Батуми']
 
-const FORMAT_CHIPS = [
-  { value: undefined,    label: 'Все форматы' },
-  { value: 'home_visit', label: '🏠 На дом' },
-  { value: 'delivery',   label: '🚚 Доставка' },
-] as const
-
 const RATING_CHIPS = [
-  { value: undefined, label: 'Любой' },
-  { value: 3,         label: '3★+' },
-  { value: 4,         label: '4★+' },
-  { value: 4.5,       label: '4.5★+' },
+  { value: undefined },
+  { value: 3,   label: '3★+' },
+  { value: 4,   label: '4★+' },
+  { value: 4.5, label: '4.5★+' },
 ] as const
 
-const SORT_CHIPS = [
-  { value: 'rating', label: 'По рейтингу' },
-  { value: 'price',  label: 'По цене' },
-] as const
-
+const PAGE_SIZE = 20
 const DEFAULT_QUERY: ChefsQuery = { sort: 'rating' }
 
 export default function CatalogPage() {
+  const t = useT()
   const [chefs, setChefs]               = useState<ChefListItem[]>([])
   const [loading, setLoading]           = useState(true)
+  const [loadingMore, setLoadingMore]   = useState(false)
+  const [hasMore, setHasMore]           = useState(false)
   const [error, setError]               = useState<string | null>(null)
   const [query, setQuery]               = useState<ChefsQuery>(DEFAULT_QUERY)
   const [cuisineInput, setCuisineInput] = useState('')
+  const [offset, setOffset]             = useState(0)
+
+  // Pull-to-refresh
+  const [refreshing, setRefreshing]     = useState(false)
+  const touchStartY                     = useRef(0)
+  const pullDelta                       = useRef(0)
+  const scrollRef                       = useRef<HTMLDivElement>(null)
+
+  // Infinite scroll sentinel
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   const hasActiveFilters = Boolean(query.city || query.format || query.cuisine || query.minRating)
 
@@ -51,22 +55,98 @@ export default function CatalogPage() {
     return () => clearTimeout(t)
   }, [cuisineInput])
 
-  function load() {
+  // Initial / filter-change load
+  function load(q: ChefsQuery) {
     setLoading(true)
     setError(null)
-    getChefs(query)
-      .then(res => setChefs(res.data))
+    setOffset(0)
+    getChefs({ ...q, limit: PAGE_SIZE, offset: 0 })
+      .then(res => {
+        setChefs(res.data)
+        setHasMore(res.data.length === PAGE_SIZE)
+      })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [query])
+  useEffect(() => { load(query) }, [query])
+
+  // Load next page
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore) return
+    const nextOffset = offset + PAGE_SIZE
+    setLoadingMore(true)
+    getChefs({ ...query, limit: PAGE_SIZE, offset: nextOffset })
+      .then(res => {
+        setChefs(prev => [...prev, ...res.data])
+        setHasMore(res.data.length === PAGE_SIZE)
+        setOffset(nextOffset)
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMore(false))
+  }, [loadingMore, hasMore, offset, query])
+
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) loadMore() },
+      { threshold: 0.1 },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [loadMore])
+
+  // Pull-to-refresh touch handlers
+  function handleTouchStart(e: React.TouchEvent) {
+    const el = scrollRef.current
+    if (el && el.scrollTop > 0) return
+    touchStartY.current = e.touches[0].clientY
+    pullDelta.current = 0
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    const el = scrollRef.current
+    if (el && el.scrollTop > 0) return
+    pullDelta.current = e.touches[0].clientY - touchStartY.current
+  }
+
+  async function handleTouchEnd() {
+    if (pullDelta.current >= 80 && !refreshing && !loading) {
+      setRefreshing(true)
+      try {
+        const res = await getChefs({ ...query, limit: PAGE_SIZE, offset: 0 })
+        setChefs(res.data)
+        setHasMore(res.data.length === PAGE_SIZE)
+        setOffset(0)
+      } catch { /* ignore */ }
+      finally { setRefreshing(false) }
+    }
+    pullDelta.current = 0
+  }
 
   return (
-    <div style={{ paddingBottom: 'var(--page-padding-bottom)' }}>
+    <div
+      ref={scrollRef}
+      style={{ paddingBottom: 'var(--page-padding-bottom)' }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull-to-refresh indicator */}
+      {refreshing && (
+        <div style={{
+          textAlign: 'center', padding: '8px 0',
+          fontSize: 13, color: 'var(--tg-theme-hint-color)',
+        }}>
+          {t.catalog.refreshing}
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ padding: '16px 16px 10px' }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Повара</h2>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{t.catalog.title}</h2>
       </div>
 
       {/* Cuisine search */}
@@ -74,7 +154,7 @@ export default function CatalogPage() {
         <input
           type='text'
           className='field-input'
-          placeholder='🔍 Кухня (грузинская, европейская…)'
+          placeholder={t.catalog.searchPlaceholder}
           value={cuisineInput}
           onChange={e => setCuisineInput(e.target.value)}
           style={{ fontSize: 14 }}
@@ -87,7 +167,7 @@ export default function CatalogPage() {
           className={`chip${!query.city ? ' active' : ''}`}
           onClick={() => setQuery(q => ({ ...q, city: undefined }))}
         >
-          Все города
+          {t.catalog.allCities}
         </button>
         {CITIES.map(c => (
           <button
@@ -102,7 +182,11 @@ export default function CatalogPage() {
 
       {/* Format chips */}
       <div className='chips-row' style={{ padding: '4px 16px 0' }}>
-        {FORMAT_CHIPS.map(f => (
+        {([
+          { value: undefined,    label: t.catalog.allFormats },
+          { value: 'home_visit', label: t.catalog.homeVisit },
+          { value: 'delivery',   label: t.catalog.delivery },
+        ] as const).map(f => (
           <button
             key={String(f.value)}
             className={`chip${query.format === f.value ? ' active' : ''}`}
@@ -121,11 +205,14 @@ export default function CatalogPage() {
             className={`chip${query.minRating === r.value ? ' active' : ''}`}
             onClick={() => setQuery(q => ({ ...q, minRating: r.value }))}
           >
-            {r.label}
+            {'label' in r ? r.label : t.catalog.anyRating}
           </button>
         ))}
         <div style={{ width: 1, background: 'var(--tg-theme-hint-color)', opacity: .25, flexShrink: 0 }} />
-        {SORT_CHIPS.map(s => (
+        {([
+          { value: 'rating', label: t.catalog.sortByRating },
+          { value: 'price',  label: t.catalog.sortByPrice },
+        ] as const).map(s => (
           <button
             key={s.value}
             className={`chip${(query.sort ?? 'rating') === s.value ? ' active' : ''}`}
@@ -140,7 +227,7 @@ export default function CatalogPage() {
             onClick={resetFilters}
             style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}
           >
-            ✕ Сбросить
+            {t.catalog.resetFilters}
           </button>
         )}
       </div>
@@ -150,18 +237,27 @@ export default function CatalogPage() {
         {loading && Array.from({ length: 4 }, (_, i) => <ChefCardSkeleton key={i} />)}
 
         {!loading && error && (
-          <ErrorScreen message={error} onRetry={load} />
+          <ErrorScreen message={error} onRetry={() => load(query)} />
         )}
 
         {!loading && !error && chefs.length === 0 && (
           <EmptyState
-            title='Поваров не найдено'
-            subtitle='Поваров по вашему запросу не найдено. Попробуйте изменить фильтры'
+            title={t.catalog.noChefs}
+            subtitle={t.catalog.noChefsHint}
             illustration={<div style={{ fontSize: 64 }}>🍽️</div>}
           />
         )}
 
         {!loading && chefs.map(chef => <ChefCard key={chef.id} chef={chef} />)}
+
+        {/* Infinite scroll sentinel */}
+        {!loading && hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
+
+        {loadingMore && (
+          <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {Array.from({ length: 2 }, (_, i) => <ChefCardSkeleton key={i} />)}
+          </div>
+        )}
       </div>
     </div>
   )

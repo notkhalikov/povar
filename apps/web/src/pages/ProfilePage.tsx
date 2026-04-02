@@ -4,6 +4,7 @@ import { useTelegram } from '../hooks/useTelegram'
 import { useAuth } from '../context/AuthContext'
 import { getMyChef, patchMyChef } from '../api/chefs'
 import type { MyChefProfile } from '../types'
+import { useT } from '../i18n'
 
 const AVATAR_COLORS = [
   '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
@@ -19,6 +20,7 @@ function initials(name: string): string {
 }
 
 export default function ProfilePage() {
+  const t = useT()
   const { user: tgUser }    = useTelegram()
   const { user: apiUser }   = useAuth()
   const navigate            = useNavigate()
@@ -69,10 +71,7 @@ export default function ProfilePage() {
             background: apiUser.role === 'chef' ? '#34c75922' : 'var(--tg-theme-secondary-bg-color)',
             color: apiUser.role === 'chef' ? '#34c759' : 'var(--tg-theme-hint-color)',
           }}>
-            {apiUser.role === 'chef'    ? '👨‍🍳 Повар'
-             : apiUser.role === 'admin'   ? '🛡 Администратор'
-             : apiUser.role === 'support' ? '🎧 Поддержка'
-             : '🛒 Заказчик'}
+            {t.profile.role[apiUser.role as keyof typeof t.profile.role] ?? t.profile.role.customer}
           </div>
         )}
       </div>
@@ -84,9 +83,9 @@ export default function ProfilePage() {
           <div className='card' style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>Статус</div>
+                <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>{t.profile.status}</div>
                 <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)' }}>
-                  {chefProfile.isActive ? '🟢 Принимаю заказы' : '🔴 В отпуске'}
+                  {chefProfile.isActive ? t.profile.accepting : t.profile.vacation}
                 </div>
               </div>
               {/* iOS-style toggle */}
@@ -119,21 +118,21 @@ export default function ProfilePage() {
             <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
               <div>
                 <div style={{ fontSize: 22, fontWeight: 700 }}>{chefProfile.ordersCount}</div>
-                <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)' }}>Заказов</div>
+                <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)' }}>{t.profile.orders}</div>
               </div>
               <div style={{ width: 1, background: 'var(--tg-theme-hint-color)', opacity: .2 }} />
               <div>
                 <div style={{ fontSize: 22, fontWeight: 700 }}>
                   {Number(chefProfile.ratingCache) > 0 ? Number(chefProfile.ratingCache).toFixed(1) : '—'}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)' }}>Рейтинг</div>
+                <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)' }}>{t.profile.rating}</div>
               </div>
               <div style={{ width: 1, background: 'var(--tg-theme-hint-color)', opacity: .2 }} />
               <div>
                 <div style={{ fontSize: 22, fontWeight: 700 }}>
                   {chefProfile.verificationStatus === 'approved' ? '✓' : '…'}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)' }}>Верификация</div>
+                <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)' }}>{t.profile.verification}</div>
               </div>
             </div>
           </div>
@@ -142,7 +141,7 @@ export default function ProfilePage() {
             className='btn-primary'
             onClick={() => navigate('/chef/onboarding')}
           >
-            Редактировать анкету
+            {t.profile.editProfile}
           </button>
         </>
       )}
@@ -151,22 +150,22 @@ export default function ProfilePage() {
       {apiUser?.role === 'customer' && (
         <div className='card' style={{ textAlign: 'center', padding: '28px 16px' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>👨‍🍳</div>
-          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Хотите готовить на заказ?</div>
+          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{t.profile.becomeChefTitle}</div>
           <div style={{ fontSize: 14, color: 'var(--tg-theme-hint-color)', marginBottom: 20, lineHeight: 1.5 }}>
-            Зарегистрируйтесь как повар и получайте заказы от клиентов в Тбилиси и Батуми
+            {t.profile.becomeChefHint}
           </div>
           <button
             className='btn-primary'
             onClick={() => navigate('/chef/onboarding')}
           >
-            Стать поваром
+            {t.profile.becomeChef}
           </button>
         </div>
       )}
 
       {!apiUser && (
         <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>
-          Откройте приложение через Telegram для авторизации
+          {t.profile.noAuth}
         </div>
       )}
     </div>

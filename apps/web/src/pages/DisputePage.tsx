@@ -2,37 +2,14 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { getDispute } from '../api/disputes'
-import type { Dispute, DisputeStatus, DisputeResolutionType } from '../types'
-
-const REASON_LABELS: Record<string, string> = {
-  chef_no_show:     'Повар не пришёл',
-  late_delivery:    'Сильное опоздание',
-  wrong_menu:       'Приготовлено не то блюдо',
-  bad_quality:      'Плохое качество еды',
-  customer_no_show: 'Заказчик не открыл дверь',
-  wrong_address:    'Неверный адрес',
-  false_complaint:  'Ложная жалоба',
-  other:            'Другое',
-}
-
-const STATUS_LABELS: Record<DisputeStatus, string> = {
-  open:                 'Открыт',
-  awaiting_other_party: 'Ожидает ответа второй стороны',
-  support_review:       'На рассмотрении у поддержки',
-  resolved:             'Рассмотрен',
-}
+import type { Dispute, DisputeStatus } from '../types'
+import { useT } from '../i18n'
 
 const STATUS_COLORS: Record<DisputeStatus, string> = {
   open:                 '#ff3b30',
   awaiting_other_party: '#e67e00',
   support_review:       '#007aff',
   resolved:             '#34c759',
-}
-
-const RESOLUTION_LABELS: Record<DisputeResolutionType, string> = {
-  full_refund:    'Полный возврат средств',
-  partial_refund: 'Частичный возврат средств',
-  no_refund:      'Отказ в возврате',
 }
 
 export default function DisputePage() {

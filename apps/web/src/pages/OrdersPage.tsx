@@ -6,11 +6,13 @@ import { OrderCardSkeleton } from '../components/LoadingSkeleton'
 import { ErrorScreen } from '../components/ErrorScreen'
 import { EmptyState } from '../components/EmptyState'
 import type { Order, OrderStatus } from '../types'
+import { useT } from '../i18n'
 
 const ACTIVE_STATUSES: OrderStatus[] = ['draft', 'awaiting_payment', 'paid', 'in_progress', 'dispute_pending']
 const DONE_STATUSES:   OrderStatus[] = ['completed', 'refunded', 'cancelled']
 
 export default function OrdersPage() {
+  const t = useT()
   const navigate = useNavigate()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,7 +37,7 @@ export default function OrdersPage() {
   return (
     <div style={{ paddingBottom: 'var(--page-padding-bottom)' }}>
       <div style={{ padding: '16px 16px 0' }}>
-        <h2 style={{ margin: '0 0 16px', fontSize: 22, fontWeight: 700 }}>Мои заказы</h2>
+        <h2 style={{ margin: '0 0 16px', fontSize: 22, fontWeight: 700 }}>{t.order.myOrders}</h2>
 
         {/* Tabs */}
         <div className='tabs'>
@@ -43,7 +45,7 @@ export default function OrdersPage() {
             className={`tab${tab === 'active' ? ' active' : ''}`}
             onClick={() => setTab('active')}
           >
-            Активные {active.length > 0 && !loading && (
+            {t.order.active} {active.length > 0 && !loading && (
               <span style={{
                 marginLeft: 6, padding: '1px 7px', borderRadius: 10, fontSize: 11,
                 background: 'var(--tg-theme-button-color)', color: 'var(--tg-theme-button-text-color)',
@@ -57,7 +59,7 @@ export default function OrdersPage() {
             className={`tab${tab === 'done' ? ' active' : ''}`}
             onClick={() => setTab('done')}
           >
-            Завершённые
+            {t.order.done}
           </button>
         </div>
       </div>
@@ -72,13 +74,13 @@ export default function OrdersPage() {
         {!loading && !error && shown.length === 0 && (
           tab === 'active' ? (
             <EmptyState
-              title='У вас пока нет заказов'
-              subtitle='Найдите повара в каталоге!'
+              title={t.order.noneActive}
+              subtitle={t.order.noneActiveHint}
               illustration={<div style={{ fontSize: 64 }}>📋</div>}
             />
           ) : (
             <EmptyState
-              title='Завершённых заказов нет'
+              title={t.order.noneDone}
               illustration={<div style={{ fontSize: 64 }}>✅</div>}
             />
           )
@@ -93,6 +95,7 @@ export default function OrdersPage() {
 }
 
 function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
+  const t = useT()
   const date = new Date(order.scheduledAt).toLocaleString('ru-RU', {
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   })
@@ -106,7 +109,7 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
             {order.chefName ?? `Повар #${order.chefId}`}
           </div>
           <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>
-            Заказ #{order.id}
+            {t.order.orderNum} #{order.id}
           </div>
         </div>
         <StatusBadge status={order.status} />
@@ -115,8 +118,8 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
       {/* Meta row */}
       <div style={{ display: 'flex', gap: 14, fontSize: 13, color: 'var(--tg-theme-hint-color)', flexWrap: 'wrap' }}>
         <span>📅 {date}</span>
-        <span>👥 {order.persons} чел.</span>
-        <span>{order.type === 'home_visit' ? '🏠 На дом' : '🚚 Доставка'}</span>
+        <span>👥 {order.persons} {t.common.persons}</span>
+        <span>{order.type === 'home_visit' ? t.order.homeVisit : t.order.delivery}</span>
       </div>
 
       {/* Price */}

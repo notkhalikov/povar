@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ChefListItem } from '../types'
 
@@ -17,11 +18,29 @@ function initials(name: string): string {
 }
 
 export function ChefCard({ chef }: { chef: ChefListItem }) {
-  const rating = Number(chef.ratingCache)
+  const rating  = Number(chef.ratingCache)
+  const [pressed, setPressed] = useState(false)
+
+  function handlePressStart() {
+    setPressed(true)
+    setTimeout(() => setPressed(false), 100)
+  }
 
   return (
-    <Link to={`/chefs/${chef.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-      <div className='card' style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+    <Link
+      to={`/chefs/${chef.id}`}
+      style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+      onMouseDown={handlePressStart}
+      onTouchStart={handlePressStart}
+    >
+      <div
+        className='card'
+        style={{
+          display: 'flex', gap: 12, alignItems: 'flex-start',
+          transform: pressed ? 'scale(0.97)' : 'scale(1)',
+          transition: 'transform 0.1s ease',
+        }}
+      >
         {/* Avatar */}
         <div
           className='chef-avatar-sm'

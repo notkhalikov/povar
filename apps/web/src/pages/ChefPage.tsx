@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
+import { useT } from '../i18n'
 import { getChef, getChefReviews, chefPhotoUrl } from '../api/chefs'
 import { reportReview, replyToReview } from '../api/reviews'
 import { useAuth } from '../context/AuthContext'
@@ -27,6 +28,7 @@ function plural(n: number, one: string, few: string, many: string): string {
 }
 
 export default function ChefPage() {
+  const t = useT()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -37,14 +39,6 @@ export default function ChefPage() {
   const [replyingTo, setReplyingTo]   = useState<number | null>(null)
   const [replyText, setReplyText]     = useState('')
   const [sendingReply, setSendingReply] = useState(false)
-
-  const goBack = useCallback(() => navigate(-1), [navigate])
-
-  useEffect(() => {
-    WebApp.BackButton.show()
-    WebApp.BackButton.onClick(goBack)
-    return () => { WebApp.BackButton.hide(); WebApp.BackButton.offClick(goBack) }
-  }, [goBack])
 
   useEffect(() => {
     if (!id) return
@@ -60,8 +54,8 @@ export default function ChefPage() {
   async function handleReport(reviewId: number) {
     try {
       await reportReview(reviewId)
-      WebApp.showAlert('Отзыв отправлен на проверку. Спасибо!')
-    } catch { WebApp.showAlert('Не удалось отправить жалобу') }
+      WebApp.showAlert(t.chef.reportSuccess)
+    } catch { WebApp.showAlert(t.chef.reportError) }
   }
 
   async function handleReply(reviewId: number) {
@@ -72,7 +66,7 @@ export default function ChefPage() {
       setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, chefReply: updated.chefReply } : r))
       setReplyingTo(null)
       setReplyText('')
-    } catch { WebApp.showAlert('Не удалось сохранить ответ') }
+    } catch { WebApp.showAlert(t.chef.replyError) }
     finally { setSendingReply(false) }
   }
 
@@ -93,9 +87,9 @@ export default function ChefPage() {
 
   // Badges
   const badges: { label: string; color: string; bg: string }[] = []
-  if (chef.verificationStatus === 'approved') badges.push({ label: '✓ Проверен', color: '#34c759', bg: '#34c75922' })
-  if (rating >= 4.5 && chef.ordersCount >= 10)  badges.push({ label: '🏆 Топ', color: '#f5a623', bg: '#f5a62322' })
-  if (chef.ordersCount < 5)                      badges.push({ label: '🆕 Новый', color: '#007aff', bg: '#007aff22' })
+  if (chef.verificationStatus === 'approved') badges.push({ label: t.chef.badgeVerified, color: '#34c759', bg: '#34c75922' })
+  if (rating >= 4.5 && chef.ordersCount >= 10)  badges.push({ label: t.chef.badgeTop,      color: '#f5a623', bg: '#f5a62322' })
+  if (chef.ordersCount < 5)                      badges.push({ label: t.chef.badgeNew,      color: '#007aff', bg: '#007aff22' })
 
   return (
     <div style={{ paddingBottom: 'var(--page-padding-bottom-bar)' }}>
@@ -125,7 +119,7 @@ export default function ChefPage() {
             {rating > 0 ? rating.toFixed(1) : '—'}
           </span>
           <span style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)' }}>
-            · {chef.ordersCount} {plural(chef.ordersCount, 'заказ', 'заказа', 'заказов')}
+            · {chef.ordersCount} {plural(chef.ordersCount, t.chef.ordersCount.one, t.chef.ordersCount.few, t.chef.ordersCount.many)}
           </span>
         </div>
 
@@ -149,7 +143,7 @@ export default function ChefPage() {
         {/* ── Portfolio horizontal scroll ───────────────────────── */}
         {chef.portfolioMediaIds.length > 0 && (
           <section style={{ marginBottom: 24 }}>
-            <div className='section-label'>Портфолио</div>
+            <div className='section-label'>{t.chef.portfolio}</div>
             <div style={{
               display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
               WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none',
@@ -172,7 +166,7 @@ export default function ChefPage() {
         {/* ── Bio ──────────────────────────────────────────────────── */}
         {chef.bio && (
           <section className='card' style={{ marginBottom: 12 }}>
-            <div className='section-label'>О себе</div>
+            <div className='section-label'>{t.chef.about}</div>
             <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: 'var(--tg-theme-text-color)' }}>
               {chef.bio}
             </p>
@@ -182,7 +176,7 @@ export default function ChefPage() {
         {/* ── Cuisine tags ──────────────────────────────────────── */}
         {chef.cuisineTags.length > 0 && (
           <section className='card' style={{ marginBottom: 12 }}>
-            <div className='section-label'>Кухня</div>
+            <div className='section-label'>{t.chef.cuisine}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {chef.cuisineTags.map(tag => (
                 <span key={tag} className='tag-cuisine'>{tag}</span>
@@ -194,7 +188,7 @@ export default function ChefPage() {
         {/* ── Work formats ─────────────────────────────────────── */}
         {chef.workFormats.length > 0 && (
           <section className='card' style={{ marginBottom: 12 }}>
-            <div className='section-label'>Формат работы</div>
+            <div className='section-label'>{t.chef.workFormat}</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {chef.workFormats.map(f => (
                 <div key={f} style={{
@@ -202,7 +196,7 @@ export default function ChefPage() {
                   background: 'var(--tg-theme-bg-color)',
                   fontSize: 14, fontWeight: 500,
                 }}>
-                  {f === 'home_visit' ? '🏠 Повар на дом' : '🚚 Доставка'}
+                  {f === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull}
                 </div>
               ))}
             </div>
@@ -212,7 +206,7 @@ export default function ChefPage() {
         {/* ── Districts ────────────────────────────────────────── */}
         {chef.districts.length > 0 && (
           <section className='card' style={{ marginBottom: 12 }}>
-            <div className='section-label'>Районы</div>
+            <div className='section-label'>{t.chef.districts}</div>
             <div style={{ fontSize: 14, color: 'var(--tg-theme-text-color)', lineHeight: 1.6 }}>
               {chef.districts.join(', ')}
             </div>
@@ -222,15 +216,15 @@ export default function ChefPage() {
         {/* ── Avg price ────────────────────────────────────────── */}
         {chef.avgPrice && (
           <section className='card' style={{ marginBottom: 12 }}>
-            <div className='section-label'>Средний чек</div>
-            <div style={{ fontSize: 24, fontWeight: 700 }}>от {chef.avgPrice} ₾</div>
+            <div className='section-label'>{t.chef.avgPrice}</div>
+            <div style={{ fontSize: 24, fontWeight: 700 }}>{t.common.from} {chef.avgPrice} {t.common.currency}</div>
           </section>
         )}
 
         {/* ── Reviews ──────────────────────────────────────────── */}
         {reviews.length > 0 && (
           <section style={{ marginBottom: 12 }}>
-            <div className='section-label'>Отзывы ({reviews.length})</div>
+            <div className='section-label'>{t.chef.reviews} ({reviews.length})</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {reviews.map(review => (
                 <div key={review.id} className='card'>
@@ -275,7 +269,7 @@ export default function ChefPage() {
                       borderLeft: '3px solid var(--tg-theme-button-color)',
                     }}>
                       <div style={{ fontWeight: 600, fontSize: 11, color: 'var(--tg-theme-hint-color)', marginBottom: 4 }}>
-                        Ответ повара
+                        {t.chef.chefReply}
                       </div>
                       {review.chefReply}
                     </div>
@@ -291,7 +285,7 @@ export default function ChefPage() {
                       }}
                       onClick={() => { setReplyingTo(review.id); setReplyText('') }}
                     >
-                      Ответить на отзыв
+                      {t.chef.replyBtn}
                     </button>
                   )}
 
@@ -310,11 +304,11 @@ export default function ChefPage() {
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button className='btn-secondary' style={{ flex: 1, padding: '9px' }}
                           onClick={() => setReplyingTo(null)} disabled={sendingReply}>
-                          Отмена
+                          {t.common.cancel}
                         </button>
                         <button className='btn-primary' style={{ flex: 2, padding: '9px', opacity: sendingReply ? .6 : 1 }}
                           onClick={() => handleReply(review.id)} disabled={sendingReply}>
-                          {sendingReply ? 'Сохраняем…' : 'Сохранить'}
+                          {sendingReply ? t.chef.replySaving : t.chef.replySave}
                         </button>
                       </div>
                     </div>
@@ -330,7 +324,7 @@ export default function ChefPage() {
                       }}
                       onClick={() => handleReport(review.id)}
                     >
-                      Пожаловаться
+                      {t.chef.reportBtn}
                     </button>
                   )}
                 </div>
@@ -346,7 +340,7 @@ export default function ChefPage() {
           className='btn-primary'
           onClick={() => navigate(`/orders/new?chefId=${chef.id}`)}
         >
-          Заказать у {chef.name.split(' ')[0]}
+          {t.chef.orderBtn} {chef.name.split(' ')[0]}
         </button>
       </div>
     </div>

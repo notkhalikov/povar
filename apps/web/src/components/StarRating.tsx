@@ -1,3 +1,5 @@
+import { useHaptic } from '../hooks/useHaptic'
+
 interface StarRatingProps {
   value: number
   max?: number
@@ -13,13 +15,15 @@ export function StarRating({
   onChange,
   size = 22,
 }: StarRatingProps) {
+  const haptic = useHaptic()
+
   return (
     <div style={{ display: 'flex', gap: interactive ? 4 : 1, alignItems: 'center' }}>
       {Array.from({ length: max }, (_, i) => i + 1).map(n => (
         <button
           key={n}
           type='button'
-          onClick={interactive && onChange ? () => onChange(n) : undefined}
+          onClick={interactive && onChange ? () => { haptic.light(); onChange(n) } : undefined}
           style={{
             fontSize: size,
             lineHeight: 1,

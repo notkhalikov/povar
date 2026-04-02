@@ -1,15 +1,5 @@
 import type { OrderStatus } from '../types'
-
-export const STATUS_LABELS: Record<OrderStatus, string> = {
-  draft:            'Черновик',
-  awaiting_payment: 'Ожидает оплаты',
-  paid:             'Оплачен',
-  in_progress:      'В процессе',
-  completed:        'Завершён',
-  dispute_pending:  'Спор',
-  refunded:         'Возврат',
-  cancelled:        'Отменён',
-}
+import { useT } from '../i18n'
 
 export const STATUS_COLORS: Record<OrderStatus, string> = {
   draft:            '#8e8e93',
@@ -22,7 +12,20 @@ export const STATUS_COLORS: Record<OrderStatus, string> = {
   cancelled:        '#8e8e93',
 }
 
+// Static labels kept for backward-compat imports (e.g. OrderDetailPage re-exports)
+export const STATUS_LABELS: Record<OrderStatus, string> = {
+  draft:            'Draft',
+  awaiting_payment: 'Awaiting payment',
+  paid:             'Paid',
+  in_progress:      'In progress',
+  completed:        'Completed',
+  dispute_pending:  'Dispute open',
+  refunded:         'Refunded',
+  cancelled:        'Cancelled',
+}
+
 export function StatusBadge({ status }: { status: OrderStatus }) {
+  const t = useT()
   const color = STATUS_COLORS[status]
   return (
     <span style={{
@@ -37,7 +40,7 @@ export function StatusBadge({ status }: { status: OrderStatus }) {
       border: `1px solid ${color}44`,
       whiteSpace: 'nowrap',
     }}>
-      {STATUS_LABELS[status]}
+      {t.order.statuses[status]}
     </span>
   )
 }

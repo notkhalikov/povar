@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { createOrder } from '../api/orders'
 import { getChef } from '../api/chefs'
+import { useHaptic } from '../hooks/useHaptic'
+import { useT } from '../i18n'
 
 const STEPS = 4
 
@@ -24,14 +26,8 @@ export default function OrderNewPage() {
 
   // Use ref so MainButton handler never goes stale
   const handleNextRef = useRef<() => void>(() => {})
-
-  const goBack = useCallback(() => navigate(-1), [navigate])
-
-  useEffect(() => {
-    WebApp.BackButton.show()
-    WebApp.BackButton.onClick(goBack)
-    return () => { WebApp.BackButton.hide(); WebApp.BackButton.offClick(goBack) }
-  }, [goBack])
+  const haptic = useHaptic()
+  const t = useT()
 
   useEffect(() => {
     if (chefProfileId) {
@@ -58,7 +54,7 @@ export default function OrderNewPage() {
 
   // Update MainButton text + state whenever step/submitting change
   useEffect(() => {
-    WebApp.MainButton.setText(step < STEPS ? 'Далее' : 'Оформить заказ')
+    WebApp.MainButton.setText(step < STEPS ? t.common.next : t.order.submitBtn)
     if (submitting) {
       WebApp.MainButton.showProgress(false)
       WebApp.MainButton.disable()
@@ -86,9 +82,11 @@ export default function OrderNewPage() {
         address: address || undefined,
         description: description || undefined,
       })
+      haptic.success()
       navigate(`/orders/${order.id}`, { replace: true })
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Не удалось создать заказ')
+      haptic.error()
+      setError(err instanceof Error ? err.message : t.errors.orderFail)
       setStep(4)
     } finally {
       setSubmitting(false)
@@ -97,6 +95,7 @@ export default function OrderNewPage() {
 
   function handleNext() {
     if (step < STEPS) {
+      haptic.light()
       setStep(s => s + 1)
     } else {
       doSubmit()
@@ -104,7 +103,7 @@ export default function OrderNewPage() {
   }
 
   if (!chefProfileId) {
-    return <div style={{ padding: 24, color: 'var(--color-danger)' }}>Некорректный ID повара</div>
+    return <div style={{ padding: 24, color: 'var(--color-danger)' }}>{t.order.badId}</div>
   }
 
   return (
@@ -127,7 +126,7 @@ export default function OrderNewPage() {
       {/* ── Step 1: Type ──────────────────────────────────────────── */}
       {step === 1 && (
         <div>
-          <h3 style={{ margin: '0 0 20px', fontSize: 18 }}>Выберите формат</h3>
+          <h3 style={{ margin: '0 0 20px', fontSize: 18 }}>{t.order.step1Title}</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {(['home_visit', 'delivery'] as const).map(f => {
               const active = type === f
@@ -153,12 +152,10 @@ export default function OrderNewPage() {
                   <span style={{ fontSize: 40 }}>{f === 'home_visit' ? '🏠' : '🚚'}</span>
                   <div>
                     <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>
-                      {f === 'home_visit' ? 'Повар на дом' : 'Доставка'}
+                      {f === 'home_visit' ? t.order.homeVisitLabel : t.order.deliveryLabel}
                     </div>
                     <div style={{ fontSize: 13, opacity: .75 }}>
-                      {f === 'home_visit'
-                        ? 'Повар приедет к вам и приготовит блюда на месте'
-                        : 'Готовые блюда доставят по вашему адресу'}
+                      {f === 'home_visit' ? t.order.homeVisitDesc : t.order.deliveryDesc}
                     </div>
                   </div>
                 </button>
@@ -171,10 +168,10 @@ export default function OrderNewPage() {
       {/* ── Step 2: Date, address ─────────────────────────────────── */}
       {step === 2 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <h3 style={{ margin: 0, fontSize: 18 }}>Дата и адрес</h3>
+          <h3 style={{ margin: 0, fontSize: 18 }}>{t.order.step2Title}</h3>
 
           <div>
-            <div className='section-label'>Дата и время</div>
+            <div className='section-label'>{t.order.step2Date}</div>
             <input
               type='datetime-local'
               className='field-input'
@@ -186,12 +183,12 @@ export default function OrderNewPage() {
 
           <div>
             <div className='section-label'>
-              {type === 'home_visit' ? 'Адрес (ваш)' : 'Адрес доставки'}
+              {type === 'home_visit' ? t.order.step2AddrHome : t.order.step2AddrDel}
             </div>
             <input
               type='text'
               className='field-input'
-              placeholder='Ул. Руставели 1, кв. 5'
+              placeholder={t.order.step2Placeholder}
               value={address}
               onChange={e => setAddress(e.target.value)}
             />
@@ -202,10 +199,10 @@ export default function OrderNewPage() {
       {/* ── Step 3: Persons + description ────────────────────────── */}
       {step === 3 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <h3 style={{ margin: 0, fontSize: 18 }}>Детали</h3>
+          <h3 style={{ margin: 0, fontSize: 18 }}>{t.order.step3Title}</h3>
 
           <div>
-            <div className='section-label'>Количество человек</div>
+            <div className='section-label'>{t.order.step3Persons}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
               <button
                 type='button'
@@ -230,10 +227,10 @@ export default function OrderNewPage() {
           </div>
 
           <div>
-            <div className='section-label'>Комментарий (необязательно)</div>
+            <div className='section-label'>{t.order.step3Comment}</div>
             <textarea
               className='field-input'
-              placeholder='Пожелания по меню, аллергии…'
+              placeholder={t.order.step3Placeholder}
               value={description}
               onChange={e => setDescription(e.target.value)}
               rows={3}
@@ -247,19 +244,19 @@ export default function OrderNewPage() {
       {/* ── Step 4: Confirmation ──────────────────────────────────── */}
       {step === 4 && (
         <div>
-          <h3 style={{ margin: '0 0 20px', fontSize: 18 }}>Подтверждение</h3>
+          <h3 style={{ margin: '0 0 20px', fontSize: 18 }}>{t.order.step4Title}</h3>
 
           <div className='card'>
             <div className='detail-row'>
-              <span className='detail-row__label'>Повар</span>
+              <span className='detail-row__label'>{t.order.chef}</span>
               <span className='detail-row__value'>{chefName || `#${chefProfileId}`}</span>
             </div>
             <div className='detail-row'>
-              <span className='detail-row__label'>Формат</span>
-              <span className='detail-row__value'>{type === 'home_visit' ? '🏠 На дом' : '🚚 Доставка'}</span>
+              <span className='detail-row__label'>{t.order.format}</span>
+              <span className='detail-row__value'>{type === 'home_visit' ? t.order.homeVisit : t.order.delivery}</span>
             </div>
             <div className='detail-row'>
-              <span className='detail-row__label'>Дата и время</span>
+              <span className='detail-row__label'>{t.order.dateTime}</span>
               <span className='detail-row__value'>
                 {scheduledAt
                   ? new Date(scheduledAt).toLocaleString('ru-RU', {
@@ -269,26 +266,25 @@ export default function OrderNewPage() {
               </span>
             </div>
             <div className='detail-row'>
-              <span className='detail-row__label'>Людей</span>
+              <span className='detail-row__label'>{t.order.persons}</span>
               <span className='detail-row__value'>{persons}</span>
             </div>
             {address && (
               <div className='detail-row'>
-                <span className='detail-row__label'>Адрес</span>
+                <span className='detail-row__label'>{t.order.address}</span>
                 <span className='detail-row__value'>{address}</span>
               </div>
             )}
             {description && (
               <div className='detail-row'>
-                <span className='detail-row__label'>Комментарий</span>
+                <span className='detail-row__label'>{t.order.comment}</span>
                 <span className='detail-row__value'>{description}</span>
               </div>
             )}
           </div>
 
           <p style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginTop: 14, lineHeight: 1.5 }}>
-            После создания заказа повар сможет уточнить детали и предложить цену.
-            Оплата производится после согласования.
+            {t.order.afterCreate}
           </p>
 
           {error && (
@@ -316,7 +312,7 @@ export default function OrderNewPage() {
             padding: '8px 0', minHeight: 44, display: 'flex', alignItems: 'center', gap: 4,
           }}
         >
-          ← Назад
+          {t.common.back}
         </button>
       )}
     </div>

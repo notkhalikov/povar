@@ -78,12 +78,14 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   setUser: (user: ApiUser) => void
+  needsOnboarding: boolean
 }
 
 const AuthContext = createContext<AuthContextValue>({
   token: null,
   user: null,
   setUser: () => {},
+  needsOnboarding: false,
 })
 
 export function useAuth() {
@@ -96,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: null,
   }))
   const [loading, setLoading] = useState(!state.token)
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   useEffect(() => {
     // Already have a token from sessionStorage — skip auth request
@@ -117,6 +120,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(({ token, user }) => {
         sessionStorage.setItem('jwt', token)
         setState({ token, user })
+        if (!localStorage.getItem('onboarding_done')) {
+          setNeedsOnboarding(true)
+        }
       })
       .catch(console.error)
       .finally(() => setLoading(false))
@@ -133,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ ...state, setUser }}>
+    <AuthContext.Provider value={{ ...state, setUser, needsOnboarding }}>
       {children}
     </AuthContext.Provider>
   )

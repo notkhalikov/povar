@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { BrowserRouter, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { AuthProvider } from './context/AuthContext'
 import { useAuth } from './context/AuthContext'
+import { useT } from './i18n'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import CatalogPage from './pages/CatalogPage'
 import ChefPage from './pages/ChefPage'
@@ -15,6 +16,90 @@ import DisputePage from './pages/DisputePage'
 import RequestsPage from './pages/RequestsPage'
 import RequestDetailPage from './pages/RequestDetailPage'
 import ChefRequestsPage from './pages/ChefRequestsPage'
+import OnboardingPage from './pages/OnboardingPage'
+
+// ─── Telegram BackButton manager ─────────────────────────────────────────────
+
+function BackButtonManager() {
+  const location = useLocation()
+  const navigate  = useNavigate()
+
+  useEffect(() => {
+    const isRoot = location.pathname === '/'
+    try {
+      if (isRoot) {
+        WebApp.BackButton.hide()
+      } else {
+        WebApp.BackButton.show()
+        const handler = () => navigate(-1)
+        WebApp.BackButton.onClick(handler)
+        return () => { WebApp.BackButton.offClick(handler) }
+      }
+    } catch { /* running outside Telegram */ }
+  }, [location.pathname, navigate])
+
+  return null
+}
+
+// ─── Animated route wrapper ───────────────────────────────────────────────────
+
+function AnimatedRoutes() {
+  const location = useLocation()
+  const [animClass, setAnimClass] = useState('')
+  const historyStack = useRef<string[]>([location.key])
+  const prevKey      = useRef<string>(location.key)
+
+  useEffect(() => {
+    if (location.key === prevKey.current) return
+    const stack = historyStack.current
+    const idx   = stack.indexOf(location.key)
+    if (idx !== -1) {
+      // navigating back — key already in stack
+      historyStack.current = stack.slice(0, idx + 1)
+      setAnimClass('page-slide-back')
+    } else {
+      // navigating forward — new key
+      historyStack.current = [...stack, location.key]
+      setAnimClass('page-slide-forward')
+    }
+    prevKey.current = location.key
+  }, [location.key])
+
+  return (
+    <div key={location.key} className={animClass} style={{ flex: 1 }}>
+      <Routes location={location}>
+        <Route path='/'                element={<CatalogPage />} />
+        <Route path='/chefs/:id'       element={<ChefPage />} />
+        <Route path='/orders'          element={<OrdersPage />} />
+        <Route path='/orders/new'      element={<OrderNewPage />} />
+        <Route path='/orders/:id'      element={<OrderDetailPage />} />
+        <Route path='/profile'         element={<ProfilePage />} />
+        <Route path='/chef/onboarding' element={<ChefOnboardingPage />} />
+        <Route path='/chef/requests'   element={<ChefRequestsPage />} />
+        <Route path='/disputes/:id'    element={<DisputePage />} />
+        <Route path='/requests'        element={<RequestsPage />} />
+        <Route path='/requests/:id'    element={<RequestDetailPage />} />
+        <Route path='/onboarding'      element={<OnboardingPage />} />
+      </Routes>
+    </div>
+  )
+}
+
+// ─── Onboarding gate ─────────────────────────────────────────────────────────
+
+function OnboardingGate() {
+  const { needsOnboarding } = useAuth()
+  const navigate  = useNavigate()
+  const location  = useLocation()
+
+  useEffect(() => {
+    if (needsOnboarding && location.pathname !== '/onboarding') {
+      navigate('/onboarding', { replace: true })
+    }
+  }, [needsOnboarding, location.pathname, navigate])
+
+  return null
+}
 
 // ─── Deep link redirect ───────────────────────────────────────────────────────
 
@@ -41,6 +126,7 @@ function DeepLinkRedirect() {
 // ─── Offline toast ────────────────────────────────────────────────────────────
 
 function OfflineToast() {
+  const t = useT()
   const [offline, setOffline] = useState(!navigator.onLine)
 
   useEffect(() => {
@@ -72,7 +158,7 @@ function OfflineToast() {
       boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
       whiteSpace: 'nowrap',
     }}>
-      📵 Нет соединения
+      📵 {t.errors.network}
     </div>
   )
 }
@@ -82,23 +168,13 @@ export default function App() {
     <ErrorBoundary>
       <AuthProvider>
         <BrowserRouter>
+          <BackButtonManager />
+          <OnboardingGate />
           <DeepLinkRedirect />
           <OfflineToast />
           <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
             <main style={{ flex: 1, paddingBottom: 'calc(60px + env(safe-area-inset-bottom))' }}>
-              <Routes>
-                <Route path='/'                element={<CatalogPage />} />
-                <Route path='/chefs/:id'       element={<ChefPage />} />
-                <Route path='/orders'          element={<OrdersPage />} />
-                <Route path='/orders/new'      element={<OrderNewPage />} />
-                <Route path='/orders/:id'      element={<OrderDetailPage />} />
-                <Route path='/profile'         element={<ProfilePage />} />
-                <Route path='/chef/onboarding' element={<ChefOnboardingPage />} />
-                <Route path='/chef/requests'   element={<ChefRequestsPage />} />
-                <Route path='/disputes/:id'    element={<DisputePage />} />
-                <Route path='/requests'        element={<RequestsPage />} />
-                <Route path='/requests/:id'    element={<RequestDetailPage />} />
-              </Routes>
+              <AnimatedRoutes />
             </main>
             <BottomNav />
           </div>
@@ -113,17 +189,21 @@ export default function App() {
 function BottomNav() {
   const { user } = useAuth()
   const isChef = user?.role === 'chef'
+  const location = useLocation()
+  const t = useT()
+
+  if (location.pathname === '/onboarding') return null
 
   return (
     <nav style={navStyle}>
-      <NavItem to='/'        label='Повара'  icon='🍽️' />
+      <NavItem to='/'        label={t.nav.chefs}    icon='🍽️' />
       <NavItem
         to={isChef ? '/chef/requests' : '/requests'}
-        label='Запросы'
+        label={t.nav.requests}
         icon='📩'
       />
-      <NavItem to='/orders'  label='Заказы'  icon='📋' />
-      <NavItem to='/profile' label='Профиль' icon='👤' />
+      <NavItem to='/orders'  label={t.nav.orders}   icon='📋' />
+      <NavItem to='/profile' label={t.nav.profile}  icon='👤' />
     </nav>
   )
 }
