@@ -223,7 +223,7 @@ export default function OrderDetailPage() {
   const curTimelineIdx = timelineIndex(order.status)
 
   return (
-    <div style={{ padding: '0 0 100px' }}>
+    <div style={{ padding: '0 0 var(--page-padding-bottom-bar)' }}>
 
       {/* ── Status hero ───────────────────────────────────────────── */}
       <div style={{

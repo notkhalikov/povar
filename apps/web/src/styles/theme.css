@@ -9,6 +9,14 @@
  * ────────────────────────────────────────────────────────────────────────────── */
 
 :root {
+  /* Navigation / safe area */
+  --nav-height:               60px;
+  --safe-bottom:              env(safe-area-inset-bottom);
+  /* Standard bottom padding for any scrollable page (nav + safe area + 16px buffer) */
+  --page-padding-bottom:      calc(var(--nav-height) + var(--safe-bottom) + 16px);
+  /* For pages that also have an action-bar above the nav */
+  --page-padding-bottom-bar:  calc(var(--nav-height) + var(--safe-bottom) + 80px);
+
   /* Shape */
   --radius:    12px;
   --radius-sm: 8px;
@@ -202,12 +210,13 @@ body {
 .detail-row__value { font-size: 14px; text-align: right; }
 
 /* ── Bottom action bar ──────────────────────────────────────────────────────── */
+/* Sits above the BottomNav — never at bottom: 0 which would hide behind the nav */
 .action-bar {
   position: fixed;
-  bottom: 0;
+  bottom: calc(var(--nav-height) + var(--safe-bottom));
   left: 0;
   right: 0;
-  padding: 12px 16px max(16px, env(safe-area-inset-bottom));
+  padding: 12px 16px 16px;
   background: var(--tg-theme-bg-color);
   border-top: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 25%, transparent);
   display: flex;

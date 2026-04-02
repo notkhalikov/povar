@@ -33,7 +33,7 @@ export default function OrdersPage() {
   const shown  = tab === 'active' ? active : done
 
   return (
-    <div style={{ paddingBottom: 80 }}>
+    <div style={{ paddingBottom: 'var(--page-padding-bottom)' }}>
       <div style={{ padding: '16px 16px 0' }}>
         <h2 style={{ margin: '0 0 16px', fontSize: 22, fontWeight: 700 }}>Мои заказы</h2>
 

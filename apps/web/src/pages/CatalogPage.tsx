@@ -63,7 +63,7 @@ export default function CatalogPage() {
   useEffect(() => { load() }, [query])
 
   return (
-    <div style={{ paddingBottom: 80 }}>
+    <div style={{ paddingBottom: 'var(--page-padding-bottom)' }}>
       {/* Header */}
       <div style={{ padding: '16px 16px 10px' }}>
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Повара</h2>

@@ -46,7 +46,7 @@ export default function ProfilePage() {
   const fullName = [tgUser?.first_name, tgUser?.last_name].filter(Boolean).join(' ') || '—'
 
   return (
-    <div style={{ padding: '24px 16px 80px' }}>
+    <div style={{ padding: '24px 16px', paddingBottom: 'var(--page-padding-bottom)' }}>
 
       {/* ── Avatar + name ───────────────────────────────────────── */}
       <div style={{ textAlign: 'center', marginBottom: 28 }}>

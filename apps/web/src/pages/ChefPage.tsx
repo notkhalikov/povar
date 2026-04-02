@@ -98,7 +98,7 @@ export default function ChefPage() {
   if (chef.ordersCount < 5)                      badges.push({ label: '🆕 Новый', color: '#007aff', bg: '#007aff22' })
 
   return (
-    <div style={{ paddingBottom: 88 }}>
+    <div style={{ paddingBottom: 'var(--page-padding-bottom-bar)' }}>
 
       {/* ── Hero ─────────────────────────────────────────────────── */}
       <div className='chef-hero' style={{ background: 'var(--tg-theme-secondary-bg-color)' }}>

@@ -108,7 +108,7 @@ export default function OrderNewPage() {
   }
 
   return (
-    <div style={{ padding: '16px 16px 0', paddingBottom: 'calc(120px + env(safe-area-inset-bottom))', minHeight: '100vh' }}>
+    <div style={{ padding: '16px 16px 0', paddingBottom: 'calc(var(--nav-height) + var(--safe-bottom) + 60px)', minHeight: '100vh' }}>
 
       {/* ── Stepper ───────────────────────────────────────────────── */}
       <div className='stepper' style={{ marginBottom: 24 }}>
