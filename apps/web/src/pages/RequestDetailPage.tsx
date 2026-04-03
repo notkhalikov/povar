@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { getRequest, acceptResponse, closeRequest } from '../api/requests'
 import { useAuth } from '../context/AuthContext'
 import type { RequestDetail, ChefResponseItem } from '../types'
+import { useT } from '../i18n'
 
 export default function RequestDetailPage() {
+  const t = useT()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -14,17 +16,6 @@ export default function RequestDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [accepting, setAccepting] = useState<number | null>(null)
   const [closing, setClosing] = useState(false)
-
-  const goBack = useCallback(() => navigate('/requests'), [navigate])
-
-  useEffect(() => {
-    WebApp.BackButton.show()
-    WebApp.BackButton.onClick(goBack)
-    return () => {
-      WebApp.BackButton.hide()
-      WebApp.BackButton.offClick(goBack)
-    }
-  }, [goBack])
 
   useEffect(() => {
     if (!id) return
@@ -41,7 +32,7 @@ export default function RequestDetailPage() {
       const { orderId } = await acceptResponse(Number(id), responseId)
       navigate(`/orders/${orderId}`)
     } catch (e: unknown) {
-      WebApp.showAlert(e instanceof Error ? e.message : 'Ошибка при принятии отклика')
+      WebApp.showAlert(e instanceof Error ? e.message : t.errors.acceptFail)
     } finally {
       setAccepting(null)
     }
@@ -54,14 +45,14 @@ export default function RequestDetailPage() {
       const updated = await closeRequest(Number(id))
       setReq(prev => prev ? { ...prev, status: updated.status } : prev)
     } catch (e: unknown) {
-      WebApp.showAlert(e instanceof Error ? e.message : 'Ошибка при закрытии запроса')
+      WebApp.showAlert(e instanceof Error ? e.message : t.errors.closeFail)
     } finally {
       setClosing(false)
     }
   }
 
-  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>Загрузка…</div>
-  if (error)   return <div style={{ padding: 24, color: 'red' }}>Ошибка: {error}</div>
+  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>{t.common.loading}</div>
+  if (error)   return <div style={{ padding: 24, color: 'red' }}>{t.common.error}: {error}</div>
   if (!req)    return null
 
   const isOwner = user?.id === req.customerId
@@ -73,35 +64,35 @@ export default function RequestDetailPage() {
     <div style={{ padding: '16px 16px 80px' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 style={{ margin: 0, fontSize: 20 }}>Запрос #{req.id}</h2>
+        <h2 style={{ margin: 0, fontSize: 20 }}>{t.requests.title} #{req.id}</h2>
         <span style={{
           padding: '4px 10px', borderRadius: 20, fontSize: 13, fontWeight: 600,
           background: req.status === 'open' ? '#34c75922' : '#88888822',
           color: req.status === 'open' ? '#34c759' : '#888',
         }}>
-          {req.status === 'open' ? 'Открыт' : 'Закрыт'}
+          {req.status === 'open' ? t.requests.open : t.requests.closed}
         </span>
       </div>
 
       {/* Details */}
       <div style={sectionStyle}>
-        <Row label='Город'>{req.city}{req.district ? `, ${req.district}` : ''}</Row>
-        <Row label='Дата'>{date}</Row>
-        <Row label='Формат'>{req.format === 'home_visit' ? '🏠 Повар на дом' : '🚚 Доставка'}</Row>
-        <Row label='Людей'>{req.persons}</Row>
-        {req.budget && <Row label='Бюджет'>{req.budget} ₾</Row>}
-        {req.description && <Row label='Описание'>{req.description}</Row>}
+        <Row label={t.requests.details.city}>{req.city}{req.district ? `, ${req.district}` : ''}</Row>
+        <Row label={t.requests.details.date}>{date}</Row>
+        <Row label={t.requests.details.format}>{req.format === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull}</Row>
+        <Row label={t.requests.details.persons}>{req.persons}</Row>
+        {req.budget && <Row label={t.requests.details.budget}>{req.budget} {t.common.currency}</Row>}
+        {req.description && <Row label={t.requests.details.desc}>{req.description}</Row>}
       </div>
 
       {/* Responses */}
       <div style={{ marginTop: 24 }}>
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 12 }}>
-          Отклики ({req.responses.length})
+          {t.requests.responses} ({req.responses.length})
         </div>
 
         {req.responses.length === 0 && (
           <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>
-            Откликов пока нет. Повара увидят ваш запрос и предложат цену.
+            {t.requests.noResponses}
           </div>
         )}
 
@@ -127,7 +118,7 @@ export default function RequestDetailPage() {
             disabled={closing}
             onClick={handleClose}
           >
-            {closing ? 'Закрываем…' : 'Закрыть запрос'}
+            {closing ? t.requests.closing : t.requests.closeBtn}
           </button>
         </div>
       )}
@@ -144,6 +135,7 @@ function ResponseCard({
   accepting: boolean
   onAccept: () => void
 }) {
+  const t = useT()
   const rating = Number(response.ratingCache)
   const statusColor =
     response.status === 'accepted' ? '#34c759' :
@@ -173,7 +165,7 @@ function ResponseCard({
           )}
           {response.status !== 'new' && (
             <span style={{ fontSize: 12, color: statusColor, fontWeight: 600 }}>
-              {response.status === 'accepted' ? 'Принят' : 'Отклонён'}
+              {response.status === 'accepted' ? t.requests.accepted : t.requests.rejected}
             </span>
           )}
         </div>
@@ -191,7 +183,7 @@ function ResponseCard({
           disabled={accepting}
           onClick={onAccept}
         >
-          {accepting ? 'Принимаем…' : 'Принять и создать заказ'}
+          {accepting ? t.requests.accepting : t.requests.acceptBtn}
         </button>
       )}
     </div>

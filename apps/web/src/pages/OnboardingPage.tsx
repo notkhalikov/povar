@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useT } from '../i18n'
 
 // ─── SVG Illustrations ────────────────────────────────────────────────────────
 
@@ -87,29 +88,16 @@ function ShieldIllustration() {
   )
 }
 
-// ─── Slide data ───────────────────────────────────────────────────────────────
-
-const SLIDES = [
-  {
-    illustration: <ChefIllustration />,
-    title: 'Домашняя еда в Тбилиси',
-    subtitle: 'Найди повара рядом с домом или закажи готовую еду с доставкой',
-  },
-  {
-    illustration: <SearchIllustration />,
-    title: 'Каталог проверенных поваров',
-    subtitle: 'Реальные рейтинги, отзывы и портфолио — выбирай с уверенностью',
-  },
-  {
-    illustration: <ShieldIllustration />,
-    title: 'Безопасная оплата',
-    subtitle: 'Деньги переходят повару только после того, как ты подтвердишь выполнение заказа',
-  },
+const SLIDE_ILLUSTRATIONS = [
+  <ChefIllustration />,
+  <SearchIllustration />,
+  <ShieldIllustration />,
 ]
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
+  const t                = useT()
   const navigate         = useNavigate()
   const [slide, setSlide] = useState(0)
   const touchStartX      = useRef(0)
@@ -121,7 +109,7 @@ export default function OnboardingPage() {
   }
 
   function goNext() {
-    if (slide < SLIDES.length - 1) setSlide(s => s + 1)
+    if (slide < t.onboarding.slides.length - 1) setSlide(s => s + 1)
     else finish()
   }
 
@@ -142,8 +130,8 @@ export default function OnboardingPage() {
     }
   }
 
-  const isLast = slide === SLIDES.length - 1
-  const current = SLIDES[slide]
+  const isLast = slide === t.onboarding.slides.length - 1
+  const current = t.onboarding.slides[slide]
 
   return (
     <div
@@ -173,7 +161,7 @@ export default function OnboardingPage() {
               minHeight: 44,
             }}
           >
-            Пропустить
+            {t.common.skip}
           </button>
         )}
       </div>
@@ -194,7 +182,7 @@ export default function OnboardingPage() {
         }}
       >
         <div style={{ marginBottom: 8 }}>
-          {current.illustration}
+          {SLIDE_ILLUSTRATIONS[slide]}
         </div>
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, lineHeight: 1.25 }}>
           {current.title}
@@ -220,7 +208,7 @@ export default function OnboardingPage() {
       }}>
         {/* Dots */}
         <div style={{ display: 'flex', gap: 8 }}>
-          {SLIDES.map((_, i) => (
+          {t.onboarding.slides.map((_, i) => (
             <button
               key={i}
               onClick={() => setSlide(i)}
@@ -247,7 +235,7 @@ export default function OnboardingPage() {
           onClick={goNext}
           style={{ maxWidth: 320, width: '100%' }}
         >
-          {isLast ? 'Начать' : 'Далее'}
+          {isLast ? t.common.start : t.common.next}
         </button>
       </div>
     </div>

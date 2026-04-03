@@ -275,6 +275,39 @@ export function scheduleReviewReminder(
   }, 2 * 60 * 60 * 1000)
 }
 
+// ─── Verification notifications ───────────────────────────────────────────────
+
+/**
+ * Notify admin that a chef has submitted verification documents.
+ */
+export async function notifyVerificationSubmitted(
+  chefName: string,
+  chefProfileId: number,
+  adminTelegramId: number,
+): Promise<void> {
+  const text =
+    `📋 <b>Новая заявка на верификацию</b>\n` +
+    `Повар: ${chefName}\n` +
+    `Профиль #${chefProfileId}`
+  await sendMessage(adminTelegramId, text)
+}
+
+/**
+ * Notify chef about the outcome of their verification request.
+ */
+export async function notifyVerificationDecision(
+  chefTelegramId: number,
+  approved: boolean,
+  comment?: string,
+): Promise<void> {
+  const icon = approved ? '✅' : '❌'
+  const result = approved ? 'одобрена' : 'отклонена'
+  const text =
+    `${icon} <b>Ваша заявка на верификацию ${result}.</b>` +
+    (comment ? `\n\n${comment}` : '')
+  await sendMessage(chefTelegramId, text)
+}
+
 // ─── Backward-compatible helpers (used by PATCH /orders/:id/status) ───────────
 
 const STATUS_TEXT: Partial<Record<OrderStatus, string>> = {

@@ -79,7 +79,7 @@ export default function ChefPage() {
       </div>
     </div>
   )
-  if (error) return <div style={{ padding: 24, color: 'var(--color-danger)' }}>Ошибка: {error}</div>
+  if (error) return <div style={{ padding: 24, color: 'var(--color-danger)' }}>{t.common.error}: {error}</div>
   if (!chef) return null
 
   const rating = Number(chef.ratingCache)
@@ -87,9 +87,9 @@ export default function ChefPage() {
 
   // Badges
   const badges: { label: string; color: string; bg: string }[] = []
-  if (chef.verificationStatus === 'approved') badges.push({ label: t.chef.badgeVerified, color: '#34c759', bg: '#34c75922' })
-  if (rating >= 4.5 && chef.ordersCount >= 10)  badges.push({ label: t.chef.badgeTop,      color: '#f5a623', bg: '#f5a62322' })
-  if (chef.ordersCount < 5)                      badges.push({ label: t.chef.badgeNew,      color: '#007aff', bg: '#007aff22' })
+  if (chef.verificationStatus === 'approved') badges.push({ label: t.chef.badgeVerified, color: '#007aff', bg: '#007aff22' })
+  if (rating >= 4.8 && chef.ordersCount >= 10)  badges.push({ label: t.chef.badgeTop,    color: '#f5a623', bg: '#f5a62322' })
+  if (chef.ordersCount < 3)                      badges.push({ label: t.chef.badgeNew,    color: '#8e8e93', bg: '#8e8e9322' })
 
   return (
     <div style={{ paddingBottom: 'var(--page-padding-bottom-bar)' }}>
@@ -296,7 +296,7 @@ export default function ChefPage() {
                         className='field-input'
                         value={replyText}
                         onChange={e => setReplyText(e.target.value)}
-                        placeholder='Ваш ответ…'
+                        placeholder={t.chef.chefReply + '…'}
                         rows={2}
                         maxLength={2000}
                         style={{ resize: 'vertical', marginBottom: 8 }}

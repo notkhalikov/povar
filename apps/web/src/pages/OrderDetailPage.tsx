@@ -184,7 +184,7 @@ export default function OrderDetailPage() {
       <div className='sk' style={{ height: 180, borderRadius: 12 }} />
     </div>
   )
-  if (error) return <div style={{ padding: 24, color: 'var(--color-danger)' }}>Ошибка: {error}</div>
+  if (error) return <div style={{ padding: 24, color: 'var(--color-danger)' }}>{t.common.error}: {error}</div>
   if (!order) return null
 
   const scheduledPassed = new Date(order.scheduledAt) < new Date()

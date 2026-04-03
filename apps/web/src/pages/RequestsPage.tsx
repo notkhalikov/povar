@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getRequests, createRequest } from '../api/requests'
 import { useAuth } from '../context/AuthContext'
 import type { RequestItem } from '../types'
+import { useT } from '../i18n'
 
 const CITIES = ['Тбилиси', 'Батуми']
 
@@ -27,6 +28,7 @@ const BLANK_FORM: FormState = {
 }
 
 export default function RequestsPage() {
+  const t = useT()
   const navigate = useNavigate()
   const { user } = useAuth()
   const [items, setItems] = useState<RequestItem[]>([])
@@ -69,16 +71,16 @@ export default function RequestsPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>Загрузка…</div>
+    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>{t.common.loading}</div>
   }
 
   return (
     <div style={{ padding: '12px 16px 80px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ margin: 0, fontSize: 20 }}>Запросы</h2>
+        <h2 style={{ margin: 0, fontSize: 20 }}>{t.requests.title}</h2>
         {user?.role !== 'chef' && (
           <button style={createBtnStyle} onClick={() => setShowForm(v => !v)}>
-            {showForm ? 'Отмена' : '+ Создать'}
+            {showForm ? t.common.cancel : t.requests.create}
           </button>
         )}
       </div>
@@ -86,24 +88,24 @@ export default function RequestsPage() {
       {/* Create form */}
       {showForm && (
         <form onSubmit={handleCreate} style={formCardStyle}>
-          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16 }}>Новый запрос</div>
+          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16 }}>{t.requests.newRequest}</div>
 
-          <Field label='Город'>
+          <Field label={t.requests.cityLabel}>
             <select value={form.city} onChange={e => set('city', e.target.value)} style={inputStyle}>
               {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </Field>
 
-          <Field label='Район (необязательно)'>
+          <Field label={t.requests.districtLabel}>
             <input
               value={form.district}
               onChange={e => set('district', e.target.value)}
-              placeholder='Ваке, Сабуртало…'
+              placeholder={t.requests.districtPlaceholder}
               style={inputStyle}
             />
           </Field>
 
-          <Field label='Дата и время'>
+          <Field label={t.requests.dateLabel}>
             <input
               type='datetime-local'
               value={form.scheduledAt}
@@ -113,7 +115,7 @@ export default function RequestsPage() {
             />
           </Field>
 
-          <Field label='Формат'>
+          <Field label={t.requests.formatLabel}>
             <div style={{ display: 'flex', gap: 12 }}>
               {(['home_visit', 'delivery'] as const).map(f => (
                 <label key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 15 }}>
@@ -123,13 +125,13 @@ export default function RequestsPage() {
                     checked={form.format === f}
                     onChange={() => set('format', f)}
                   />
-                  {f === 'home_visit' ? '🏠 Повар на дом' : '🚚 Доставка'}
+                  {f === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull}
                 </label>
               ))}
             </div>
           </Field>
 
-          <Field label='Количество человек'>
+          <Field label={t.requests.personsLabel}>
             <input
               type='number'
               value={form.persons}
@@ -139,17 +141,17 @@ export default function RequestsPage() {
             />
           </Field>
 
-          <Field label='Описание (кухня, пожелания)'>
+          <Field label={t.requests.descLabel}>
             <textarea
               value={form.description}
               onChange={e => set('description', e.target.value)}
-              placeholder='Хотим грузинскую кухню, без острого…'
+              placeholder={t.requests.descPlaceholder}
               rows={3}
               style={{ ...inputStyle, resize: 'vertical' }}
             />
           </Field>
 
-          <Field label='Бюджет GEL (необязательно)'>
+          <Field label={t.requests.budgetLabel}>
             <input
               type='number'
               value={form.budget}
@@ -161,7 +163,7 @@ export default function RequestsPage() {
           </Field>
 
           <button type='submit' disabled={saving} style={{ ...submitBtnStyle, opacity: saving ? 0.6 : 1 }}>
-            {saving ? 'Создаём…' : 'Создать запрос'}
+            {saving ? t.requests.creating : t.requests.submitCreate}
           </button>
         </form>
       )}
@@ -170,9 +172,9 @@ export default function RequestsPage() {
       {items.length === 0 && !showForm && (
         <div style={{ textAlign: 'center', padding: '48px 0' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>📩</div>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>Запросов пока нет</div>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>{t.requests.noRequests}</div>
           <div style={{ color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>
-            Создайте запрос и повара сами предложат цену
+            {t.requests.noRequestsHint}
           </div>
         </div>
       )}
@@ -187,6 +189,7 @@ export default function RequestsPage() {
 }
 
 function RequestCard({ item, onClick }: { item: RequestItem; onClick: () => void }) {
+  const t = useT()
   const date = new Date(item.scheduledAt).toLocaleString('ru-RU', {
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   })
@@ -198,17 +201,17 @@ function RequestCard({ item, onClick }: { item: RequestItem; onClick: () => void
             {item.city}{item.district ? `, ${item.district}` : ''}
           </div>
           <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>
-            {item.format === 'home_visit' ? '🏠 Повар на дом' : '🚚 Доставка'} · 👥 {item.persons} чел.
+            {item.format === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull} · 👥 {item.persons} {t.common.persons}
           </div>
         </div>
         <span style={{ ...statusBadge, background: item.status === 'open' ? '#34c75922' : '#88888822', color: item.status === 'open' ? '#34c759' : '#888' }}>
-          {item.status === 'open' ? 'Открыт' : 'Закрыт'}
+          {item.status === 'open' ? t.requests.open : t.requests.closed}
         </span>
       </div>
       <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--tg-theme-hint-color)' }}>
         <span>📅 {date}</span>
-        {item.budget && <span>💰 до {item.budget} ₾</span>}
-        <span>💬 {item.responseCount} {plural(item.responseCount, 'отклик', 'отклика', 'откликов')}</span>
+        {item.budget && <span>💰 {t.common.upTo} {item.budget} {t.common.currency}</span>}
+        <span>💬 {item.responseCount} {plural(item.responseCount, t.requests.responseCount.one, t.requests.responseCount.few, t.requests.responseCount.many)}</span>
       </div>
     </div>
   )

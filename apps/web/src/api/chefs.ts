@@ -92,3 +92,10 @@ function fileToBase64(file: File): Promise<string> {
 export function chefPhotoUrl(chefId: number, fileId: string): string {
   return `${BASE_URL}/chefs/${chefId}/photo/${encodeURIComponent(fileId)}`
 }
+
+export function submitVerification(documentFileId: string, selfieFileId: string): Promise<{ verificationStatus: string }> {
+  return apiFetch('/chefs/me/verify', {
+    method: 'POST',
+    body: JSON.stringify({ documentFileId, selfieFileId }),
+  })
+}

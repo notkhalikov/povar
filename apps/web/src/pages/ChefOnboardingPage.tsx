@@ -1,16 +1,14 @@
 import { useState, useEffect, useRef, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import WebApp from '@twa-dev/sdk'
 import { useAuth } from '../context/AuthContext'
-import { getMyChef, patchMyChef, uploadPortfolioPhoto, addPortfolioPhotos, deletePortfolioPhoto, chefPhotoUrl } from '../api/chefs'
+import { getMyChef, patchMyChef, uploadPortfolioPhoto, addPortfolioPhotos, deletePortfolioPhoto, chefPhotoUrl, submitVerification } from '../api/chefs'
+import { useT } from '../i18n'
 
 type WorkFormat = 'home_visit' | 'delivery'
 
-const FORMAT_LABELS: Record<WorkFormat, string> = {
-  home_visit: 'Выезд на дом',
-  delivery: 'Доставка',
-}
-
 export default function ChefOnboardingPage() {
+  const t = useT()
   const navigate = useNavigate()
   const { user, setUser } = useAuth()
 
@@ -22,10 +20,18 @@ export default function ChefOnboardingPage() {
   const [isActive, setIsActive] = useState(true)
   const [portfolioMediaIds, setPortfolioMediaIds] = useState<string[]>([])
   const [chefId, setChefId] = useState<number | null>(null)
+  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null)
   const [saving, setSaving] = useState(false)
   const [togglingStatus, setTogglingStatus] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [loadingProfile, setLoadingProfile] = useState(true)
+  // Verification form state
+  const [showVerifyForm, setShowVerifyForm] = useState(false)
+  const [sendingVerify, setSendingVerify] = useState(false)
+  const [docFileId, setDocFileId] = useState<string | null>(null)
+  const [selfieFileId, setSelfieFileId] = useState<string | null>(null)
+  const docInputRef = useRef<HTMLInputElement>(null)
+  const selfieInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Pre-fill form if profile already exists
@@ -40,6 +46,7 @@ export default function ChefOnboardingPage() {
         setIsActive(profile.isActive)
         setPortfolioMediaIds(profile.portfolioMediaIds)
         setChefId(profile.id)
+        setVerificationStatus(profile.verificationStatus)
       })
       .catch(() => {
         // 404 — new profile, form stays empty
@@ -114,40 +121,72 @@ export default function ChefOnboardingPage() {
     }
   }
 
+  async function handleVerifyPhotoSelect(
+    e: React.ChangeEvent<HTMLInputElement>,
+    setFileId: (id: string) => void,
+  ) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    try {
+      const { fileId } = await uploadPortfolioPhoto(file)
+      setFileId(fileId)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  async function handleSubmitVerification(e: React.FormEvent) {
+    e.preventDefault()
+    if (!docFileId) { WebApp.showAlert(t.verification.noDoc); return }
+    if (!selfieFileId) { WebApp.showAlert(t.verification.noSelfie); return }
+    setSendingVerify(true)
+    try {
+      const { verificationStatus: status } = await submitVerification(docFileId, selfieFileId)
+      setVerificationStatus(status as 'pending' | 'approved' | 'rejected')
+      setShowVerifyForm(false)
+      WebApp.showAlert(t.verification.successMsg)
+    } catch (err: unknown) {
+      WebApp.showAlert(err instanceof Error ? err.message : t.verification.errorMsg)
+    } finally {
+      setSendingVerify(false)
+    }
+  }
+
   if (loadingProfile) {
-    return <div style={{ padding: 24, textAlign: 'center' }}>Загрузка…</div>
+    return <div style={{ padding: 24, textAlign: 'center' }}>{t.common.loading}</div>
   }
 
   return (
     <div style={{ padding: '24px 16px', paddingBottom: 'calc(72px + env(safe-area-inset-bottom))' }}>
-      <h2 style={{ margin: '0 0 6px' }}>Анкета повара</h2>
+      <h2 style={{ margin: '0 0 6px' }}>{t.chefOnboarding.title}</h2>
       <p style={{ margin: '0 0 24px', color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>
-        Заполните профиль, чтобы заказчики могли вас найти
+        {t.chefOnboarding.hint}
       </p>
 
       <form onSubmit={handleSubmit}>
         {/* Bio */}
-        <Field label='О себе'>
+        <Field label={t.chef.about}>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            placeholder='Кратко о себе, опыте и специализации'
+            placeholder={t.chefOnboarding.bioPlaceholder}
             maxLength={1000}
             style={textareaStyle}
           />
         </Field>
 
         {/* Cuisine tags */}
-        <Field label='Кухни (нажмите Enter для добавления)'>
+        <Field label={t.chefOnboarding.cuisineLabel}>
           <ChipInput
             value={cuisineTags}
             onChange={setCuisineTags}
-            placeholder='Например: грузинская, итальянская'
+            placeholder={t.chefOnboarding.cuisinePlaceholder}
           />
         </Field>
 
         {/* Work formats */}
-        <Field label='Формат работы'>
+        <Field label={t.chef.workFormat}>
           {(['home_visit', 'delivery'] as WorkFormat[]).map((fmt) => (
             <label key={fmt} style={checkboxLabelStyle}>
               <input
@@ -156,22 +195,22 @@ export default function ChefOnboardingPage() {
                 onChange={() => toggleFormat(fmt)}
                 style={{ marginRight: 8 }}
               />
-              {FORMAT_LABELS[fmt]}
+              {fmt === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull}
             </label>
           ))}
         </Field>
 
         {/* Districts */}
-        <Field label='Районы работы (нажмите Enter для добавления)'>
+        <Field label={t.chefOnboarding.districtsLabel}>
           <ChipInput
             value={districts}
             onChange={setDistricts}
-            placeholder='Например: Ваке, Сабуртало'
+            placeholder={t.chefOnboarding.districtsPlaceholder}
           />
         </Field>
 
         {/* Average price */}
-        <Field label='Средний чек (GEL)'>
+        <Field label={t.chefOnboarding.avgPriceLabel}>
           <input
             type='number'
             value={avgPrice}
@@ -187,7 +226,7 @@ export default function ChefOnboardingPage() {
           disabled={saving}
           style={{ ...buttonStyle, opacity: saving ? 0.6 : 1 }}
         >
-          {saving ? 'Сохранение…' : 'Сохранить анкету'}
+          {saving ? t.chefOnboarding.saving : t.chefOnboarding.save}
         </button>
       </form>
 
@@ -197,10 +236,10 @@ export default function ChefOnboardingPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontWeight: 600, fontSize: 15 }}>
-                {isActive ? '🟢 Принимаю заказы' : '🔴 В отпуске'}
+                {isActive ? t.profile.accepting : t.profile.vacation}
               </div>
               <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>
-                {isActive ? 'Вы видны заказчикам' : 'Вы скрыты из каталога'}
+                {isActive ? t.chefOnboarding.visible : t.chefOnboarding.hidden}
               </div>
             </div>
             <button
@@ -213,7 +252,7 @@ export default function ChefOnboardingPage() {
                 opacity: togglingStatus ? 0.6 : 1,
               }}
             >
-              {isActive ? 'Пауза' : 'Включить'}
+              {isActive ? t.chefOnboarding.pause : t.chefOnboarding.resume}
             </button>
           </div>
         </div>
@@ -222,9 +261,9 @@ export default function ChefOnboardingPage() {
       {/* ── Portfolio (only for existing chef profiles) ── */}
       {chefId !== null && (
         <div style={{ marginTop: 28 }}>
-          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>Портфолио</div>
+          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{t.chef.portfolio}</div>
           <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginBottom: 14 }}>
-            Фото блюд — максимум 10
+            {t.chefOnboarding.portfolioHint}
           </div>
 
           <div style={portfolioGridStyle}>
@@ -239,7 +278,7 @@ export default function ChefOnboardingPage() {
                   type='button'
                   onClick={() => handleDeletePhoto(id)}
                   style={deletePhotoBtnStyle}
-                  aria-label='Удалить'
+                  aria-label={t.a11y.deletePhoto}
                 >
                   ×
                 </button>
@@ -267,6 +306,118 @@ export default function ChefOnboardingPage() {
           />
         </div>
       )}
+
+      {/* ── Verification section (only for existing profiles) ── */}
+      {chefId !== null && (
+        <div style={{ marginTop: 28 }}>
+          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 12 }}>
+            {t.verification.sectionTitle}
+          </div>
+
+          {verificationStatus === 'approved' && (
+            <div style={{ ...verifyBannerStyle, background: '#34c75911', border: '1px solid #34c75933' }}>
+              <span style={{ color: '#34c759', fontWeight: 600, fontSize: 14 }}>{t.verification.approved}</span>
+            </div>
+          )}
+
+          {verificationStatus === 'pending' && (
+            <div style={{ ...verifyBannerStyle, background: '#007aff11', border: '1px solid #007aff33' }}>
+              <div style={{ fontWeight: 600, fontSize: 14, color: '#007aff' }}>{t.verification.pending}</div>
+              <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginTop: 4 }}>{t.verification.pendingHint}</div>
+            </div>
+          )}
+
+          {(verificationStatus === 'rejected' || verificationStatus === null) && !showVerifyForm && (
+            <div>
+              {verificationStatus === 'rejected' && (
+                <div style={{ ...verifyBannerStyle, background: '#ff3b3011', border: '1px solid #ff3b3033', marginBottom: 12 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: '#ff3b30' }}>{t.verification.rejected}</div>
+                  <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginTop: 4 }}>{t.verification.rejectedHint}</div>
+                </div>
+              )}
+              <button
+                type='button'
+                style={{ ...buttonStyle }}
+                onClick={() => setShowVerifyForm(true)}
+              >
+                {t.verification.submitBtn}
+              </button>
+            </div>
+          )}
+
+          {showVerifyForm && (
+            <form onSubmit={handleSubmitVerification} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ fontSize: 14, color: 'var(--tg-theme-hint-color)' }}>{t.verification.formHint}</div>
+
+              <VerifyPhotoField
+                label={t.verification.docLabel}
+                fileId={docFileId}
+                onPick={() => docInputRef.current?.click()}
+              />
+              <input
+                ref={docInputRef}
+                type='file'
+                accept='image/*'
+                style={{ display: 'none' }}
+                onChange={e => handleVerifyPhotoSelect(e, setDocFileId)}
+              />
+
+              <VerifyPhotoField
+                label={t.verification.selfieLabel}
+                fileId={selfieFileId}
+                onPick={() => selfieInputRef.current?.click()}
+              />
+              <input
+                ref={selfieInputRef}
+                type='file'
+                accept='image/*'
+                style={{ display: 'none' }}
+                onChange={e => handleVerifyPhotoSelect(e, setSelfieFileId)}
+              />
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type='button'
+                  style={{ flex: 1, padding: '11px', borderRadius: 12, border: '1px solid var(--tg-theme-hint-color)', background: 'transparent', color: 'var(--tg-theme-text-color)', fontSize: 15, cursor: 'pointer' }}
+                  onClick={() => setShowVerifyForm(false)}
+                  disabled={sendingVerify}
+                >
+                  {t.common.cancel}
+                </button>
+                <button
+                  type='submit'
+                  style={{ flex: 2, ...buttonStyle, opacity: sendingVerify ? 0.6 : 1 }}
+                  disabled={sendingVerify}
+                >
+                  {sendingVerify ? t.verification.sending : t.verification.sendBtn}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function VerifyPhotoField({ label, fileId, onPick }: { label: string; fileId: string | null; onPick: () => void }) {
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginBottom: 8 }}>{label}</div>
+      <button
+        type='button'
+        onClick={onPick}
+        style={{
+          width: '100%', padding: '14px', borderRadius: 12,
+          border: `2px dashed ${fileId ? '#34c759' : 'var(--tg-theme-hint-color)'}`,
+          background: fileId ? '#34c75911' : 'var(--tg-theme-secondary-bg-color)',
+          color: fileId ? '#34c759' : 'var(--tg-theme-hint-color)',
+          fontSize: 15, cursor: 'pointer', textAlign: 'center',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}
+      >
+        {fileId ? '✓ Фото загружено' : '📷 Выбрать фото'}
+      </button>
     </div>
   )
 }
@@ -402,6 +553,12 @@ const buttonStyle: React.CSSProperties = {
   fontWeight: 600,
   cursor: 'pointer',
   marginTop: 8,
+}
+
+const verifyBannerStyle: React.CSSProperties = {
+  padding: '14px 16px',
+  borderRadius: 12,
+  marginBottom: 4,
 }
 
 const statusSectionStyle: React.CSSProperties = {

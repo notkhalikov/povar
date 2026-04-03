@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { getRequests, respondToRequest } from '../api/requests'
 import type { RequestItem } from '../types'
+import { useT } from '../i18n'
 
 export default function ChefRequestsPage() {
+  const t = useT()
   const navigate = useNavigate()
   const [items, setItems] = useState<RequestItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,37 +41,37 @@ export default function ChefRequestsPage() {
         r.id === respondingTo ? { ...r, responseCount: r.responseCount + 1 } : r,
       ))
       setRespondingTo(null)
-      WebApp.showAlert('Отклик отправлен! Заказчик получит уведомление.')
+      WebApp.showAlert(t.requests.respondSuccess)
     } catch (err: unknown) {
-      WebApp.showAlert(err instanceof Error ? err.message : 'Ошибка при отправке отклика')
+      WebApp.showAlert(err instanceof Error ? err.message : t.errors.respondFail)
     } finally {
       setSending(false)
     }
   }
 
   if (loading) {
-    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>Загрузка…</div>
+    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>{t.common.loading}</div>
   }
 
   return (
     <div style={{ padding: '12px 16px 80px' }}>
-      <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>Входящие запросы</h2>
+      <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>{t.requests.incoming}</h2>
       <p style={{ margin: '0 0 16px', color: 'var(--tg-theme-hint-color)', fontSize: 13 }}>
-        Запросы заказчиков, совпадающие с вашим городом и форматом работы
+        {t.requests.incomingHint}
       </p>
 
       {items.length === 0 && (
         <div style={{ textAlign: 'center', padding: '48px 0' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>Новых запросов нет</div>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>{t.requests.noIncoming}</div>
           <div style={{ color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>
-            Убедитесь, что в анкете указаны город и форматы работы
+            {t.requests.noIncomingHint}
           </div>
           <button
             style={linkBtnStyle}
             onClick={() => navigate('/chef/onboarding')}
           >
-            Редактировать анкету
+            {t.requests.editProfile}
           </button>
         </div>
       )}
@@ -86,10 +88,10 @@ export default function ChefRequestsPage() {
             {/* Inline respond form */}
             {respondingTo === item.id && !item.hasResponded && (
               <form onSubmit={handleRespond} style={respondFormStyle}>
-                <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12 }}>Ваш отклик</div>
+                <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12 }}>{t.requests.respondTitle}</div>
 
                 <div style={{ marginBottom: 14 }}>
-                  <div style={labelStyle}>Предлагаемая цена GEL (необязательно)</div>
+                  <div style={labelStyle}>{t.requests.priceLabel}</div>
                   <input
                     type='number'
                     value={price}
@@ -101,11 +103,11 @@ export default function ChefRequestsPage() {
                 </div>
 
                 <div style={{ marginBottom: 14 }}>
-                  <div style={labelStyle}>Комментарий</div>
+                  <div style={labelStyle}>{t.requests.commentLabel}</div>
                   <textarea
                     value={comment}
                     onChange={e => setComment(e.target.value)}
-                    placeholder='Расскажите о себе, меню, условиях…'
+                    placeholder={t.requests.commentPlaceholder}
                     rows={3}
                     maxLength={1000}
                     style={{ ...inputStyle, resize: 'vertical' }}
@@ -119,14 +121,14 @@ export default function ChefRequestsPage() {
                     onClick={() => setRespondingTo(null)}
                     disabled={sending}
                   >
-                    Отмена
+                    {t.common.cancel}
                   </button>
                   <button
                     type='submit'
                     style={{ ...submitBtnStyle, flex: 2, opacity: sending ? 0.6 : 1 }}
                     disabled={sending}
                   >
-                    {sending ? 'Отправляем…' : 'Откликнуться'}
+                    {sending ? t.requests.sending : t.requests.respond}
                   </button>
                 </div>
               </form>
@@ -145,6 +147,7 @@ function RequestCard({
   onRespond: () => void
   isResponding: boolean
 }) {
+  const t = useT()
   const date = new Date(item.scheduledAt).toLocaleString('ru-RU', {
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   })
@@ -157,11 +160,11 @@ function RequestCard({
             {item.city}{item.district ? `, ${item.district}` : ''}
           </div>
           <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>
-            {item.format === 'home_visit' ? '🏠 Повар на дом' : '🚚 Доставка'} · 👥 {item.persons} чел.
+            {item.format === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull} · 👥 {item.persons} {t.common.persons}
           </div>
         </div>
         {item.budget && (
-          <span style={{ fontSize: 14, fontWeight: 600 }}>до {item.budget} ₾</span>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>{t.common.upTo} {item.budget} {t.common.currency}</span>
         )}
       </div>
 
@@ -174,14 +177,14 @@ function RequestCard({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)' }}>📅 {date}</span>
         {item.hasResponded ? (
-          <span style={respondedBadgeStyle}>✓ Отклик отправлен</span>
+          <span style={respondedBadgeStyle}>{t.requests.respondSent}</span>
         ) : (
           <button
             style={{ ...respondBtnStyle, opacity: isResponding ? 0.5 : 1 }}
             onClick={onRespond}
             disabled={isResponding}
           >
-            Откликнуться
+            {t.requests.respond}
           </button>
         )}
       </div>

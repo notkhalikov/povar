@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ChefListItem } from '../types'
+import { useT } from '../i18n'
 
 const AVATAR_COLORS = [
   '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
@@ -18,8 +19,17 @@ function initials(name: string): string {
 }
 
 export function ChefCard({ chef }: { chef: ChefListItem }) {
+  const t = useT()
   const rating  = Number(chef.ratingCache)
   const [pressed, setPressed] = useState(false)
+
+  const badges: { label: string; color: string; bg: string }[] = []
+  if (chef.verificationStatus === 'approved')
+    badges.push({ label: t.chef.badgeVerified, color: '#007aff', bg: '#007aff22' })
+  if (rating >= 4.8 && chef.ordersCount >= 10)
+    badges.push({ label: t.chef.badgeTop, color: '#f5a623', bg: '#f5a62322' })
+  if (chef.ordersCount < 3)
+    badges.push({ label: t.chef.badgeNew, color: '#8e8e93', bg: '#8e8e9322' })
 
   function handlePressStart() {
     setPressed(true)
@@ -71,6 +81,20 @@ export function ChefCard({ chef }: { chef: ChefListItem }) {
             </div>
           )}
 
+          {/* Badges */}
+          {badges.length > 0 && (
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 6 }}>
+              {badges.map(b => (
+                <span key={b.label} style={{
+                  padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                  background: b.bg, color: b.color,
+                }}>
+                  {b.label}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Tags */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
             {chef.cuisineTags.slice(0, 3).map(tag => (
@@ -96,7 +120,7 @@ export function ChefCard({ chef }: { chef: ChefListItem }) {
               background: 'var(--tg-theme-button-color)',
               color: 'var(--tg-theme-button-text-color)',
             }}>
-              Подробнее →
+              {t.catalog.moreBtn}
             </span>
           </div>
         </div>

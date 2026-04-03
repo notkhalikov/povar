@@ -73,6 +73,9 @@ export const chefProfiles = pgTable('chef_profiles', {
   ordersCount: integer('orders_count').default(0).notNull(),
   // Telegram file_ids; originals stay on Telegram servers
   portfolioMediaIds: text('portfolio_media_ids').array().default([]).notNull(),
+  // Verification document file_ids (set when chef submits verification)
+  verificationDocumentId: text('verification_document_id'),
+  verificationSelfieId: text('verification_selfie_id'),
 })
 
 export type ChefProfile = typeof chefProfiles.$inferSelect

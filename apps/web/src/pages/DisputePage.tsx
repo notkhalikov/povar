@@ -13,6 +13,7 @@ const STATUS_COLORS: Record<DisputeStatus, string> = {
 }
 
 export default function DisputePage() {
+  const t = useT()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [dispute, setDispute] = useState<Dispute | null>(null)
@@ -38,8 +39,8 @@ export default function DisputePage() {
       .finally(() => setLoading(false))
   }, [id])
 
-  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>Загрузка…</div>
-  if (error)   return <div style={{ padding: 24, color: 'red' }}>Ошибка: {error}</div>
+  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>{t.common.loading}</div>
+  if (error)   return <div style={{ padding: 24, color: 'red' }}>{t.common.error}: {error}</div>
   if (!dispute) return null
 
   const statusColor = STATUS_COLORS[dispute.status]
@@ -49,7 +50,7 @@ export default function DisputePage() {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <h2 style={{ margin: 0, fontSize: 20 }}>Спор #{dispute.id}</h2>
+        <h2 style={{ margin: 0, fontSize: 20 }}>{t.dispute.pageTitle} #{dispute.id}</h2>
         <span style={{
           padding: '4px 10px',
           borderRadius: 20,
@@ -59,7 +60,7 @@ export default function DisputePage() {
           color: statusColor,
           border: `1px solid ${statusColor}44`,
         }}>
-          {STATUS_LABELS[dispute.status]}
+          {t.dispute.statuses[dispute.status]}
         </span>
       </div>
 
@@ -68,7 +69,7 @@ export default function DisputePage() {
         <div style={noticeBannerStyle}>
           <div style={{ fontSize: 22, marginBottom: 4 }}>⏳</div>
           <div style={{ fontSize: 14 }}>
-            Спор рассматривается службой поддержки. Обычно это занимает 24–48 часов.
+            {t.dispute.pending}
           </div>
         </div>
       )}
@@ -78,7 +79,7 @@ export default function DisputePage() {
         <div style={resolutionBannerStyle}>
           <div style={{ fontSize: 22, marginBottom: 4 }}>⚖️</div>
           <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>
-            {RESOLUTION_LABELS[dispute.resolutionType]}
+            {t.dispute.resolutions[dispute.resolutionType]}
           </div>
           {dispute.resolutionComment && (
             <div style={{ fontSize: 14, color: 'var(--tg-theme-hint-color)' }}>
@@ -90,10 +91,10 @@ export default function DisputePage() {
 
       {/* Details */}
       <div style={sectionStyle}>
-        <Row label='Заказ'>#{dispute.orderId}</Row>
-        <Row label='Открыт'>{dispute.openedBy === 'customer' ? 'Заказчиком' : 'Поваром'}</Row>
-        <Row label='Причина'>{REASON_LABELS[dispute.reasonCode] ?? dispute.reasonCode}</Row>
-        <Row label='Дата'>
+        <Row label={t.dispute.orderLabel}>#{dispute.orderId}</Row>
+        <Row label={t.dispute.openedBy}>{dispute.openedBy === 'customer' ? t.dispute.openedByCustomer : t.dispute.openedByChef}</Row>
+        <Row label={t.dispute.causeLabel}>{t.dispute.reasons[dispute.reasonCode as keyof typeof t.dispute.reasons] ?? dispute.reasonCode}</Row>
+        <Row label={t.dispute.dateLabel}>
           {new Date(dispute.createdAt).toLocaleString('ru-RU', {
             day: 'numeric', month: 'long', year: 'numeric',
             hour: '2-digit', minute: '2-digit',
@@ -104,7 +105,7 @@ export default function DisputePage() {
       {/* Description */}
       {dispute.description && (
         <div style={{ marginTop: 20 }}>
-          <div style={labelStyle}>Описание проблемы</div>
+          <div style={labelStyle}>{t.dispute.descLabel}</div>
           <div style={{ ...sectionStyle, padding: '12px 16px' }}>
             <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6 }}>{dispute.description}</p>
           </div>
@@ -116,7 +117,7 @@ export default function DisputePage() {
         style={backLinkStyle}
         onClick={() => navigate(`/orders/${dispute.orderId}`)}
       >
-        ← Вернуться к заказу #{dispute.orderId}
+        {t.dispute.backToOrder} #{dispute.orderId}
       </button>
     </div>
   )

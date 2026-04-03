@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { eq, and, gte, lte, desc, sql, count, sum } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { users, orders, disputes, reviews, chefProfiles } from '../db/schema.js'
+import { notifyVerificationDecision } from '../services/notify.js'
 
 // ─── Query interfaces ─────────────────────────────────────────────────────────
 
@@ -49,6 +50,11 @@ interface ResolveDisputeBody {
   resolutionComment?: string
 }
 
+interface VerifyChefBody {
+  status: 'approved' | 'rejected'
+  comment?: string
+}
+
 // ─── Access guard ─────────────────────────────────────────────────────────────
 
 function isAdminOrSupport(role: string) {
@@ -56,6 +62,102 @@ function isAdminOrSupport(role: string) {
 }
 
 export default async function adminRoutes(app: FastifyInstance) {
+  /**
+   * GET /admin/chefs/pending
+   * Admin/support. Returns chefs with verificationStatus='pending', newest first.
+   */
+  app.get('/admin/chefs/pending', {
+    onRequest: [app.authenticate],
+  }, async (request, reply) => {
+    if (!isAdminOrSupport(request.user.role)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const rows = await app.db
+      .select({
+        id:                     chefProfiles.id,
+        userId:                 chefProfiles.userId,
+        name:                   users.name,
+        city:                   users.city,
+        telegramId:             users.telegramId,
+        verificationStatus:     chefProfiles.verificationStatus,
+        verificationDocumentId: chefProfiles.verificationDocumentId,
+        verificationSelfieId:   chefProfiles.verificationSelfieId,
+        ordersCount:            chefProfiles.ordersCount,
+        ratingCache:            chefProfiles.ratingCache,
+      })
+      .from(chefProfiles)
+      .innerJoin(users, eq(chefProfiles.userId, users.id))
+      .where(eq(chefProfiles.verificationStatus, 'pending'))
+      .orderBy(desc(chefProfiles.id))
+
+    return { data: rows }
+  })
+
+  /**
+   * PATCH /admin/chefs/:id/verify
+   * Admin/support. Approves or rejects a chef's verification request.
+   * Notifies the chef via Telegram.
+   */
+  app.patch<{ Params: { id: number }; Body: VerifyChefBody }>('/admin/chefs/:id/verify', {
+    onRequest: [app.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer' } },
+      },
+      body: {
+        type: 'object',
+        required: ['status'],
+        additionalProperties: false,
+        properties: {
+          status:  { type: 'string', enum: ['approved', 'rejected'] },
+          comment: { type: 'string', maxLength: 1000 },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    if (!isAdminOrSupport(request.user.role)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const { id } = request.params
+    const { status, comment } = request.body
+
+    const [row] = await app.db
+      .select({ verificationStatus: chefProfiles.verificationStatus, userId: chefProfiles.userId })
+      .from(chefProfiles)
+      .where(eq(chefProfiles.id, id))
+      .limit(1)
+
+    if (!row) return reply.code(404).send({ error: 'Chef profile not found' })
+
+    const [updated] = await app.db
+      .update(chefProfiles)
+      .set({ verificationStatus: status })
+      .where(eq(chefProfiles.id, id))
+      .returning({
+        id:                 chefProfiles.id,
+        verificationStatus: chefProfiles.verificationStatus,
+      })
+
+    // Notify chef
+    const [userRow] = await app.db
+      .select({ telegramId: users.telegramId })
+      .from(users)
+      .where(eq(users.id, row.userId))
+      .limit(1)
+
+    if (userRow) {
+      notifyVerificationDecision(userRow.telegramId, status === 'approved', comment).catch(err =>
+        console.error('notify chef verification decision failed', err),
+      )
+    }
+
+    return updated
+  })
+
   /**
    * GET /admin/users
    * Admin/support. Paginated user list with optional role/status filters.

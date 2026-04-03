@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { eq, and, desc, asc, sql } from 'drizzle-orm'
 import { chefProfiles, users } from '../db/schema.js'
 import type { WorkFormat } from '../types/index.js'
+import { notifyVerificationSubmitted } from '../services/notify.js'
 
 const BOT_TOKEN = process.env.BOT_TOKEN!
 
@@ -32,6 +33,11 @@ interface PortfolioBody {
 interface UploadBody {
   data: string     // base64-encoded image
   mimeType: string
+}
+
+interface VerifyBody {
+  documentFileId: string
+  selfieFileId: string
 }
 
 interface PatchChefBody {
@@ -227,7 +233,7 @@ export default async function chefsRoutes(app: FastifyInstance) {
 
       const [created] = await app.db
         .insert(chefProfiles)
-        .values({ userId, verificationStatus: 'approved', ...drizzleBody })
+        .values({ userId, ...drizzleBody })
         .returning()
 
       return created
@@ -385,6 +391,69 @@ export default async function chefsRoutes(app: FastifyInstance) {
     const fileId = photos[photos.length - 1].file_id
 
     return { fileId }
+  })
+
+  /**
+   * POST /chefs/me/verify
+   * Authenticated. Chef-only. Submits verification documents.
+   * Sets verificationStatus='pending' and notifies admin via Telegram.
+   */
+  app.post<{ Body: VerifyBody }>('/chefs/me/verify', {
+    onRequest: [app.authenticate],
+    schema: {
+      body: {
+        type: 'object',
+        required: ['documentFileId', 'selfieFileId'],
+        additionalProperties: false,
+        properties: {
+          documentFileId: { type: 'string', minLength: 1 },
+          selfieFileId:   { type: 'string', minLength: 1 },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const { sub: userId, role } = request.user
+    if (role !== 'chef') {
+      return reply.code(403).send({ error: 'Only chefs can submit verification' })
+    }
+
+    const { documentFileId, selfieFileId } = request.body
+
+    const [row] = await app.db
+      .select({ id: chefProfiles.id, name: users.name, verificationStatus: chefProfiles.verificationStatus })
+      .from(chefProfiles)
+      .innerJoin(users, eq(chefProfiles.userId, users.id))
+      .where(eq(chefProfiles.userId, userId))
+      .limit(1)
+
+    if (!row) return reply.code(404).send({ error: 'Chef profile not found' })
+
+    if (row.verificationStatus === 'pending') {
+      return reply.code(422).send({ error: 'Verification already pending' })
+    }
+    if (row.verificationStatus === 'approved') {
+      return reply.code(422).send({ error: 'Already verified' })
+    }
+
+    const [updated] = await app.db
+      .update(chefProfiles)
+      .set({
+        verificationStatus: 'pending',
+        verificationDocumentId: documentFileId,
+        verificationSelfieId: selfieFileId,
+      })
+      .where(eq(chefProfiles.userId, userId))
+      .returning({ verificationStatus: chefProfiles.verificationStatus })
+
+    // Notify admin
+    const adminTelegramId = Number(process.env.ADMIN_TELEGRAM_ID)
+    if (adminTelegramId) {
+      notifyVerificationSubmitted(row.name, row.id, adminTelegramId).catch(err =>
+        console.error('notify admin verification failed', err),
+      )
+    }
+
+    return updated
   })
 
   /**

@@ -92,7 +92,7 @@ export default function ProfilePage() {
               <button
                 onClick={toggleActive}
                 disabled={togglingActive}
-                aria-label='Переключить статус'
+                aria-label={t.a11y.toggleStatus}
                 style={{
                   width: 51, height: 31, borderRadius: 16, border: 'none', cursor: 'pointer',
                   padding: 0, flexShrink: 0, transition: 'background .2s',

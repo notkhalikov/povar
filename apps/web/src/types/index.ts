@@ -16,6 +16,7 @@ export interface ChefListItem {
   avgPrice: string | null
   ratingCache: string
   ordersCount: number
+  verificationStatus: 'pending' | 'approved' | 'rejected'
 }
 
 export interface ChefProfile extends ChefListItem {

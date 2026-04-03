@@ -253,6 +253,42 @@ export const ru = {
       desc:    'Описание',
     },
   },
+  verification: {
+    sectionTitle:   'Верификация',
+    pending:        '⏳ Документы на проверке',
+    pendingHint:    'Обычно занимает 1–2 рабочих дня',
+    approved:       '✓ Проверенный повар',
+    rejected:       'Заявка отклонена',
+    rejectedHint:   'Вы можете подать повторно',
+    submitBtn:      'Пройти верификацию',
+    formTitle:      'Загрузка документов',
+    formHint:       'Фото должны быть чёткими. Данные обрабатываются конфиденциально.',
+    docLabel:       'Документ (паспорт или ID)',
+    selfieLabel:    'Селфи с документом',
+    sendBtn:        'Отправить на проверку',
+    sending:        'Отправляем…',
+    successMsg:     'Документы отправлены! Мы уведомим вас о решении.',
+    errorMsg:       'Не удалось отправить документы',
+    noDoc:          'Пожалуйста, прикрепите фото документа',
+    noSelfie:       'Пожалуйста, прикрепите селфи с документом',
+  },
+  chefOnboarding: {
+    title:              'Анкета повара',
+    hint:               'Заполните профиль, чтобы заказчики могли вас найти',
+    bioPlaceholder:     'Кратко о себе, опыте и специализации',
+    cuisineLabel:       'Кухни (Enter для добавления)',
+    cuisinePlaceholder: 'Например: грузинская, итальянская',
+    districtsLabel:     'Районы работы (Enter для добавления)',
+    districtsPlaceholder: 'Например: Ваке, Сабуртало',
+    avgPriceLabel:      'Средний чек (GEL)',
+    saving:             'Сохранение…',
+    save:               'Сохранить анкету',
+    visible:            'Вы видны заказчикам',
+    hidden:             'Вы скрыты из каталога',
+    pause:              'Пауза',
+    resume:             'Включить',
+    portfolioHint:      'Фото блюд — максимум 10',
+  },
   onboarding: {
     slides: [
       {
@@ -291,6 +327,10 @@ export const ru = {
     profile:  'Профиль',
   },
   offline: '📵 Нет соединения',
+  a11y: {
+    toggleStatus: 'Переключить статус',
+    deletePhoto:  'Удалить',
+  },
 }
 
 export type Translations = typeof ru
