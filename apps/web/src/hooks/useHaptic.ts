@@ -1,8 +1,10 @@
+import WebApp from '@twa-dev/sdk'
+
 export function useHaptic() {
   return {
-    light:   () => window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light'),
-    medium:  () => window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'),
-    success: () => window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success'),
-    error:   () => window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error'),
+    light:   () => { try { WebApp.HapticFeedback.impactOccurred('light') } catch {} },
+    medium:  () => { try { WebApp.HapticFeedback.impactOccurred('medium') } catch {} },
+    success: () => { try { WebApp.HapticFeedback.notificationOccurred('success') } catch {} },
+    error:   () => { try { WebApp.HapticFeedback.notificationOccurred('error') } catch {} },
   }
 }
