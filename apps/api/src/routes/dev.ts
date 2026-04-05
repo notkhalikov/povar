@@ -1,20 +1,21 @@
 /**
  * Development-only routes. Registered only when NODE_ENV=development.
  *
- * POST /dev/reset           — truncate all tables and re-run seed
- * GET  /dev/token/:telegramId — return a signed JWT for any existing user
- *                              (no initData validation — dev only!)
+ * POST /dev/reset               — truncate all tables and re-run seed
+ * POST /dev/approve-all-chefs   — set all pending chefs to approved (MVP bypass)
+ * GET  /dev/token/:telegramId   — return a signed JWT for any existing user
+ *                                 (no initData validation — dev only!)
  */
 
 import type { FastifyInstance } from 'fastify'
 import { eq } from 'drizzle-orm'
 import { execSync } from 'node:child_process'
-import { users } from '../db/schema.js'
+import { users, chefProfiles } from '../db/schema.js'
 
 export default async function devRoutes(app: FastifyInstance) {
   if (process.env.NODE_ENV !== 'development') return
 
-  app.log.warn('⚠️  Dev routes enabled (POST /dev/reset, GET /dev/token/:telegramId)')
+  app.log.warn('⚠️  Dev routes enabled (POST /dev/reset, POST /dev/approve-all-chefs, GET /dev/token/:telegramId)')
 
   // ── POST /dev/reset ─────────────────────────────────────────────────────────
   // Truncates all tables in dependency order, then runs seed.ts.
@@ -48,6 +49,21 @@ export default async function devRoutes(app: FastifyInstance) {
     }
 
     return reply.send({ ok: true, message: 'Database reset and re-seeded' })
+  })
+
+  // ── POST /dev/approve-all-chefs ─────────────────────────────────────────────
+  // MVP bypass: approve all pending chefs so they appear in the catalog.
+  // Run once after seeding or after first chef registrations in dev/staging.
+
+  app.post('/dev/approve-all-chefs', async (_req, reply) => {
+    const result = await app.db
+      .update(chefProfiles)
+      .set({ verificationStatus: 'approved' })
+      .where(eq(chefProfiles.verificationStatus, 'pending'))
+      .returning({ id: chefProfiles.id })
+
+    app.log.warn(`DEV /dev/approve-all-chefs — approved ${result.length} chef(s)`)
+    return reply.send({ ok: true, approved: result.length, ids: result.map(r => r.id) })
   })
 
   // ── GET /dev/token/:telegramId ───────────────────────────────────────────────

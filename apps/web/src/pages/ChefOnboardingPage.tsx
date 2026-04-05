@@ -21,7 +21,10 @@ export default function ChefOnboardingPage() {
   const [portfolioMediaIds, setPortfolioMediaIds] = useState<string[]>([])
   const [chefId, setChefId] = useState<number | null>(null)
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null)
+  const [isNewProfile, setIsNewProfile] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [togglingStatus, setTogglingStatus] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [loadingProfile, setLoadingProfile] = useState(true)
@@ -47,9 +50,10 @@ export default function ChefOnboardingPage() {
         setPortfolioMediaIds(profile.portfolioMediaIds)
         setChefId(profile.id)
         setVerificationStatus(profile.verificationStatus)
+        setIsNewProfile(false)
       })
       .catch(() => {
-        // 404 — new profile, form stays empty
+        // 404 — new profile, form stays empty, isNewProfile stays true
       })
       .finally(() => setLoadingProfile(false))
   }, [])
@@ -57,6 +61,7 @@ export default function ChefOnboardingPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
+    setSaveError(null)
     try {
       await patchMyChef({
         bio: bio || undefined,
@@ -69,9 +74,12 @@ export default function ChefOnboardingPage() {
       if (user && user.role !== 'chef') {
         setUser({ ...user, role: 'chef' })
       }
-      navigate('/profile')
+      WebApp.HapticFeedback.notificationOccurred('success')
+      setSaved(true)
+      setTimeout(() => navigate(isNewProfile ? '/' : '/profile', { replace: true }), 800)
     } catch (err) {
-      console.error(err)
+      WebApp.HapticFeedback.notificationOccurred('error')
+      setSaveError(err instanceof Error ? err.message : t.errors.generic)
     } finally {
       setSaving(false)
     }
@@ -221,12 +229,18 @@ export default function ChefOnboardingPage() {
           />
         </Field>
 
+        {saveError && (
+          <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, background: '#ff3b3011', border: '1px solid #ff3b3033', color: '#ff3b30', fontSize: 14 }}>
+            {saveError}
+          </div>
+        )}
+
         <button
           type='submit'
-          disabled={saving}
-          style={{ ...buttonStyle, opacity: saving ? 0.6 : 1 }}
+          disabled={saving || saved}
+          style={{ ...buttonStyle, opacity: saving || saved ? 0.8 : 1, background: saved ? '#34c759' : undefined }}
         >
-          {saving ? t.chefOnboarding.saving : t.chefOnboarding.save}
+          {saved ? '✓ ' + t.chefOnboarding.save : saving ? t.chefOnboarding.saving : t.chefOnboarding.save}
         </button>
       </form>
 

@@ -233,7 +233,7 @@ export default async function chefsRoutes(app: FastifyInstance) {
 
       const [created] = await app.db
         .insert(chefProfiles)
-        .values({ userId, ...drizzleBody })
+        .values({ userId, verificationStatus: 'approved', ...drizzleBody })
         .returning()
 
       return created
