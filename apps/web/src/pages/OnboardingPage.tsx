@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useT } from '../i18n'
+import { useAuth } from '../context/AuthContext'
 
 // ─── SVG Illustrations ────────────────────────────────────────────────────────
 
@@ -97,14 +98,15 @@ const SLIDE_ILLUSTRATIONS = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
-  const t                = useT()
-  const navigate         = useNavigate()
-  const [slide, setSlide] = useState(0)
-  const touchStartX      = useRef(0)
-  const touchEndX        = useRef(0)
+  const t                    = useT()
+  const navigate             = useNavigate()
+  const { completeOnboarding } = useAuth()
+  const [slide, setSlide]    = useState(0)
+  const touchStartX          = useRef(0)
+  const touchEndX            = useRef(0)
 
   function finish() {
-    localStorage.setItem('onboarding_done', '1')
+    completeOnboarding()
     navigate('/', { replace: true })
   }
 

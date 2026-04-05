@@ -79,6 +79,7 @@ interface AuthState {
 interface AuthContextValue extends AuthState {
   setUser: (user: ApiUser) => void
   needsOnboarding: boolean
+  completeOnboarding: () => void
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -86,6 +87,7 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   setUser: () => {},
   needsOnboarding: false,
+  completeOnboarding: () => {},
 })
 
 export function useAuth() {
@@ -132,6 +134,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, user }))
   }
 
+  function completeOnboarding() {
+    localStorage.setItem('onboarding_done', '1')
+    setNeedsOnboarding(false)
+  }
+
   if (loading) {
     return (
       <div style={{ padding: 24, textAlign: 'center' }}>Загрузка…</div>
@@ -139,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ ...state, setUser, needsOnboarding }}>
+    <AuthContext.Provider value={{ ...state, setUser, needsOnboarding, completeOnboarding }}>
       {children}
     </AuthContext.Provider>
   )
