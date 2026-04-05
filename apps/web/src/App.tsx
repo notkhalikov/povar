@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { AuthProvider } from './context/AuthContext'
@@ -6,17 +6,28 @@ import { useAuth } from './context/AuthContext'
 import { useT } from './i18n'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import CatalogPage from './pages/CatalogPage'
-import ChefPage from './pages/ChefPage'
-import OrdersPage from './pages/OrdersPage'
-import OrderNewPage from './pages/OrderNewPage'
-import OrderDetailPage from './pages/OrderDetailPage'
-import ProfilePage from './pages/ProfilePage'
-import ChefOnboardingPage from './pages/ChefOnboardingPage'
-import DisputePage from './pages/DisputePage'
-import RequestsPage from './pages/RequestsPage'
-import RequestDetailPage from './pages/RequestDetailPage'
-import ChefRequestsPage from './pages/ChefRequestsPage'
 import OnboardingPage from './pages/OnboardingPage'
+
+const ChefPage           = lazy(() => import('./pages/ChefPage'))
+const OrdersPage         = lazy(() => import('./pages/OrdersPage'))
+const OrderNewPage       = lazy(() => import('./pages/OrderNewPage'))
+const OrderDetailPage    = lazy(() => import('./pages/OrderDetailPage'))
+const ProfilePage        = lazy(() => import('./pages/ProfilePage'))
+const ChefOnboardingPage = lazy(() => import('./pages/ChefOnboardingPage'))
+const DisputePage        = lazy(() => import('./pages/DisputePage'))
+const RequestsPage       = lazy(() => import('./pages/RequestsPage'))
+const RequestDetailPage  = lazy(() => import('./pages/RequestDetailPage'))
+const ChefRequestsPage   = lazy(() => import('./pages/ChefRequestsPage'))
+
+function PageFallback() {
+  return (
+    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className='sk' style={{ height: 80, borderRadius: 16 }} />
+      <div className='sk' style={{ height: 120, borderRadius: 12 }} />
+      <div className='sk' style={{ height: 180, borderRadius: 12 }} />
+    </div>
+  )
+}
 
 // ─── Telegram BackButton manager ─────────────────────────────────────────────
 
@@ -67,20 +78,22 @@ function AnimatedRoutes() {
 
   return (
     <div key={location.key} className={animClass} style={{ flex: 1 }}>
-      <Routes location={location}>
-        <Route path='/'                element={<CatalogPage />} />
-        <Route path='/chefs/:id'       element={<ChefPage />} />
-        <Route path='/orders'          element={<OrdersPage />} />
-        <Route path='/orders/new'      element={<OrderNewPage />} />
-        <Route path='/orders/:id'      element={<OrderDetailPage />} />
-        <Route path='/profile'         element={<ProfilePage />} />
-        <Route path='/chef/onboarding' element={<ChefOnboardingPage />} />
-        <Route path='/chef/requests'   element={<ChefRequestsPage />} />
-        <Route path='/disputes/:id'    element={<DisputePage />} />
-        <Route path='/requests'        element={<RequestsPage />} />
-        <Route path='/requests/:id'    element={<RequestDetailPage />} />
-        <Route path='/onboarding'      element={<OnboardingPage />} />
-      </Routes>
+      <Suspense fallback={<PageFallback />}>
+        <Routes location={location}>
+          <Route path='/'                element={<CatalogPage />} />
+          <Route path='/chefs/:id'       element={<ChefPage />} />
+          <Route path='/orders'          element={<OrdersPage />} />
+          <Route path='/orders/new'      element={<OrderNewPage />} />
+          <Route path='/orders/:id'      element={<OrderDetailPage />} />
+          <Route path='/profile'         element={<ProfilePage />} />
+          <Route path='/chef/onboarding' element={<ChefOnboardingPage />} />
+          <Route path='/chef/requests'   element={<ChefRequestsPage />} />
+          <Route path='/disputes/:id'    element={<DisputePage />} />
+          <Route path='/requests'        element={<RequestsPage />} />
+          <Route path='/requests/:id'    element={<RequestDetailPage />} />
+          <Route path='/onboarding'      element={<OnboardingPage />} />
+        </Routes>
+      </Suspense>
     </div>
   )
 }

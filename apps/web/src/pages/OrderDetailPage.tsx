@@ -64,6 +64,7 @@ export default function OrderDetailPage() {
 
   const haptic = useHaptic()
   const t = useT()
+  const mbHandlerRef = useRef<(() => void) | null>(null)
 
   const refresh = useCallback(async () => {
     if (!id) return
@@ -87,6 +88,54 @@ export default function OrderDetailPage() {
   }, [id, navigate])
 
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
+
+  // ── Telegram MainButton ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!order) return
+    const MB = WebApp.MainButton
+
+    // Remove stale handler from previous render
+    if (mbHandlerRef.current) {
+      try { MB.offClick(mbHandlerRef.current) } catch {}
+      mbHandlerRef.current = null
+    }
+
+    const scheduledPassed = new Date(order.scheduledAt) < new Date()
+    const wantPay    = order.status === 'awaiting_payment'
+    const wantDone   = reviewStep === 'none' && (order.status === 'in_progress' || (order.status === 'paid' && scheduledPassed))
+    const wantReview = order.status === 'completed' && reviewStep === 'none'
+
+    let handler: (() => void) | null = null
+    let text = ''
+
+    if (wantPay && order.agreedPrice && !actionLoading) {
+      text = `${t.order.pay} ${order.agreedPrice} ₾`
+      handler = handlePay
+      try { (MB as any).color = '#34c759'; (MB as any).textColor = '#ffffff' } catch {}
+    } else if (wantDone && !actionLoading) {
+      text = t.order.allGood
+      handler = () => { haptic.medium(); void handleComplete() }
+    } else if (wantReview && !actionLoading) {
+      text = t.review.submit
+      handler = () => setReviewStep('form')
+    }
+
+    if (handler && text) {
+      mbHandlerRef.current = handler
+      try { MB.setText(text); MB.onClick(handler); MB.show() } catch {}
+    } else {
+      try { MB.hide() } catch {}
+    }
+
+    return () => {
+      if (mbHandlerRef.current) {
+        try { MB.offClick(mbHandlerRef.current) } catch {}
+        mbHandlerRef.current = null
+      }
+      try { MB.hide() } catch {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order, reviewStep, actionLoading])
 
   function pollUntilStatus(targetStatus: OrderStatus, maxAttempts = 12) {
     let attempts = 0
@@ -128,6 +177,7 @@ export default function OrderDetailPage() {
   }
 
   async function handleComplete() {
+    haptic.medium()
     setActionLoading(true)
     try {
       const updated = await completeOrder(Number(id))

@@ -57,7 +57,41 @@ Copy `.env.example` → `.env` in each app before starting.
 
 | App | Key variables |
 |-----|---------------|
-| `apps/api` | `DATABASE_URL`, `JWT_SECRET`, `BOT_TOKEN` (for initData validation) |
-| `apps/bot` | `BOT_TOKEN`, `API_BASE_URL` |
+| `apps/api` | `DATABASE_URL`, `JWT_SECRET` (≥32 chars), `BOT_TOKEN`, `WEBHOOK_SECRET`, `ADMIN_TELEGRAM_ID` |
+| `apps/bot` | `BOT_TOKEN`, `API_BASE_URL`, `MINI_APP_URL`, `WEBHOOK_SECRET` |
 | `apps/web` | proxied via Vite to `localhost:3000` |
 | `apps/admin` | proxied via Vite to `localhost:3000` |
+
+## Current Status
+
+### Implemented (ready for launch)
+
+1. **Auth** — Telegram initData HMAC validation, JWT session, UTM tracking
+2. **Chef profiles** — CRUD, cuisine tags, work formats, districts, avg price, portfolio photos
+3. **Chef onboarding flow** — multi-step form in Mini App, role assignment
+4. **Chef verification** — document + selfie upload, admin review queue, Telegram notifications on decision
+5. **Catalog** — paginated chef list (20/page), filters by city/format/cuisine, infinite scroll, pull-to-refresh
+6. **Chef page** — hero, portfolio gallery, bio, badges (verified/top/new), reviews with chef reply
+7. **Orders** — create, status machine (draft→awaiting_payment→paid→in_progress→completed), timeline UI
+8. **Payments** — Telegram Stars invoice via `sendInvoice`, webhook to mark order paid
+9. **Reviews** — star rating, quality tags, text, chef reply, report button
+10. **Disputes** — open dispute, reason codes, support review flow, resolution types
+11. **Requests** — customer posts open request, chefs respond with price + comment, customer accepts
+12. **i18n** — Russian + English, auto-detected from Telegram language, typed translation objects
+13. **Onboarding** — 3-slide onboarding for first-time users, swipe navigation, localStorage gate
+14. **UX polish** — page slide animations, Telegram BackButton, pull-to-refresh, infinite scroll, haptic feedback, Telegram MainButton CTAs, ChefCard tap animation, skeleton shimmer
+15. **Security** — CORS locked to production domain, dev routes behind NODE_ENV guard, rate limiting (60 req/min), Sentry error tracking, client-error sink
+16. **Deployment** — `vercel.json` SPA rewrite for `apps/web`, Railway for API + bot
+
+### Planned (post-launch)
+
+- **Fiat payments** — GEL via Stripe or local payment provider (currently Telegram Stars only)
+- **Promo codes & referral program** — discount codes, referral tracking via UTM + start_param
+- **Automatic refunds** — programmatic refund on dispute resolution
+- **S3/R2 media storage** — replace Telegram file_id with durable object storage for verification docs and portfolio
+- **Admin panel** — full React admin UI for user/order/dispute management (currently bot-only)
+- **Push notifications** — in-app badge updates without opening the app
+
+### Known limitations
+
+See [docs/known-issues.md](docs/known-issues.md) for the full list.
