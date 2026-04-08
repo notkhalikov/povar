@@ -225,20 +225,20 @@ export default async function disputesRoutes(app: FastifyInstance) {
       .returning()
 
     // Notify both parties (fire-and-forget)
-    const [order] = await app.db
-      .select({ customerId: orders.customerId, chefId: orders.chefId })
+    const [orderFull] = await app.db
+      .select()
       .from(orders)
       .where(eq(orders.id, dispute.orderId))
       .limit(1)
 
-    if (order) {
+    if (orderFull) {
       const [customerUser, chefUser] = await Promise.all([
-        app.db.select({ telegramId: users.telegramId }).from(users).where(eq(users.id, order.customerId)).limit(1),
-        app.db.select({ telegramId: users.telegramId }).from(users).where(eq(users.id, order.chefId)).limit(1),
+        app.db.select({ telegramId: users.telegramId }).from(users).where(eq(users.id, orderFull.customerId)).limit(1),
+        app.db.select({ telegramId: users.telegramId }).from(users).where(eq(users.id, orderFull.chefId)).limit(1),
       ])
 
       if (customerUser[0] && chefUser[0]) {
-        notifyDisputeResolved(resolved, order, customerUser[0].telegramId, chefUser[0].telegramId)
+        notifyDisputeResolved(resolved, orderFull, customerUser[0].telegramId, chefUser[0].telegramId)
           .catch(err => app.log.warn({ err }, 'notify dispute resolved failed'))
       }
     }

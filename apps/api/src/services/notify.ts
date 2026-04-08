@@ -1,8 +1,6 @@
 import type { OrderStatus } from '../types/index.js'
 
 // ─── Minimal shapes needed by notify functions ────────────────────────────────
-// Using plain interfaces instead of importing DB types to keep this service
-// decoupled from Drizzle schema details.
 
 export interface NotifyOrder {
   id: number
@@ -11,6 +9,8 @@ export interface NotifyOrder {
   agreedPrice: string | null
   type: string
   city: string
+  district?: string | null
+  description?: string | null
   customerId: number
   chefId: number
 }
@@ -20,6 +20,7 @@ export interface NotifyDispute {
   orderId: number
   openedBy: 'customer' | 'chef'
   reasonCode: string
+  description?: string | null
   resolutionType: 'full_refund' | 'partial_refund' | 'no_refund' | null
   resolutionComment: string | null
 }
@@ -34,38 +35,46 @@ export interface NotifyRequest {
 export interface NotifyResponse {
   id: number
   proposedPrice: string | null
+  comment?: string | null
+  chefRating?: string | null
+  chefOrdersCount?: number
+  chefProfileId?: number
 }
 
 // ─── Deep-link keyboard builders ──────────────────────────────────────────────
 
+function appUrl(startapp: string): string | undefined {
+  const base = process.env.MINI_APP_URL
+  return base ? `${base}?startapp=${startapp}` : undefined
+}
+
 function orderKeyboard(orderId: number) {
-  const url = process.env.MINI_APP_URL
+  const url = appUrl(`order_${orderId}`)
   if (!url) return undefined
   return {
     inline_keyboard: [[
-      { text: '📦 Открыть заказ', web_app: { url: `${url}?startapp=order_${orderId}` } },
+      { text: '📋 Открыть заказ', web_app: { url } },
     ]],
   }
 }
 
-function requestKeyboard(requestId: number) {
-  const url = process.env.MINI_APP_URL
+function reviewKeyboard(orderId: number) {
+  const url = appUrl(`review_${orderId}`)
   if (!url) return undefined
   return {
     inline_keyboard: [[
-      { text: '📋 Открыть запрос', web_app: { url: `${url}?startapp=request_${requestId}` } },
+      { text: '✍️ Оставить отзыв', web_app: { url } },
     ]],
   }
 }
 
-function disputeKeyboard(disputeId: number) {
-  const url = process.env.MINI_APP_URL
-  if (!url) return undefined
-  return {
-    inline_keyboard: [[
-      { text: '⚖️ Открыть спор', web_app: { url: `${url}?startapp=dispute_${disputeId}` } },
-    ]],
-  }
+function responseKeyboard(requestId: number, chefProfileId?: number) {
+  const requestUrl = appUrl(`request_${requestId}`)
+  if (!requestUrl) return undefined
+  const buttons: object[] = [{ text: '👀 Смотреть все отклики', web_app: { url: requestUrl } }]
+  const chefUrl = chefProfileId ? appUrl(`chef_${chefProfileId}`) : undefined
+  if (chefUrl) buttons.push({ text: '👨‍🍳 Профиль повара', web_app: { url: chefUrl } })
+  return { inline_keyboard: [buttons] }
 }
 
 // ─── Low-level sender ─────────────────────────────────────────────────────────
@@ -97,14 +106,31 @@ async function sendMessage(
   }
 }
 
-// ─── Date formatter ───────────────────────────────────────────────────────────
+// ─── Formatters ───────────────────────────────────────────────────────────────
 
 function fmtDate(date: Date): string {
   return date.toLocaleString('ru-RU', {
     day: 'numeric', month: 'long',
+    timeZone: 'Asia/Tbilisi',
+  })
+}
+
+function fmtTime(date: Date): string {
+  return date.toLocaleString('ru-RU', {
     hour: '2-digit', minute: '2-digit',
     timeZone: 'Asia/Tbilisi',
   })
+}
+
+function typeLabel(type: string): string {
+  return type === 'home_visit' ? 'повар на дом' : 'доставка'
+}
+
+function resolutionLabel(type: string | null): string {
+  if (type === 'full_refund')    return 'полный возврат средств'
+  if (type === 'partial_refund') return 'частичный возврат средств'
+  if (type === 'no_refund')      return 'отказ в возврате'
+  return 'не указано'
 }
 
 // ─── Typed notification functions ─────────────────────────────────────────────
@@ -117,12 +143,16 @@ export async function notifyOrderCreated(
   chefTelegramId: number,
   customerName = 'клиент',
 ): Promise<void> {
-  const date = fmtDate(order.scheduledAt)
-  const price = order.agreedPrice ? `${order.agreedPrice} GEL` : 'не указана'
+  const location = [order.district, order.city].filter(Boolean).join(', ')
+  const price    = order.agreedPrice ? `${order.agreedPrice} GEL` : 'не указана'
   const text =
-    `🍽 <b>Новый заказ #${order.id}</b> от ${customerName}\n` +
-    `📅 ${date} · 👥 ${order.persons} чел.\n` +
-    `💰 Сумма: ${price}`
+    `🆕 <b>Новый заказ!</b>\n` +
+    `от ${customerName}\n` +
+    `📅 ${fmtDate(order.scheduledAt)} в ${fmtTime(order.scheduledAt)}\n` +
+    `👥 ${order.persons} чел. · ${typeLabel(order.type)}\n` +
+    (location ? `📍 ${location}\n` : '') +
+    `💰 ${price}` +
+    (order.description ? `\n<i>${order.description}</i>` : '')
   await sendMessage(chefTelegramId, text, orderKeyboard(order.id))
 }
 
@@ -133,10 +163,11 @@ export async function notifyOrderPaid(
   order: NotifyOrder,
   chefTelegramId: number,
 ): Promise<void> {
-  const date = fmtDate(order.scheduledAt)
+  const price = order.agreedPrice ? `${order.agreedPrice}` : '—'
   const text =
-    `💳 <b>Заказ #${order.id} оплачен!</b>\n` +
-    `Ждём тебя ${date} · 👥 ${order.persons} чел.`
+    `✅ <b>Заказ оплачен</b>\n` +
+    `Заказчик подтвердил оплату. Ждём тебя ${fmtDate(order.scheduledAt)} в ${fmtTime(order.scheduledAt)}!\n` +
+    `💰 ${price} GEL зарезервированы на платформе.`
   await sendMessage(chefTelegramId, text, orderKeyboard(order.id))
 }
 
@@ -148,10 +179,13 @@ export async function notifyOrderCancelled(
   chefTelegramId: number,
   customerTelegramId: number,
 ): Promise<void> {
-  const text = `❌ <b>Заказ #${order.id} отменён.</b>`
+  const text =
+    `❌ <b>Заказ отменён</b>\n` +
+    `${fmtDate(order.scheduledAt)}, ${order.persons} чел.\n` +
+    `Причина: отмена до оплаты.`
   await Promise.allSettled([
-    sendMessage(chefTelegramId, text, orderKeyboard(order.id)),
-    sendMessage(customerTelegramId, text, orderKeyboard(order.id)),
+    sendMessage(chefTelegramId, text),
+    sendMessage(customerTelegramId, text),
   ])
 }
 
@@ -162,49 +196,12 @@ export async function notifyOrderCompleted(
   order: NotifyOrder,
   chefTelegramId: number,
 ): Promise<void> {
+  const price = order.agreedPrice ? `${order.agreedPrice}` : '—'
   const text =
-    `✅ <b>Заказ #${order.id} завершён!</b>\n` +
-    `Клиент подтвердил выполнение. Средства будут переведены в течение 1–3 рабочих дней.`
+    `🎉 <b>Заказ завершён!</b>\n` +
+    `Заказчик подтвердил выполнение.\n` +
+    `💰 ${price} GEL будут переведены в течение 24 часов.`
   await sendMessage(chefTelegramId, text, orderKeyboard(order.id))
-}
-
-/**
- * Notify the other party that a dispute has been opened.
- */
-export async function notifyDisputeOpened(
-  dispute: NotifyDispute,
-  order: NotifyOrder,
-  recipientTelegramId: number,
-): Promise<void> {
-  const side = dispute.openedBy === 'customer' ? 'заказчик' : 'повар'
-  const text =
-    `⚠️ <b>По заказу #${order.id} открыт спор.</b>\n` +
-    `Инициатор: ${side}.\n` +
-    `Спор рассматривается службой поддержки в течение 24–48 часов.`
-  await sendMessage(recipientTelegramId, text, disputeKeyboard(dispute.id))
-}
-
-/**
- * Notify both parties about the dispute resolution.
- */
-export async function notifyDisputeResolved(
-  dispute: NotifyDispute,
-  order: NotifyOrder,
-  customerTelegramId: number,
-  chefTelegramId: number,
-): Promise<void> {
-  const resolutionText =
-    dispute.resolutionType === 'full_refund'    ? 'полный возврат средств' :
-    dispute.resolutionType === 'partial_refund' ? 'частичный возврат средств' :
-                                                  'отказ в возврате'
-  const text =
-    `⚖️ <b>Спор по заказу #${order.id} рассмотрен.</b>\n` +
-    `Решение: ${resolutionText}.` +
-    (dispute.resolutionComment ? `\n\n${dispute.resolutionComment}` : '')
-  await Promise.allSettled([
-    sendMessage(customerTelegramId, text, disputeKeyboard(dispute.id)),
-    sendMessage(chefTelegramId,    text, disputeKeyboard(dispute.id)),
-  ])
 }
 
 /**
@@ -216,63 +213,65 @@ export async function notifyNewResponse(
   customerTelegramId: number,
   chefName: string,
 ): Promise<void> {
-  const price = response.proposedPrice ? ` · ${response.proposedPrice} GEL` : ''
+  const rating     = response.chefRating ? Number(response.chefRating).toFixed(1) : '—'
+  const orders     = response.chefOrdersCount ?? 0
+  const price      = response.proposedPrice ? `${response.proposedPrice} GEL` : 'не указана'
   const text =
-    `📬 <b>Новый отклик от повара ${chefName}</b>\n` +
-    `По запросу #${request.id}${price}`
-  await sendMessage(customerTelegramId, text, requestKeyboard(request.id))
+    `👨‍🍳 <b>Новый отклик от ${chefName}</b>\n` +
+    `⭐ ${rating} · ${orders} заказов\n` +
+    `💰 Предлагает: ${price}` +
+    (response.comment ? `\n<i>${response.comment}</i>` : '')
+  await sendMessage(customerTelegramId, text, responseKeyboard(request.id, response.chefProfileId))
 }
 
 /**
- * Auto-complete an order 24 h after payment if no dispute has been opened.
- * Calls `completeOrder()` which should update the DB status and ordersCount.
- * Fires only if `hasDispute()` returns false at the time of the check.
+ * Notify the other party that a dispute has been opened.
  */
-export function scheduleAutoComplete(
+export async function notifyDisputeOpened(
+  dispute: NotifyDispute,
+  order: NotifyOrder,
+  recipientTelegramId: number,
+): Promise<void> {
+  const text =
+    `⚠️ <b>Открыт спор по заказу</b>\n` +
+    `Причина: ${dispute.reasonCode}\n` +
+    (dispute.description ? `<i>${dispute.description}</i>\n` : '') +
+    `Саппорт рассмотрит в течение 24 часов.`
+  await sendMessage(recipientTelegramId, text, orderKeyboard(order.id))
+}
+
+/**
+ * Notify both parties about the dispute resolution.
+ */
+export async function notifyDisputeResolved(
+  dispute: NotifyDispute,
   order: NotifyOrder,
   customerTelegramId: number,
   chefTelegramId: number,
-  hasDispute: () => Promise<boolean>,
-  completeOrder: () => Promise<void>,
-  delayMs = 24 * 60 * 60 * 1000,
-): void {
-  setTimeout(async () => {
-    try {
-      if (await hasDispute()) return
-      await completeOrder()
-      const text =
-        `✅ <b>Заказ #${order.id} автоматически завершён.</b>\n` +
-        `Спор не был открыт в течение 24 часов после оплаты.`
-      await Promise.allSettled([
-        sendMessage(customerTelegramId, text, orderKeyboard(order.id)),
-        sendMessage(chefTelegramId, text, orderKeyboard(order.id)),
-      ])
-    } catch (err) {
-      console.error('auto-complete failed', err)
-    }
-  }, delayMs)
+): Promise<void> {
+  const text =
+    `⚖️ <b>Спор решён</b>\n` +
+    `Решение: ${resolutionLabel(dispute.resolutionType)}` +
+    (dispute.resolutionComment ? `\n<i>${dispute.resolutionComment}</i>` : '')
+  await Promise.allSettled([
+    sendMessage(customerTelegramId, text, orderKeyboard(order.id)),
+    sendMessage(chefTelegramId,    text, orderKeyboard(order.id)),
+  ])
 }
 
 /**
- * Remind the customer to leave a review 2 hours after order completion.
- * Fires only if `hasReview()` returns false at the time of the reminder.
+ * Send review reminder to customer.
+ * Called by the cron job in main.ts — timing is handled externally.
  */
-export function scheduleReviewReminder(
-  order: NotifyOrder,
+export async function sendReviewReminder(
+  orderId: number,
+  chefName: string,
   customerTelegramId: number,
-  hasReview: () => Promise<boolean>,
-): void {
-  setTimeout(async () => {
-    try {
-      if (await hasReview()) return
-      const text =
-        `⭐ <b>Как прошёл заказ #${order.id}?</b>\n` +
-        `Оставьте отзыв — это поможет другим заказчикам выбрать повара.`
-      await sendMessage(customerTelegramId, text, orderKeyboard(order.id))
-    } catch (err) {
-      console.error('review reminder failed', err)
-    }
-  }, 2 * 60 * 60 * 1000)
+): Promise<void> {
+  const text =
+    `⭐ <b>Как прошло?</b>\n` +
+    `Оцени повара ${chefName} — это помогает другим выбрать хорошего кулинара.`
+  await sendMessage(customerTelegramId, text, reviewKeyboard(orderId))
 }
 
 // ─── Verification notifications ───────────────────────────────────────────────
@@ -300,12 +299,42 @@ export async function notifyVerificationDecision(
   approved: boolean,
   comment?: string,
 ): Promise<void> {
-  const icon = approved ? '✅' : '❌'
+  const icon   = approved ? '✅' : '❌'
   const result = approved ? 'одобрена' : 'отклонена'
   const text =
     `${icon} <b>Ваша заявка на верификацию ${result}.</b>` +
     (comment ? `\n\n${comment}` : '')
   await sendMessage(chefTelegramId, text)
+}
+
+// ─── Auto-complete (unchanged) ────────────────────────────────────────────────
+
+/**
+ * Auto-complete an order 24 h after payment if no dispute has been opened.
+ */
+export function scheduleAutoComplete(
+  order: NotifyOrder,
+  customerTelegramId: number,
+  chefTelegramId: number,
+  hasDispute: () => Promise<boolean>,
+  completeOrder: () => Promise<void>,
+  delayMs = 24 * 60 * 60 * 1000,
+): void {
+  setTimeout(async () => {
+    try {
+      if (await hasDispute()) return
+      await completeOrder()
+      const text =
+        `✅ <b>Заказ #${order.id} автоматически завершён.</b>\n` +
+        `Спор не был открыт в течение 24 часов после оплаты.`
+      await Promise.allSettled([
+        sendMessage(customerTelegramId, text, orderKeyboard(order.id)),
+        sendMessage(chefTelegramId, text, orderKeyboard(order.id)),
+      ])
+    } catch (err) {
+      console.error('auto-complete failed', err)
+    }
+  }, delayMs)
 }
 
 // ─── Backward-compatible helpers (used by PATCH /orders/:id/status) ───────────
@@ -324,7 +353,6 @@ export function statusNotifyText(status: OrderStatus, orderId: number): string {
 
 /**
  * Generic notification with order deep-link button.
- * Kept for PATCH /orders/:id/status which handles many transitions generically.
  */
 export async function notifyUser(
   telegramId: number,
@@ -332,4 +360,16 @@ export async function notifyUser(
   orderId: number,
 ): Promise<void> {
   await sendMessage(telegramId, text, orderKeyboard(orderId))
+}
+
+// ─── Kept for import compatibility — replaced by cron-based approach ──────────
+
+/** @deprecated Use sendReviewReminder called from the cron job in main.ts */
+export function scheduleReviewReminder(
+  _order: NotifyOrder,
+  _customerTelegramId: number,
+  _hasReview: () => Promise<boolean>,
+): void {
+  // No-op: review reminders are now sent by the 30-min cron job in main.ts
+  // which uses reviewReminderSentAt to avoid duplicate sends.
 }

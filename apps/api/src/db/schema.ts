@@ -116,6 +116,7 @@ export const orders = pgTable('orders', {
   productsBudget: numeric('products_budget', { precision: 10, scale: 2 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  reviewReminderSentAt: timestamp('review_reminder_sent_at'),
 })
 
 export type Order = typeof orders.$inferSelect

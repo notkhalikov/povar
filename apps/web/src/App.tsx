@@ -123,7 +123,9 @@ function DeepLinkRedirect() {
     const param = WebApp.initDataUnsafe?.start_param
     if (!param) return
 
-    if (param.startsWith('order_')) {
+    if (param.startsWith('review_')) {
+      navigate(`/orders/${param.slice('review_'.length)}?openReview=true`, { replace: true })
+    } else if (param.startsWith('order_')) {
       navigate(`/orders/${param.slice('order_'.length)}`, { replace: true })
     } else if (param.startsWith('request_')) {
       navigate(`/requests/${param.slice('request_'.length)}`, { replace: true })

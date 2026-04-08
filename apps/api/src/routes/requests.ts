@@ -237,13 +237,13 @@ export default async function requestsRoutes(app: FastifyInstance) {
     }
 
     // Block inactive chefs from responding
-    const [chefProfile] = await app.db
+    const [chefStatus] = await app.db
       .select({ isActive: chefProfiles.isActive })
       .from(chefProfiles)
       .where(eq(chefProfiles.userId, chefId))
       .limit(1)
 
-    if (!chefProfile?.isActive) {
+    if (!chefStatus?.isActive) {
       return reply.code(422).send({ error: 'Your profile is currently inactive' })
     }
 
@@ -287,14 +287,26 @@ export default async function requestsRoutes(app: FastifyInstance) {
       .returning()
 
     // Notify customer about new response (fire-and-forget)
-    const [customerUser, chefUser] = await Promise.all([
+    const [customerUser, chefUser, chefProfile] = await Promise.all([
       app.db.select({ telegramId: users.telegramId }).from(users).where(eq(users.id, req.customerId)).limit(1),
       app.db.select({ name: users.name }).from(users).where(eq(users.id, chefId)).limit(1),
+      app.db.select({ id: chefProfiles.id, ratingCache: chefProfiles.ratingCache, ordersCount: chefProfiles.ordersCount })
+        .from(chefProfiles).where(eq(chefProfiles.userId, chefId)).limit(1),
     ])
 
     if (customerUser[0] && chefUser[0]) {
-      notifyNewResponse(req, response, customerUser[0].telegramId, chefUser[0].name)
-        .catch(err => app.log.warn({ err }, 'notify new response failed'))
+      notifyNewResponse(
+        req,
+        {
+          ...response,
+          comment:         response.comment ?? null,
+          chefRating:      chefProfile[0]?.ratingCache ?? null,
+          chefOrdersCount: chefProfile[0]?.ordersCount ?? 0,
+          chefProfileId:   chefProfile[0]?.id,
+        },
+        customerUser[0].telegramId,
+        chefUser[0].name,
+      ).catch(err => app.log.warn({ err }, 'notify new response failed'))
     }
 
     return reply.code(201).send(response)

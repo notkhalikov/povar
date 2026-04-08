@@ -7,7 +7,6 @@ import {
   notifyOrderCreated,
   notifyOrderCancelled,
   notifyOrderCompleted,
-  scheduleReviewReminder,
   statusNotifyText,
 } from '../services/notify.js'
 import type { OrderStatus, ProductsBuyer, WorkFormat } from '../types/index.js'
@@ -410,14 +409,6 @@ export default async function ordersRoutes(app: FastifyInstance) {
     if (chef[0]) {
       notifyOrderCompleted(updated, chef[0].telegramId)
         .catch(err => app.log.warn({ err }, 'notify chef complete failed'))
-    }
-
-    if (customer[0]) {
-      scheduleReviewReminder(
-        updated,
-        customer[0].telegramId,
-        () => app.db.select({ id: reviews.id }).from(reviews).where(eq(reviews.orderId, id)).limit(1).then(r => r.length > 0),
-      )
     }
 
     return updated

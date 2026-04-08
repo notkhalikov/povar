@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { useHaptic } from '../hooks/useHaptic'
 import { useT } from '../i18n'
@@ -45,6 +45,7 @@ function timelineIndex(status: OrderStatus): number {
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user: apiUser } = useAuth()
   const [order, setOrder]           = useState<Order | null>(null)
   const [loading, setLoading]       = useState(true)
@@ -72,6 +73,14 @@ export default function OrderDetailPage() {
     setOrder(updated)
     return updated
   }, [id])
+
+  // Auto-open review form when arriving via review deep link
+  useEffect(() => {
+    if (searchParams.get('openReview') === 'true') {
+      setReviewStep('form')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (!id) return

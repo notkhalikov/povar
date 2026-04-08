@@ -5,6 +5,7 @@ import Fastify from 'fastify'
 import rateLimit from '@fastify/rate-limit'
 import * as Sentry from '@sentry/node'
 
+import { eq, isNull, lt, sql, and } from 'drizzle-orm'
 import corsPlugin from './plugins/cors.js'
 import dbPlugin from './plugins/db.js'
 import authPlugin from './plugins/auth.js'
@@ -17,6 +18,8 @@ import disputesRoutes from './routes/disputes.js'
 import requestsRoutes from './routes/requests.js'
 import adminRoutes from './routes/admin.js'
 import devRoutes from './routes/dev.js'
+import { orders, users } from './db/schema.js'
+import { sendReviewReminder } from './services/notify.js'
 
 // Fail fast if required env vars are missing
 const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET', 'BOT_TOKEN'] as const
@@ -146,3 +149,49 @@ async function bootstrap() {
 }
 
 bootstrap()
+
+// ─── Review reminder cron (every 30 min) ──────────────────────────────────────
+// Finds completed orders with no review and no reminder sent yet, where
+// completion was > 2 hours ago, and sends a review nudge to the customer.
+
+setInterval(async () => {
+  try {
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
+
+    const candidates = await app.db
+      .select({
+        orderId:            orders.id,
+        customerTelegramId: users.telegramId,
+        chefName:           sql<string>`(SELECT name FROM users WHERE id = ${orders.chefId})`,
+      })
+      .from(orders)
+      .innerJoin(users, eq(users.id, orders.customerId))
+      .where(
+        and(
+          eq(orders.status, 'completed'),
+          lt(orders.updatedAt, twoHoursAgo),
+          isNull(orders.reviewReminderSentAt),
+          sql`NOT EXISTS (SELECT 1 FROM reviews WHERE reviews.order_id = ${orders.id})`,
+        ),
+      )
+      .limit(50)
+
+    for (const row of candidates) {
+      try {
+        await sendReviewReminder(row.orderId, row.chefName, row.customerTelegramId)
+        await app.db
+          .update(orders)
+          .set({ reviewReminderSentAt: new Date() })
+          .where(eq(orders.id, row.orderId))
+      } catch (err) {
+        app.log.warn({ err, orderId: row.orderId }, 'review reminder send failed')
+      }
+    }
+
+    if (candidates.length > 0) {
+      app.log.info({ event: 'review_reminders_sent', count: candidates.length })
+    }
+  } catch (err) {
+    app.log.error({ err }, 'review reminder cron failed')
+  }
+}, 30 * 60 * 1000)
