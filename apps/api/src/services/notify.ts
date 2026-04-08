@@ -58,6 +58,16 @@ function orderKeyboard(orderId: number) {
   }
 }
 
+function newOrderKeyboard(orderId: number) {
+  const url = appUrl(`order_${orderId}`)
+  const botUsername = process.env.BOT_USERNAME
+  const chatUrl = botUsername ? `https://t.me/${botUsername}?start=chat_${orderId}` : null
+  if (!url) return undefined
+  const row: object[] = [{ text: '📋 Открыть заказ', web_app: { url } }]
+  if (chatUrl) row.push({ text: '💬 Написать заказчику', url: chatUrl })
+  return { inline_keyboard: [row] }
+}
+
 function reviewKeyboard(orderId: number) {
   const url = appUrl(`review_${orderId}`)
   if (!url) return undefined
@@ -153,7 +163,7 @@ export async function notifyOrderCreated(
     (location ? `📍 ${location}\n` : '') +
     `💰 ${price}` +
     (order.description ? `\n<i>${order.description}</i>` : '')
-  await sendMessage(chefTelegramId, text, orderKeyboard(order.id))
+  await sendMessage(chefTelegramId, text, newOrderKeyboard(order.id))
 }
 
 /**

@@ -194,6 +194,7 @@ export default async function ordersRoutes(app: FastifyInstance) {
         productsBuyer: orders.productsBuyer,
         productsBudget: orders.productsBudget,
         status: orders.status,
+        chatEnabled: orders.chatEnabled,
         createdAt: orders.createdAt,
         updatedAt: orders.updatedAt,
         chefName: sql<string>`chef_user.name`,
@@ -490,5 +491,96 @@ export default async function ordersRoutes(app: FastifyInstance) {
     }
 
     return updated
+  })
+
+  // ─── GET /orders/:id/chat-info ───────────────────────────────────────────────
+  // Bot-internal endpoint. Protected by x-webhook-secret header.
+  // Returns order status, chatEnabled flag, and both participants' Telegram IDs + names.
+
+  app.get<{ Params: { id: number } }>('/orders/:id/chat-info', {
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer' } },
+      },
+    },
+  }, async (request, reply) => {
+    const secret   = request.headers['x-webhook-secret']
+    const expected = process.env.WEBHOOK_SECRET
+    if (!expected || secret !== expected) {
+      return reply.code(401).send({ error: 'Unauthorized' })
+    }
+
+    const { id } = request.params
+
+    const [row] = await app.db
+      .select({
+        id:                 orders.id,
+        customerId:         orders.customerId,
+        chefId:             orders.chefId,
+        status:             orders.status,
+        chatEnabled:        orders.chatEnabled,
+        customerTelegramId: sql<number>`customer_user.telegram_id`,
+        chefTelegramId:     sql<number>`chef_user.telegram_id`,
+        customerName:       sql<string>`customer_user.name`,
+        chefName:           sql<string>`chef_user.name`,
+      })
+      .from(orders)
+      .leftJoin(sql`users AS customer_user`, sql`customer_user.id = ${orders.customerId}`)
+      .leftJoin(sql`users AS chef_user`,     sql`chef_user.id = ${orders.chefId}`)
+      .where(eq(orders.id, id))
+      .limit(1)
+
+    if (!row) return reply.code(404).send({ error: 'Order not found' })
+    return row
+  })
+
+  // ─── POST /orders/:id/enable-chat ────────────────────────────────────────────
+  // Authenticated. Either participant can enable the relay chat once the order
+  // is paid or further along. Returns the chat deep-link for the bot.
+
+  app.post<{ Params: { id: number } }>('/orders/:id/enable-chat', {
+    onRequest: [app.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer' } },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.user.sub
+    const { id } = request.params
+
+    const [order] = await app.db
+      .select()
+      .from(orders)
+      .where(
+        and(
+          eq(orders.id, id),
+          or(eq(orders.customerId, userId), eq(orders.chefId, userId)),
+        ),
+      )
+      .limit(1)
+
+    if (!order) return reply.code(404).send({ error: 'Order not found' })
+
+    const CHAT_ALLOWED_STATUSES: (typeof order.status)[] = ['paid', 'in_progress', 'completed', 'dispute_pending']
+    if (!CHAT_ALLOWED_STATUSES.includes(order.status)) {
+      return reply.code(422).send({ error: 'Chat can only be enabled for paid or later orders' })
+    }
+
+    if (!order.chatEnabled) {
+      await app.db
+        .update(orders)
+        .set({ chatEnabled: true, updatedAt: new Date() })
+        .where(eq(orders.id, id))
+    }
+
+    const botUsername = process.env.BOT_USERNAME
+    const chatLink = botUsername ? `https://t.me/${botUsername}?start=chat_${id}` : null
+
+    return { chatEnabled: true, chatLink }
   })
 }

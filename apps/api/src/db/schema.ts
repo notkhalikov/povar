@@ -114,6 +114,7 @@ export const orders = pgTable('orders', {
   // home_visit only
   productsBuyer: productsBuyerEnum('products_buyer'),
   productsBudget: numeric('products_budget', { precision: 10, scale: 2 }),
+  chatEnabled: boolean('chat_enabled').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   reviewReminderSentAt: timestamp('review_reminder_sent_at'),
