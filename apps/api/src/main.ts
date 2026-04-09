@@ -1,6 +1,4 @@
 import 'dotenv/config'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import Fastify from 'fastify'
 import rateLimit from '@fastify/rate-limit'
 import * as Sentry from '@sentry/node'
@@ -38,10 +36,7 @@ if (process.env.SENTRY_DSN) {
 
 // ─── App version ─────────────────────────────────────────────────────────────
 
-// __dirname resolves to dist/ at runtime; package.json is one level up
-const { version: APP_VERSION } = JSON.parse(
-  readFileSync(join(__dirname, '../package.json'), 'utf-8'),
-) as { version: string }
+const APP_VERSION = process.env.npm_package_version ?? '0.0.1'
 
 // ─── In-memory request counter (rolling 1-hour window) ───────────────────────
 
