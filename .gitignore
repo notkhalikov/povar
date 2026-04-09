@@ -6,6 +6,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# Allow the API compiled output so Railway can run without a build step
+!apps/api/dist/
+
 # Environment variables
 .env
 .env.local
