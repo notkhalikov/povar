@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "build": "tsc -p tsconfig.json",
+    "prestart": "tsx src/db/migrate.ts",
     "start": "node dist/main.js",
     "db:seed": "tsx src/db/seed.ts",
     "db:generate": "drizzle-kit generate",
@@ -22,12 +23,12 @@
     "drizzle-orm": "^0.45.2",
     "fastify": "^4.27.0",
     "fastify-plugin": "^4.5.1",
-    "postgres": "^3.4.4"
+    "postgres": "^3.4.4",
+    "tsx": "^4.9.3"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",
     "drizzle-kit": "^0.31.10",
-    "tsx": "^4.9.3",
     "typescript": "^5.4.5"
   }
 }
