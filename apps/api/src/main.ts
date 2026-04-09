@@ -38,9 +38,9 @@ if (process.env.SENTRY_DSN) {
 
 // ─── App version ─────────────────────────────────────────────────────────────
 
-// __dirname is a CJS global (module: "commonjs")
+// __dirname resolves to dist/ at runtime; package.json is one level up
 const { version: APP_VERSION } = JSON.parse(
-  readFileSync(join(__dirname, '../../package.json'), 'utf-8'),
+  readFileSync(join(__dirname, '../package.json'), 'utf-8'),
 ) as { version: string }
 
 // ─── In-memory request counter (rolling 1-hour window) ───────────────────────
