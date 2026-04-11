@@ -228,6 +228,51 @@ export default async function ordersRoutes(app: FastifyInstance) {
     }
   })
 
+  // ─── PATCH /orders/:id/price ─────────────────────────────────────────────────
+  // Authenticated (chef). Sets agreedPrice while order is awaiting_payment.
+
+  app.patch<{ Params: { id: number }; Body: { agreedPrice: number } }>('/orders/:id/price', {
+    onRequest: [app.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer' } },
+      },
+      body: {
+        type: 'object',
+        required: ['agreedPrice'],
+        additionalProperties: false,
+        properties: {
+          agreedPrice: { type: 'number', minimum: 1 },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.user.sub
+    const { id } = request.params
+    const { agreedPrice } = request.body
+
+    const [order] = await app.db
+      .select()
+      .from(orders)
+      .where(and(eq(orders.id, id), eq(orders.chefId, userId)))
+      .limit(1)
+
+    if (!order) return reply.code(404).send({ error: 'Order not found' })
+    if (order.status !== 'awaiting_payment') {
+      return reply.code(422).send({ error: 'Price can only be set while order is awaiting_payment' })
+    }
+
+    const [updated] = await app.db
+      .update(orders)
+      .set({ agreedPrice: String(agreedPrice), updatedAt: new Date() })
+      .where(eq(orders.id, id))
+      .returning()
+
+    return updated
+  })
+
   // ─── PATCH /orders/:id ───────────────────────────────────────────────────────
   // Authenticated (customer). Edits mutable fields while order is awaiting_payment.
 

@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { useHaptic } from '../hooks/useHaptic'
 import { useT } from '../i18n'
-import { getOrder, createInvoice, completeOrder } from '../api/orders'
+import { getOrder, createInvoice, completeOrder, setOrderPrice } from '../api/orders'
 import { ApiError } from '../api/client'
 import { createReview } from '../api/reviews'
 import { createDispute, getDisputeByOrder } from '../api/disputes'
@@ -62,6 +62,9 @@ export default function OrderDetailPage() {
   const [disputeReason, setDisputeReason]       = useState('')
   const [disputeDesc, setDisputeDesc]           = useState('')
   const [disputeId, setDisputeId]               = useState<number | null>(null)
+
+  const [priceInput, setPriceInput] = useState('')
+  const [priceSaving, setPriceSaving] = useState(false)
 
   const haptic = useHaptic()
   const t = useT()
@@ -167,6 +170,20 @@ export default function OrderDetailPage() {
 
   function tgAlert(msg: string) {
     try { WebApp.showAlert(msg) } catch { alert(msg) }
+  }
+
+  async function handleSetPrice() {
+    const price = parseFloat(priceInput)
+    if (!price || price <= 0) return
+    setPriceSaving(true)
+    try {
+      const updated = await setOrderPrice(Number(id), price)
+      setOrder(updated)
+      setPriceInput('')
+      haptic.success()
+    } catch (e: unknown) {
+      tgAlert(e instanceof Error ? e.message : t.errors.generic)
+    } finally { setPriceSaving(false) }
   }
 
   async function handlePay() {
@@ -354,8 +371,37 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
+        {/* ── Chef: set price ───────────────────────────────────────── */}
+        {isChef && order.status === 'awaiting_payment' && !order.agreedPrice && (
+          <div className='card' style={{ marginBottom: 16 }}>
+            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12 }}>Укажите стоимость заказа</div>
+            <input
+              type='number'
+              value={priceInput}
+              onChange={e => setPriceInput(e.target.value)}
+              placeholder='Сумма в GEL'
+              min={1}
+              style={{
+                width: '100%', padding: '12px 14px', borderRadius: 10,
+                border: '1px solid var(--tg-theme-hint-color)',
+                background: 'var(--tg-theme-secondary-bg-color)',
+                color: 'var(--tg-theme-text-color)',
+                fontSize: 15, boxSizing: 'border-box', outline: 'none',
+              }}
+            />
+            <button
+              className='btn-primary'
+              style={{ marginTop: 10, opacity: !priceInput || priceSaving ? .55 : 1 }}
+              disabled={!priceInput || priceSaving}
+              onClick={handleSetPrice}
+            >
+              {priceSaving ? 'Сохраняем...' : 'Подтвердить цену'}
+            </button>
+          </div>
+        )}
+
         {/* ── Chef: chat with customer button ───────────────────────── */}
-        {isChef && order.chatEnabled && import.meta.env.VITE_BOT_USERNAME && (
+        {isChef && !['cancelled', 'refunded'].includes(order.status) && import.meta.env.VITE_BOT_USERNAME && (
           <a
             href={`https://t.me/${import.meta.env.VITE_BOT_USERNAME}?start=chat_${order.id}`}
             target='_blank'
@@ -515,21 +561,28 @@ export default function OrderDetailPage() {
         <div className='action-bar'>
           {showPayButton && (
             <>
-              {!order.agreedPrice && (
-                <p style={{ margin: 0, fontSize: 13, color: 'var(--tg-theme-hint-color)', textAlign: 'center' }}>
-                  {t.order.noPrice}
-                </p>
-              )}
-              <button
-                className='btn-primary'
-                style={{ opacity: actionLoading || !order.agreedPrice ? .55 : 1 }}
-                disabled={actionLoading || !order.agreedPrice}
-                onClick={handlePay}
-              >
-                {actionLoading
-                  ? t.order.paying
-                  : order.agreedPrice ? `${t.order.pay} ${order.agreedPrice} ${t.common.currency}` : t.order.pay}
-              </button>
+              {(() => {
+                const hasPrice = order.agreedPrice && parseFloat(String(order.agreedPrice)) > 0
+                return (
+                  <>
+                    {!hasPrice && (
+                      <p style={{ margin: 0, fontSize: 13, color: 'var(--tg-theme-hint-color)', textAlign: 'center' }}>
+                        {t.order.noPrice}
+                      </p>
+                    )}
+                    <button
+                      className='btn-primary'
+                      style={{ opacity: actionLoading || !hasPrice ? .55 : 1 }}
+                      disabled={actionLoading || !hasPrice}
+                      onClick={handlePay}
+                    >
+                      {actionLoading
+                        ? t.order.paying
+                        : hasPrice ? `${t.order.pay} ${order.agreedPrice} ${t.common.currency}` : t.order.pay}
+                    </button>
+                  </>
+                )
+              })()}
             </>
           )}
           {showOutcomeButtons && (

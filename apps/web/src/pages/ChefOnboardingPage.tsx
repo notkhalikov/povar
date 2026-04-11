@@ -69,6 +69,7 @@ export default function ChefOnboardingPage() {
         workFormats,
         districts,
         avgPrice: avgPrice ? Number(avgPrice) : undefined,
+        isActive,
       })
       // Update role in context if user was a customer
       if (user && user.role !== 'chef') {

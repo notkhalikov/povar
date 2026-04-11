@@ -43,3 +43,10 @@ export function patchOrderStatus(id: number, status: string): Promise<Order> {
     body: JSON.stringify({ status }),
   })
 }
+
+export function setOrderPrice(id: number, agreedPrice: number): Promise<Order> {
+  return apiFetch<Order>(`/orders/${id}/price`, {
+    method: 'PATCH',
+    body: JSON.stringify({ agreedPrice }),
+  })
+}
