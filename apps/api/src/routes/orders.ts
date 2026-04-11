@@ -572,26 +572,39 @@ export default async function ordersRoutes(app: FastifyInstance) {
 
     const { id } = request.params
 
-    const [row] = await app.db
+    const [order] = await app.db
       .select({
-        id:                 orders.id,
-        customerId:         orders.customerId,
-        chefId:             orders.chefId,
-        status:             orders.status,
-        chatEnabled:        orders.chatEnabled,
-        customerTelegramId: sql<number>`customer_user.telegram_id`,
-        chefTelegramId:     sql<number>`chef_user.telegram_id`,
-        customerName:       sql<string>`customer_user.name`,
-        chefName:           sql<string>`chef_user.name`,
+        id:          orders.id,
+        customerId:  orders.customerId,
+        chefId:      orders.chefId,
+        status:      orders.status,
+        chatEnabled: orders.chatEnabled,
       })
       .from(orders)
-      .leftJoin(sql`users AS customer_user`, sql`customer_user.id = ${orders.customerId}`)
-      .leftJoin(sql`users AS chef_user`,     sql`chef_user.id = ${orders.chefId}`)
       .where(eq(orders.id, id))
       .limit(1)
 
-    if (!row) return reply.code(404).send({ error: 'Order not found' })
-    return row
+    if (!order) return reply.code(404).send({ error: 'Order not found' })
+
+    const [customerUser] = await app.db
+      .select({ telegramId: users.telegramId, name: users.name })
+      .from(users)
+      .where(eq(users.id, order.customerId))
+      .limit(1)
+
+    const [chefUser] = await app.db
+      .select({ telegramId: users.telegramId, name: users.name })
+      .from(users)
+      .where(eq(users.id, order.chefId))
+      .limit(1)
+
+    return {
+      ...order,
+      customerTelegramId: customerUser?.telegramId ?? null,
+      chefTelegramId:     chefUser?.telegramId     ?? null,
+      customerName:       customerUser?.name        ?? null,
+      chefName:           chefUser?.name            ?? null,
+    }
   })
 
   // ─── POST /orders/:id/enable-chat ────────────────────────────────────────────

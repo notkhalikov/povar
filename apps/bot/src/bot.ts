@@ -129,8 +129,8 @@ async function handleChatStart(ctx: Context, orderId: number) {
     return
   }
 
-  const isCustomer = order.customerTelegramId === telegramId
-  const isChef     = order.chefTelegramId     === telegramId
+  const isCustomer = Number(order.customerTelegramId) === telegramId
+  const isChef     = Number(order.chefTelegramId)     === telegramId
 
   if (!isCustomer && !isChef) {
     await ctx.reply('❌ Вы не участник этого заказа.')
