@@ -247,13 +247,14 @@ export default function OrderDetailPage() {
   if (error) return <div style={{ padding: 24, color: 'var(--color-danger)' }}>{t.common.error}: {error}</div>
   if (!order) return null
 
+  const isCustomer     = apiUser?.id === order.customerId
+  const isChef         = apiUser?.id === order.chefId
   const scheduledPassed = new Date(order.scheduledAt) < new Date()
   const showPayButton    = isCustomer && order.status === 'awaiting_payment'
   const showOutcomeButtons =
     isCustomer &&
     reviewStep === 'none' &&
     ((order.status === 'paid' && scheduledPassed) || order.status === 'in_progress')
-  const isCustomer    = apiUser?.id === order.customerId
   const disputeReasonKeys = isCustomer
     ? ['chef_no_show', 'late_delivery', 'wrong_menu', 'bad_quality', 'other']
     : ['customer_no_show', 'wrong_address', 'false_complaint', 'other']
@@ -352,6 +353,19 @@ export default function OrderDetailPage() {
             <div style={{ fontWeight: 600, fontSize: 15 }}>{order.chefName ?? `#${order.chefId}`}</div>
           </div>
         </div>
+
+        {/* ── Chef: chat with customer button ───────────────────────── */}
+        {isChef && order.chatEnabled && import.meta.env.VITE_BOT_USERNAME && (
+          <a
+            href={`https://t.me/${import.meta.env.VITE_BOT_USERNAME}?start=chat_${order.id}`}
+            target='_blank'
+            rel='noreferrer'
+            className='btn-secondary'
+            style={{ display: 'block', textAlign: 'center', marginBottom: 16, textDecoration: 'none' }}
+          >
+            💬 Написать заказчику
+          </a>
+        )}
 
         {/* ── Order details ─────────────────────────────────────────── */}
         <div className='card' style={{ marginBottom: 16 }}>
