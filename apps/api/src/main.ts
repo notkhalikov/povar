@@ -3,7 +3,6 @@ import Fastify from 'fastify'
 import rateLimit from '@fastify/rate-limit'
 import * as Sentry from '@sentry/node'
 
-import { eq, isNull, lt, sql, and } from 'drizzle-orm'
 import corsPlugin from './plugins/cors.js'
 import dbPlugin from './plugins/db.js'
 import authPlugin from './plugins/auth.js'
@@ -16,8 +15,6 @@ import disputesRoutes from './routes/disputes.js'
 import requestsRoutes from './routes/requests.js'
 import adminRoutes from './routes/admin.js'
 import devRoutes from './routes/dev.js'
-import { orders, users } from './db/schema.js'
-import { sendReviewReminder } from './services/notify.js'
 
 // Fail fast if required env vars are missing
 const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET', 'BOT_TOKEN'] as const
@@ -150,6 +147,9 @@ bootstrap()
 // completion was > 2 hours ago, and sends a review nudge to the customer.
 
 setInterval(async () => {
+  // TODO: re-enable after migration 0005 (review_reminder_sent_at column) is confirmed applied in prod.
+  // Disabled to prevent cron crashes from missing column.
+  /*
   try {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
 
@@ -187,6 +187,7 @@ setInterval(async () => {
       app.log.info({ event: 'review_reminders_sent', count: candidates.length })
     }
   } catch (err) {
-    app.log.error({ err }, 'review reminder cron failed')
+    app.log.error({ event: 'review_reminder_cron_error', error: String(err), err }, 'review reminder cron failed')
   }
+  */
 }, 30 * 60 * 1000)

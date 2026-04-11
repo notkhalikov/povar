@@ -143,24 +143,42 @@ export default async function ordersRoutes(app: FastifyInstance) {
 
     const rows = await app.db
       .select({
-        id: orders.id,
-        type: orders.type,
-        city: orders.city,
+        id:          orders.id,
+        customerId:  orders.customerId,
+        chefId:      orders.chefId,
+        type:        orders.type,
+        city:        orders.city,
         scheduledAt: orders.scheduledAt,
-        persons: orders.persons,
+        persons:     orders.persons,
         agreedPrice: orders.agreedPrice,
-        status: orders.status,
-        createdAt: orders.createdAt,
-        chefName: sql<string>`chef_user.name`,
-        customerName: sql<string>`customer_user.name`,
+        status:      orders.status,
+        createdAt:   orders.createdAt,
       })
       .from(orders)
-      .leftJoin(sql`users AS chef_user`, sql`chef_user.id = ${orders.chefId}`)
-      .leftJoin(sql`users AS customer_user`, sql`customer_user.id = ${orders.customerId}`)
       .where(or(eq(orders.customerId, userId), eq(orders.chefId, userId)))
       .orderBy(sql`${orders.createdAt} DESC`)
 
-    return { data: rows }
+    if (rows.length === 0) return { data: [] }
+
+    // Fetch participant names in two batch queries
+    const chefIds     = [...new Set(rows.map(r => r.chefId))]
+    const customerIds = [...new Set(rows.map(r => r.customerId))]
+    const allIds      = [...new Set([...chefIds, ...customerIds])]
+
+    const nameRows = await app.db
+      .select({ id: users.id, name: users.name })
+      .from(users)
+      .where(inArray(users.id, allIds))
+
+    const nameMap = new Map(nameRows.map(u => [u.id, u.name]))
+
+    const data = rows.map(r => ({
+      ...r,
+      chefName:     nameMap.get(r.chefId)     ?? null,
+      customerName: nameMap.get(r.customerId) ?? null,
+    }))
+
+    return { data }
   })
 
   // ─── GET /orders/:id ─────────────────────────────────────────────────────────
@@ -178,31 +196,9 @@ export default async function ordersRoutes(app: FastifyInstance) {
     const userId = request.user.sub
     const { id } = request.params
 
-    const [row] = await app.db
-      .select({
-        id: orders.id,
-        customerId: orders.customerId,
-        chefId: orders.chefId,
-        type: orders.type,
-        city: orders.city,
-        district: orders.district,
-        address: orders.address,
-        scheduledAt: orders.scheduledAt,
-        persons: orders.persons,
-        description: orders.description,
-        agreedPrice: orders.agreedPrice,
-        productsBuyer: orders.productsBuyer,
-        productsBudget: orders.productsBudget,
-        status: orders.status,
-        chatEnabled: orders.chatEnabled,
-        createdAt: orders.createdAt,
-        updatedAt: orders.updatedAt,
-        chefName: sql<string>`chef_user.name`,
-        customerName: sql<string>`customer_user.name`,
-      })
+    const [order] = await app.db
+      .select()
       .from(orders)
-      .leftJoin(sql`users AS chef_user`, sql`chef_user.id = ${orders.chefId}`)
-      .leftJoin(sql`users AS customer_user`, sql`customer_user.id = ${orders.customerId}`)
       .where(
         and(
           eq(orders.id, id),
@@ -211,8 +207,25 @@ export default async function ordersRoutes(app: FastifyInstance) {
       )
       .limit(1)
 
-    if (!row) return reply.code(404).send({ error: 'Order not found' })
-    return row
+    if (!order) return reply.code(404).send({ error: 'Order not found' })
+
+    const [chefUser] = await app.db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, order.chefId))
+      .limit(1)
+
+    const [customerUser] = await app.db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, order.customerId))
+      .limit(1)
+
+    return {
+      ...order,
+      chefName:     chefUser?.name ?? null,
+      customerName: customerUser?.name ?? null,
+    }
   })
 
   // ─── PATCH /orders/:id ───────────────────────────────────────────────────────

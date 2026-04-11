@@ -110,9 +110,10 @@ export default function OrderDetailPage() {
     }
 
     const scheduledPassed = new Date(order.scheduledAt) < new Date()
-    const wantPay    = order.status === 'awaiting_payment'
-    const wantDone   = reviewStep === 'none' && (order.status === 'in_progress' || (order.status === 'paid' && scheduledPassed))
-    const wantReview = order.status === 'completed' && reviewStep === 'none'
+    const isCustomerNow  = apiUser?.id === order.customerId
+    const wantPay    = isCustomerNow && order.status === 'awaiting_payment'
+    const wantDone   = isCustomerNow && reviewStep === 'none' && (order.status === 'in_progress' || (order.status === 'paid' && scheduledPassed))
+    const wantReview = isCustomerNow && order.status === 'completed' && reviewStep === 'none'
 
     let handler: (() => void) | null = null
     let text = ''
@@ -247,8 +248,9 @@ export default function OrderDetailPage() {
   if (!order) return null
 
   const scheduledPassed = new Date(order.scheduledAt) < new Date()
-  const showPayButton    = order.status === 'awaiting_payment'
+  const showPayButton    = isCustomer && order.status === 'awaiting_payment'
   const showOutcomeButtons =
+    isCustomer &&
     reviewStep === 'none' &&
     ((order.status === 'paid' && scheduledPassed) || order.status === 'in_progress')
   const isCustomer    = apiUser?.id === order.customerId
