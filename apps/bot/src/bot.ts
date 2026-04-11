@@ -142,6 +142,8 @@ async function handleChatStart(ctx: Context, orderId: number) {
   const partnerName                  = isCustomer ? (order.chefName ?? 'Повар') : (order.customerName ?? 'Заказчик')
 
   activeSessions.set(telegramId, { orderId, role, partnerTelegramId, partnerName })
+  console.log('[chat] session saved for telegramId:', telegramId, 'session:', { orderId, role, partnerTelegramId, partnerName })
+  console.log('[chat] activeSessions size after save:', activeSessions.size)
 
   await ctx.reply(
     `💬 <b>Чат по заказу #${orderId} активен.</b>\n` +
@@ -192,13 +194,27 @@ bot.command('orders', async (ctx) => {
 
 bot.on('message:text', async (ctx, next) => {
   const telegramId = ctx.from?.id
-  if (!telegramId) return next()
+  console.log('[relay] incoming message from telegramId:', telegramId)
+  console.log('[relay] activeSessions size:', activeSessions.size)
+  console.log('[relay] activeSessions keys:', [...activeSessions.keys()])
+
+  if (!telegramId) {
+    console.log('[relay] no telegramId, skipping')
+    return next()
+  }
 
   // Skip if message is a command
   if (ctx.message.text.startsWith('/')) return next()
 
   const session = activeSessions.get(telegramId)
-  if (!session) return next()
+  console.log('[relay] session for telegramId', telegramId, ':', session)
+
+  if (!session) {
+    console.log('[relay] no session found, skipping relay')
+    return next()
+  }
+
+  console.log('[relay] sending to partnerTelegramId:', session.partnerTelegramId)
 
   const senderLabel = session.role === 'customer' ? '👤 Заказчик' : '👨‍🍳 Повар'
 
@@ -208,9 +224,11 @@ bot.on('message:text', async (ctx, next) => {
       `💬 <b>${senderLabel}:</b>\n${ctx.message.text}`,
       { parse_mode: 'HTML' },
     )
+    console.log('[relay] message sent successfully')
     // Confirm delivery to sender
     await ctx.react('👍').catch(() => {})
-  } catch {
+  } catch (err) {
+    console.error('[relay] sendMessage failed:', err)
     await ctx.reply('⚠️ Не удалось доставить сообщение. Попробуйте ещё раз.')
   }
 })
