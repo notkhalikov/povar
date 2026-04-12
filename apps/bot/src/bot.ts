@@ -8,9 +8,10 @@ if (!token) {
   process.exit(1)
 }
 
-const MINI_APP_URL  = process.env.MINI_APP_URL  ?? 'https://example.com'
-const API_BASE_URL  = process.env.API_BASE_URL  ?? 'http://localhost:3000'
+const MINI_APP_URL   = process.env.MINI_APP_URL   ?? 'https://example.com'
+const API_BASE_URL   = process.env.API_BASE_URL   ?? 'http://localhost:3000'
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET ?? ''
+const SYSTEM_SECRET  = process.env.SYSTEM_SECRET  ?? ''
 
 const bot = new Bot(token)
 
@@ -27,7 +28,7 @@ interface ChatSession {
 
 const activeSessions = new Map<number, ChatSession>()
 
-// ─── API helper ───────────────────────────────────────────────────────────────
+// ─── API helpers ──────────────────────────────────────────────────────────────
 
 async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
@@ -35,6 +36,42 @@ async function apiGet<T>(path: string): Promise<T> {
   })
   if (!res.ok) throw new Error(`API ${path} → ${res.status}`)
   return res.json() as Promise<T>
+}
+
+type UserContext =
+  | { found: false }
+  | {
+      found: true
+      role: string
+      isChef: boolean
+      chefStatus: 'active' | 'vacation' | null
+      activeOrdersCount: number
+      activeOrder: { id: number; scheduledAt: string } | null
+      incomingRequestsCount: number
+    }
+
+async function getUserContext(telegramId: number): Promise<UserContext> {
+  try {
+    const res = await fetch(
+      `${API_BASE_URL}/system/user-context?telegramId=${telegramId}`,
+      { headers: { 'x-system-secret': SYSTEM_SECRET } },
+    )
+    if (!res.ok) return { found: false }
+    return res.json() as Promise<UserContext>
+  } catch {
+    return { found: false }
+  }
+}
+
+async function getChefsCount(): Promise<number> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/chefs?limit=1`)
+    if (!res.ok) return 0
+    const data = (await res.json()) as { total?: number }
+    return data.total ?? 0
+  } catch {
+    return 0
+  }
 }
 
 interface OrderDetail {
@@ -62,10 +99,12 @@ async function getOrderWithParticipants(orderId: number): Promise<OrderDetail | 
 // ─── /start ───────────────────────────────────────────────────────────────────
 
 bot.command('start', async (ctx) => {
-  const name  = ctx.from?.first_name ?? 'друг'
-  const param = (ctx.match as string | undefined)?.trim() ?? ''
+  const name       = ctx.from?.first_name ?? 'друг'
+  const telegramId = ctx.from?.id
+  const param      = (ctx.match as string | undefined)?.trim() ?? ''
 
-  // chat_{orderId} deep link — activate chat session
+  // ── Deep-link passthrough: chat / order / request / dispute ─────────────
+
   if (param.startsWith('chat_')) {
     const orderId = parseInt(param.slice('chat_'.length), 10)
     if (!isNaN(orderId) && orderId > 0) {
@@ -74,33 +113,132 @@ bot.command('start', async (ctx) => {
     }
   }
 
-  let appUrl      = MINI_APP_URL
-  let buttonLabel = '🍽️ Открыть Mini App'
-  let replyText   =
-    `Привет, ${name}! 👋\n\n` +
-    `Я помогу тебе найти домашнего повара в Тбилиси или Батуми — ` +
-    `или заказать готовую еду с доставкой.\n\n` +
-    `Нажми кнопку ниже, чтобы открыть каталог поваров.`
-
   if (param.startsWith('order_')) {
     const id = param.slice('order_'.length)
-    appUrl = `${MINI_APP_URL}?startapp=order_${id}`
-    buttonLabel = '📦 Открыть заказ'
-    replyText = `${name}, вот ваш заказ #${id}:`
-  } else if (param.startsWith('request_')) {
-    const id = param.slice('request_'.length)
-    appUrl = `${MINI_APP_URL}?startapp=request_${id}`
-    buttonLabel = '📋 Открыть запрос'
-    replyText = `${name}, вот запрос #${id}:`
-  } else if (param.startsWith('dispute_')) {
-    const id = param.slice('dispute_'.length)
-    appUrl = `${MINI_APP_URL}?startapp=dispute_${id}`
-    buttonLabel = '⚖️ Открыть спор'
-    replyText = `${name}, вот детали спора #${id}:`
+    const keyboard = new InlineKeyboard().webApp('📦 Открыть заказ', `${MINI_APP_URL}?startapp=order_${id}`)
+    await ctx.reply(`${name}, вот ваш заказ #${id}:`, { reply_markup: keyboard })
+    return
   }
 
-  const keyboard = new InlineKeyboard().webApp(buttonLabel, appUrl)
-  await ctx.reply(replyText, { reply_markup: keyboard })
+  if (param.startsWith('request_')) {
+    const id = param.slice('request_'.length)
+    const keyboard = new InlineKeyboard().webApp('📋 Открыть запрос', `${MINI_APP_URL}?startapp=request_${id}`)
+    await ctx.reply(`${name}, вот запрос #${id}:`, { reply_markup: keyboard })
+    return
+  }
+
+  if (param.startsWith('dispute_')) {
+    const id = param.slice('dispute_'.length)
+    const keyboard = new InlineKeyboard().webApp('⚖️ Открыть спор', `${MINI_APP_URL}?startapp=dispute_${id}`)
+    await ctx.reply(`${name}, вот детали спора #${id}:`, { reply_markup: keyboard })
+    return
+  }
+
+  // ── Smart /start: personalised greeting based on user context ────────────
+
+  if (!telegramId) {
+    await ctx.reply(`Привет, ${name}! 👋`)
+    return
+  }
+
+  const context = await getUserContext(telegramId)
+
+  // ── New user ─────────────────────────────────────────────────────────────
+  if (!context.found) {
+    const chefsCount = await getChefsCount()
+    const keyboard = new InlineKeyboard()
+      .webApp('🍽️ Найти повара', MINI_APP_URL)
+      .row()
+      .webApp('👨‍🍳 Я повар — хочу заказы', `${MINI_APP_URL}/chef/onboarding`)
+    await ctx.reply(
+      `👋 Привет, ${name}!\n\n` +
+      `Я помогу найти домашнего повара в Тбилиси или Батуми — или заказать готовую еду с доставкой.\n\n` +
+      (chefsCount > 0 ? `🍽️ У нас ${chefsCount} проверенных поваров.` : ''),
+      { reply_markup: keyboard },
+    )
+    return
+  }
+
+  // ── Chef: vacation ────────────────────────────────────────────────────────
+  if (context.isChef && context.chefStatus === 'vacation') {
+    const keyboard = new InlineKeyboard()
+      .text('✅ Включить активность', 'activate_chef')
+      .row()
+      .webApp('📋 Мои заказы', `${MINI_APP_URL}?startapp=orders`)
+    await ctx.reply(
+      `Привет, ${name}! 👨‍🍳\n` +
+      `Твой статус: 😴 В отпуске — новые заказы не приходят.`,
+      { reply_markup: keyboard },
+    )
+    return
+  }
+
+  // ── Chef: active ──────────────────────────────────────────────────────────
+  if (context.isChef) {
+    const keyboard = new InlineKeyboard()
+      .webApp('📋 Мои заказы', `${MINI_APP_URL}?startapp=orders`)
+      .row()
+      .webApp('📩 Входящие запросы', `${MINI_APP_URL}?startapp=requests`)
+      .row()
+      .webApp('⚙️ Профиль', `${MINI_APP_URL}?startapp=profile`)
+    await ctx.reply(
+      `Привет, ${name}! 👨‍🍳\n` +
+      `Твой статус: 🟢 Активен\n` +
+      `Входящих запросов: ${context.incomingRequestsCount}`,
+      { reply_markup: keyboard },
+    )
+    return
+  }
+
+  // ── Customer: has active order ────────────────────────────────────────────
+  if (context.activeOrder) {
+    const date = new Date(context.activeOrder.scheduledAt).toLocaleDateString('ru-RU', {
+      day: 'numeric', month: 'long',
+    })
+    const keyboard = new InlineKeyboard()
+      .webApp('📋 Открыть заказ', `${MINI_APP_URL}?startapp=order_${context.activeOrder.id}`)
+      .row()
+      .webApp('🍽️ Каталог поваров', MINI_APP_URL)
+    await ctx.reply(
+      `С возвращением, ${name}! 👋\n` +
+      `У тебя есть активный заказ на ${date}.`,
+      { reply_markup: keyboard },
+    )
+    return
+  }
+
+  // ── Customer: no active orders ────────────────────────────────────────────
+  const keyboard = new InlineKeyboard()
+    .webApp('🍽️ Найти повара', MINI_APP_URL)
+    .row()
+    .webApp('📩 Создать запрос', `${MINI_APP_URL}?startapp=new-request`)
+  await ctx.reply(
+    `С возвращением, ${name}! 👋\n` +
+    `Снова хочется домашней еды? 😄`,
+    { reply_markup: keyboard },
+  )
+})
+
+// ─── activate_chef callback ───────────────────────────────────────────────────
+
+bot.callbackQuery('activate_chef', async (ctx) => {
+  const telegramId = ctx.from.id
+  try {
+    const res = await fetch(`${API_BASE_URL}/system/chef-active`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-system-secret': SYSTEM_SECRET,
+      },
+      body: JSON.stringify({ telegramId }),
+    })
+    if (!res.ok) throw new Error(`API responded ${res.status}`)
+    await ctx.answerCallbackQuery('✅ Ты снова активен!')
+    await ctx.editMessageText('Отлично! Теперь ты снова получаешь запросы.')
+  } catch (err) {
+    console.error('[activate_chef] failed:', err)
+    await ctx.answerCallbackQuery('⚠️ Не удалось включить активность, попробуй позже.')
+  }
 })
 
 // ─── /chat_{orderId} command ──────────────────────────────────────────────────
