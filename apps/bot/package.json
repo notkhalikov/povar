@@ -2,7 +2,7 @@
   "name": "@povar/bot",
   "version": "0.0.1",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "dev": "tsx src/bot.ts",
     "build": "tsc -p tsconfig.json",
