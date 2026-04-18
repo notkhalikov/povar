@@ -15,18 +15,60 @@ const SYSTEM_SECRET  = process.env.SYSTEM_SECRET  ?? ''
 
 const bot = new Bot(token)
 
-// ─── Chat relay — in-memory sessions ─────────────────────────────────────────
-// Map<telegramId, { orderId, role }>
-// Persisted only in RAM; cleared on bot restart (MVP).
+// ─── Chat relay — DB-backed sessions ─────────────────────────────────────────
+// Persisted in chat_sessions table via API so restarts don't lose sessions.
 
 interface ChatSession {
   orderId: number
-  role: 'customer' | 'chef'
-  partnerTelegramId: number
-  partnerName: string
+  role: string
+  recipientTelegramId: number
 }
 
-const activeSessions = new Map<number, ChatSession>()
+async function getSession(telegramId: number): Promise<ChatSession | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/chat-sessions/${telegramId}`, {
+      headers: { 'x-system-secret': SYSTEM_SECRET },
+    })
+    if (!res.ok) return null
+    const data = await res.json() as {
+      orderId: number
+      role: string
+      recipientTelegramId: number
+    }
+    return data
+  } catch {
+    return null
+  }
+}
+
+async function saveSession(data: {
+  orderId: number
+  initiatorTelegramId: number
+  recipientTelegramId: number
+  role: string
+}): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/chat-sessions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-system-secret': SYSTEM_SECRET,
+      },
+      body: JSON.stringify(data),
+    })
+  } catch (err) {
+    console.error('[chat] saveSession failed:', err)
+  }
+}
+
+async function deleteSession(telegramId: number): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/chat-sessions/${telegramId}`, {
+      method: 'DELETE',
+      headers: { 'x-system-secret': SYSTEM_SECRET },
+    })
+  } catch { /* silent */ }
+}
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
 
@@ -275,13 +317,17 @@ async function handleChatStart(ctx: Context, orderId: number) {
     return
   }
 
-  const role: 'customer' | 'chef'   = isCustomer ? 'customer' : 'chef'
-  const partnerTelegramId            = isCustomer ? order.chefTelegramId!     : order.customerTelegramId!
-  const partnerName                  = isCustomer ? (order.chefName ?? 'Повар') : (order.customerName ?? 'Заказчик')
+  const role          = isCustomer ? 'customer' : 'chef'
+  const partnerTelegramId = isCustomer ? order.chefTelegramId!     : order.customerTelegramId!
+  const partnerName       = isCustomer ? (order.chefName ?? 'Повар') : (order.customerName ?? 'Заказчик')
 
-  activeSessions.set(telegramId, { orderId, role, partnerTelegramId, partnerName })
-  console.log('[chat] session saved for telegramId:', telegramId, 'session:', { orderId, role, partnerTelegramId, partnerName })
-  console.log('[chat] activeSessions size after save:', activeSessions.size)
+  await saveSession({
+    orderId,
+    initiatorTelegramId: telegramId,
+    recipientTelegramId: Number(partnerTelegramId),
+    role,
+  })
+  console.log('[chat] session saved to DB for telegramId:', telegramId, { orderId, role, partnerTelegramId })
 
   await ctx.reply(
     `💬 <b>Чат по заказу #${orderId} активен.</b>\n` +
@@ -298,8 +344,9 @@ bot.command('stopchat', async (ctx) => {
   const telegramId = ctx.from?.id
   if (!telegramId) return
 
-  if (activeSessions.has(telegramId)) {
-    activeSessions.delete(telegramId)
+  const session = await getSession(telegramId)
+  if (session) {
+    await deleteSession(telegramId)
     await ctx.reply('✅ Чат завершён.')
   } else {
     await ctx.reply('У вас нет активного чата.')
@@ -332,38 +379,24 @@ bot.command('orders', async (ctx) => {
 
 bot.on('message:text', async (ctx, next) => {
   const telegramId = ctx.from?.id
-  console.log('[relay] incoming message from telegramId:', telegramId)
-  console.log('[relay] activeSessions size:', activeSessions.size)
-  console.log('[relay] activeSessions keys:', [...activeSessions.keys()])
+  if (!telegramId) return next()
 
-  if (!telegramId) {
-    console.log('[relay] no telegramId, skipping')
-    return next()
-  }
-
-  // Skip if message is a command
+  // Skip commands
   if (ctx.message.text.startsWith('/')) return next()
 
-  const session = activeSessions.get(telegramId)
-  console.log('[relay] session for telegramId', telegramId, ':', session)
+  const session = await getSession(telegramId)
+  console.log('[relay] session from DB for telegramId', telegramId, ':', session)
 
-  if (!session) {
-    console.log('[relay] no session found, skipping relay')
-    return next()
-  }
-
-  console.log('[relay] sending to partnerTelegramId:', session.partnerTelegramId)
+  if (!session) return next()
 
   const senderLabel = session.role === 'customer' ? '👤 Заказчик' : '👨‍🍳 Повар'
 
   try {
     await bot.api.sendMessage(
-      session.partnerTelegramId,
+      session.recipientTelegramId,
       `💬 <b>${senderLabel}:</b>\n${ctx.message.text}`,
       { parse_mode: 'HTML' },
     )
-    console.log('[relay] message sent successfully')
-    // Confirm delivery to sender
     await ctx.react('👍').catch(() => {})
   } catch (err) {
     console.error('[relay] sendMessage failed:', err)

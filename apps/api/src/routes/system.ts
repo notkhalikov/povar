@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { eq, and, inArray, count } from 'drizzle-orm'
-import { users, chefProfiles, orders, requests, chefResponses } from '../db/schema.js'
+import { users, chefProfiles, orders, requests, chefResponses, chatSessions } from '../db/schema.js'
 
 const SYSTEM_SECRET = process.env.SYSTEM_SECRET ?? ''
 
@@ -180,6 +180,87 @@ export default async function systemRoutes(app: FastifyInstance) {
       .update(chefProfiles)
       .set({ isActive: true })
       .where(eq(chefProfiles.userId, user.id))
+
+    return { ok: true }
+  })
+
+  // ─── GET /chat-sessions/:telegramId ──────────────────────────────────────────
+
+  app.get<{ Params: { telegramId: string } }>('/chat-sessions/:telegramId', async (request, reply) => {
+    const secret = request.headers['x-system-secret']
+    if (!SYSTEM_SECRET || secret !== SYSTEM_SECRET) {
+      return reply.code(401).send({ error: 'Unauthorized' })
+    }
+
+    const tid = parseInt(request.params.telegramId, 10)
+    if (isNaN(tid)) return reply.code(400).send({ error: 'Invalid telegramId' })
+
+    const [session] = await app.db
+      .select()
+      .from(chatSessions)
+      .where(eq(chatSessions.initiatorTelegramId, tid))
+      .limit(1)
+
+    if (!session) return reply.code(404).send({ error: 'Session not found' })
+    return session
+  })
+
+  // ─── POST /chat-sessions ─────────────────────────────────────────────────────
+
+  interface ChatSessionBody {
+    orderId: number
+    initiatorTelegramId: number
+    recipientTelegramId: number
+    role: string
+  }
+
+  app.post<{ Body: ChatSessionBody }>('/chat-sessions', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['orderId', 'initiatorTelegramId', 'recipientTelegramId', 'role'],
+        additionalProperties: false,
+        properties: {
+          orderId:              { type: 'integer' },
+          initiatorTelegramId:  { type: 'integer' },
+          recipientTelegramId:  { type: 'integer' },
+          role:                 { type: 'string', maxLength: 20 },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const secret = request.headers['x-system-secret']
+    if (!SYSTEM_SECRET || secret !== SYSTEM_SECRET) {
+      return reply.code(401).send({ error: 'Unauthorized' })
+    }
+
+    const { orderId, initiatorTelegramId, recipientTelegramId, role } = request.body
+
+    await app.db
+      .insert(chatSessions)
+      .values({ orderId, initiatorTelegramId, recipientTelegramId, role })
+      .onConflictDoUpdate({
+        target: chatSessions.initiatorTelegramId,
+        set: { orderId, recipientTelegramId, role, createdAt: new Date() },
+      })
+
+    return reply.code(201).send({ ok: true })
+  })
+
+  // ─── DELETE /chat-sessions/:telegramId ───────────────────────────────────────
+
+  app.delete<{ Params: { telegramId: string } }>('/chat-sessions/:telegramId', async (request, reply) => {
+    const secret = request.headers['x-system-secret']
+    if (!SYSTEM_SECRET || secret !== SYSTEM_SECRET) {
+      return reply.code(401).send({ error: 'Unauthorized' })
+    }
+
+    const tid = parseInt(request.params.telegramId, 10)
+    if (isNaN(tid)) return reply.code(400).send({ error: 'Invalid telegramId' })
+
+    await app.db
+      .delete(chatSessions)
+      .where(eq(chatSessions.initiatorTelegramId, tid))
 
     return { ok: true }
   })

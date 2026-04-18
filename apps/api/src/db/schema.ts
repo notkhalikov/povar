@@ -250,3 +250,18 @@ export const chefResponses = pgTable('chef_responses', {
 
 export type ChefResponse = typeof chefResponses.$inferSelect
 export type NewChefResponse = typeof chefResponses.$inferInsert
+
+// ─── chat_sessions ────────────────────────────────────────────────────────────
+// One row per initiator (unique on initiator_telegram_id).
+// Upserted on each /chat_N call so a user can only have one active relay.
+
+export const chatSessions = pgTable('chat_sessions', {
+  id:                   serial('id').primaryKey(),
+  orderId:              integer('order_id').notNull(),
+  initiatorTelegramId:  bigint('initiator_telegram_id', { mode: 'number' }).notNull().unique(),
+  recipientTelegramId:  bigint('recipient_telegram_id', { mode: 'number' }).notNull(),
+  role:                 varchar('role', { length: 20 }).notNull(),
+  createdAt:            timestamp('created_at').defaultNow().notNull(),
+})
+
+export type ChatSession = typeof chatSessions.$inferSelect
