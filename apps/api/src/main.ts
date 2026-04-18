@@ -4,7 +4,7 @@ import rateLimit from '@fastify/rate-limit'
 import * as Sentry from '@sentry/node'
 
 import { eq, isNull, lt, sql, and } from 'drizzle-orm'
-import { orders, users } from './db/schema.js'
+import { orders, users, chefProfiles } from './db/schema.js'
 import { sendReviewReminder } from './services/notify.js'
 import corsPlugin from './plugins/cors.js'
 import dbPlugin from './plugins/db.js'
@@ -99,7 +99,50 @@ async function bootstrap() {
   await app.register(devRoutes)
   await app.register(systemRoutes)
 
-  app.get('/health', async () => ({ status: 'ok' }))
+  app.get('/health', async () => {
+    let dbOk = false
+    try {
+      await app.db.execute(sql`SELECT 1`)
+      dbOk = true
+    } catch { /* db unreachable */ }
+
+    return {
+      status:    dbOk ? 'ok' : 'degraded',
+      db:        dbOk ? 'ok' : 'error',
+      uptime:    Math.floor(process.uptime()),
+      version:   APP_VERSION,
+      timestamp: new Date().toISOString(),
+    }
+  })
+
+  app.get('/health/detailed', {
+    onRequest: async (request, reply) => {
+      if (request.headers['x-system-secret'] !== process.env.SYSTEM_SECRET) {
+        return reply.code(401).send({ error: 'Unauthorized' })
+      }
+    },
+  }, async () => {
+    const [ordersCount] = await app.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(orders)
+    const [usersCount] = await app.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(users)
+    const [chefsCount] = await app.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(chefProfiles)
+      .where(eq(chefProfiles.verificationStatus, 'approved'))
+
+    return {
+      status: 'ok',
+      counts: {
+        orders:       ordersCount.count,
+        users:        usersCount.count,
+        active_chefs: chefsCount.count,
+      },
+      uptime: Math.floor(process.uptime()),
+    }
+  })
 
   // ─── Metrics (Railway health check / ops dashboard) ─────────────────────────
   app.get('/metrics', { config: { rateLimit: false } }, async () => ({

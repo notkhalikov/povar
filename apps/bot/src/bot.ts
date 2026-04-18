@@ -420,6 +420,39 @@ bot.on('message:successful_payment', async (ctx) => {
   }
 })
 
+// ─── /status (admin only) ─────────────────────────────────────────────────────
+
+bot.command('status', async (ctx) => {
+  if (String(ctx.from?.id) !== process.env.ADMIN_TELEGRAM_ID) return
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/health/detailed`, {
+      headers: { 'x-system-secret': SYSTEM_SECRET },
+    })
+    if (!res.ok) {
+      await ctx.reply(`⚠️ API вернул ${res.status}`)
+      return
+    }
+    const data = await res.json() as {
+      status: string
+      counts: { users: number; active_chefs: number; orders: number }
+      uptime: number
+    }
+    const h = Math.floor(data.uptime / 3600)
+    const m = Math.floor((data.uptime % 3600) / 60)
+    await ctx.reply(
+      `🟢 <b>Статус системы</b>\n\n` +
+      `👥 Пользователей: ${data.counts.users}\n` +
+      `👨‍🍳 Активных поваров: ${data.counts.active_chefs}\n` +
+      `📋 Заказов всего: ${data.counts.orders}\n` +
+      `⏱ Uptime: ${h}ч ${m}м`,
+      { parse_mode: 'HTML' },
+    )
+  } catch (err) {
+    await ctx.reply(`❌ Не удалось получить статус: ${String(err)}`)
+  }
+})
+
 // ─── Error handler ────────────────────────────────────────────────────────────
 
 bot.catch((err) => {
