@@ -7,6 +7,7 @@ import {
   notifyOrderCreated,
   notifyOrderCancelled,
   notifyOrderCompleted,
+  notifyPriceSet,
   statusNotifyText,
 } from '../services/notify.js'
 import type { OrderStatus, ProductsBuyer, WorkFormat } from '../types/index.js'
@@ -269,6 +270,18 @@ export default async function ordersRoutes(app: FastifyInstance) {
       .set({ agreedPrice: String(agreedPrice), updatedAt: new Date() })
       .where(eq(orders.id, id))
       .returning()
+
+    // Notify customer that a price has been set (fire-and-forget)
+    const [customerUser] = await app.db
+      .select({ telegramId: users.telegramId })
+      .from(users)
+      .where(eq(users.id, order.customerId))
+      .limit(1)
+
+    if (customerUser?.telegramId) {
+      notifyPriceSet(updated, customerUser.telegramId, String(agreedPrice))
+        .catch(err => app.log.warn({ err }, 'notify customer price set failed'))
+    }
 
     return updated
   })

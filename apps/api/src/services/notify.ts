@@ -215,6 +215,28 @@ export async function notifyOrderCompleted(
 }
 
 /**
+ * Notify customer that the chef has set a price on their order.
+ */
+export async function notifyPriceSet(
+  order: NotifyOrder,
+  customerTelegramId: number,
+  price: string,
+): Promise<void> {
+  const d = fmtDate(order.scheduledAt)
+  const t = fmtTime(order.scheduledAt)
+  const text =
+    `💰 <b>Повар установил цену</b>\n` +
+    `Заказ #${order.id} · ${d} в ${t}\n` +
+    `Сумма: <b>${price} GEL</b>\n` +
+    `Теперь можно оплатить!`
+  const url = appUrl(`order_${order.id}`)
+  const keyboard = url
+    ? { inline_keyboard: [[{ text: '💳 Оплатить', web_app: { url } }]] }
+    : undefined
+  await sendMessage(customerTelegramId, text, keyboard)
+}
+
+/**
  * Notify customer that a chef responded to their open request.
  */
 export async function notifyNewResponse(
