@@ -141,6 +141,10 @@ async function getOrderWithParticipants(orderId: number): Promise<OrderDetail | 
 // ─── /start ───────────────────────────────────────────────────────────────────
 
 bot.command('start', async (ctx) => {
+  console.log('[start] ctx.match:', JSON.stringify(ctx.match))
+  console.log('[start] message text:', ctx.message?.text)
+  console.log('[start] full update:', JSON.stringify(ctx.update).slice(0, 500))
+
   const name       = ctx.from?.first_name ?? 'друг'
   const telegramId = ctx.from?.id
   const param      = (ctx.match as string | undefined)?.trim() ?? ''
