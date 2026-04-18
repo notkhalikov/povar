@@ -1,4 +1,5 @@
 import { Bot } from 'grammy'
+import http from 'http'
 
 const token = process.env.BOT_TOKEN
 if (!token) throw new Error('BOT_TOKEN is not set')
@@ -25,6 +26,30 @@ bot.command('start', async (ctx) => {
 // Global error handler — logs but never crashes the process
 bot.catch((err) => {
   logNotifyError('unhandled_update', err.ctx.from?.id, err.error)
+})
+
+// Health check server for Railway rolling deploys
+const server = http.createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200)
+    res.end('ok')
+  } else {
+    res.writeHead(404)
+    res.end()
+  }
+})
+
+const PORT = process.env.PORT ?? 3001
+server.listen(PORT, () => {
+  console.log(`[bot] health check server on port ${PORT}`)
+})
+
+// Graceful shutdown — lets Railway terminate the old instance cleanly
+process.on('SIGTERM', async () => {
+  console.log('[bot] SIGTERM — stopping bot and server')
+  server.close()
+  await bot.stop()
+  process.exit(0)
 })
 
 bot.start()
