@@ -96,6 +96,9 @@ export default async function ordersRoutes(app: FastifyInstance) {
     if (!profile.isActive || profile.verificationStatus !== 'approved') {
       return reply.code(422).send({ error: 'Chef is not available' })
     }
+    if (profile.userId === customerId) {
+      return reply.code(422).send({ error: 'Нельзя заказать у самого себя' })
+    }
 
     const [order] = await app.db
       .insert(orders)
@@ -257,12 +260,15 @@ export default async function ordersRoutes(app: FastifyInstance) {
     const [order] = await app.db
       .select()
       .from(orders)
-      .where(and(eq(orders.id, id), eq(orders.chefId, userId)))
+      .where(eq(orders.id, id))
       .limit(1)
 
     if (!order) return reply.code(404).send({ error: 'Order not found' })
+    if (order.chefId !== userId) {
+      return reply.code(403).send({ error: 'Только повар может устанавливать цену' })
+    }
     if (order.status !== 'awaiting_payment') {
-      return reply.code(422).send({ error: 'Price can only be set while order is awaiting_payment' })
+      return reply.code(422).send({ error: 'Нельзя изменить цену после оплаты' })
     }
 
     const [updated] = await app.db
