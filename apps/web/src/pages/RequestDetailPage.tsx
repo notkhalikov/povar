@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { getRequest, acceptResponse, closeRequest } from '../api/requests'
 import { useAuth } from '../context/AuthContext'
+import { ChatBox } from '../components/ChatBox'
 import type { RequestDetail, ChefResponseItem } from '../types'
 import { useT } from '../i18n'
 
@@ -110,6 +111,18 @@ export default function RequestDetailPage() {
         </div>
       </div>
 
+      {/* ── In-app chat ──────────────────────────────────────────── */}
+      {isOwner && req.responses.length > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <CustomerChatTabs req={req} />
+        </div>
+      )}
+      {!isOwner && user && req.responses.some(r => r.chefId === user.id) && (
+        <div style={{ marginTop: 24 }}>
+          <ChatBox requestId={req.id} chefId={user.id} />
+        </div>
+      )}
+
       {/* Close button — owner, open request, no accepted response yet */}
       {isOwner && req.status === 'open' && (
         <div style={{ marginTop: 24 }}>
@@ -187,6 +200,46 @@ function ResponseCard({
         </button>
       )}
     </div>
+  )
+}
+
+function CustomerChatTabs({ req }: { req: RequestDetail }) {
+  const [selectedChefId, setSelectedChefId] = useState<number>(
+    req.responses[0]?.chefId,
+  )
+
+  const selected = req.responses.find(r => r.chefId === selectedChefId)
+    ?? req.responses[0]
+
+  return (
+    <>
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 8 }}>
+        {req.responses.map(r => {
+          const active = r.chefId === selected.chefId
+          return (
+            <button
+              key={r.chefId}
+              onClick={() => setSelectedChefId(r.chefId)}
+              style={{
+                flex: '0 0 auto',
+                padding: '8px 14px',
+                borderRadius: 20,
+                border: '1px solid var(--tg-theme-hint-color)',
+                background: active ? 'var(--tg-theme-button-color)' : 'transparent',
+                color: active ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
+                fontSize: 13,
+                fontWeight: active ? 600 : 400,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {r.chefName}
+            </button>
+          )
+        })}
+      </div>
+      <ChatBox key={selected.chefId} requestId={req.id} chefId={selected.chefId} />
+    </>
   )
 }
 

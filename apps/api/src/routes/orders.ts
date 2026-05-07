@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
-import { eq, or, and, sql, inArray } from 'drizzle-orm'
-import { orders, chefProfiles, payments, users, reviews } from '../db/schema.js'
+import { eq, or, and, sql, inArray, desc, isNull, ne } from 'drizzle-orm'
+import { orders, chefProfiles, payments, users, reviews, messages } from '../db/schema.js'
 import { canTransition } from '../services/order-state.js'
 import {
   notifyUser,
@@ -672,5 +672,92 @@ export default async function ordersRoutes(app: FastifyInstance) {
     const chatLink = botUsername ? `https://t.me/${botUsername}?start=chat_${id}` : null
 
     return { chatEnabled: true, chatLink }
+  })
+
+  // ─── GET /orders/:id/messages ────────────────────────────────────────────────
+  // Last 50 messages for the order, sorted by createdAt ASC.
+
+  app.get<{ Params: { id: number } }>('/orders/:id/messages', {
+    onRequest: [app.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer' } },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.user.sub
+    const { id } = request.params
+
+    const [order] = await app.db
+      .select({ customerId: orders.customerId, chefId: orders.chefId })
+      .from(orders)
+      .where(eq(orders.id, id))
+      .limit(1)
+
+    if (!order) return reply.code(404).send({ error: 'Order not found' })
+    if (order.customerId !== userId && order.chefId !== userId) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const rows = await app.db
+      .select({
+        id:         messages.id,
+        senderId:   messages.senderId,
+        senderName: users.name,
+        body:       messages.body,
+        createdAt:  messages.createdAt,
+        readAt:     messages.readAt,
+      })
+      .from(messages)
+      .innerJoin(users, eq(users.id, messages.senderId))
+      .where(eq(messages.orderId, id))
+      .orderBy(desc(messages.createdAt))
+      .limit(50)
+
+    return rows.reverse()
+  })
+
+  // ─── POST /orders/:id/messages/read ──────────────────────────────────────────
+  // Marks all unread inbound messages as read.
+
+  app.post<{ Params: { id: number } }>('/orders/:id/messages/read', {
+    onRequest: [app.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer' } },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.user.sub
+    const { id } = request.params
+
+    const [order] = await app.db
+      .select({ customerId: orders.customerId, chefId: orders.chefId })
+      .from(orders)
+      .where(eq(orders.id, id))
+      .limit(1)
+
+    if (!order) return reply.code(404).send({ error: 'Order not found' })
+    if (order.customerId !== userId && order.chefId !== userId) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const updated = await app.db
+      .update(messages)
+      .set({ readAt: new Date() })
+      .where(
+        and(
+          eq(messages.orderId, id),
+          ne(messages.senderId, userId),
+          isNull(messages.readAt),
+        ),
+      )
+      .returning({ id: messages.id })
+
+    return { updated: updated.length }
   })
 }

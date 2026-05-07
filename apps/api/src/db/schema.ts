@@ -9,7 +9,9 @@ import {
   numeric,
   timestamp,
   pgEnum,
+  check,
 } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -265,3 +267,28 @@ export const chatSessions = pgTable('chat_sessions', {
 })
 
 export type ChatSession = typeof chatSessions.$inferSelect
+
+// ─── messages ─────────────────────────────────────────────────────────────────
+// In-app chat history. Either order-scoped or request-scoped (enforced by check).
+// readAt = null means unread.
+
+export const messages = pgTable('messages', {
+  id:        serial('id').primaryKey(),
+  orderId:   integer('order_id').references(() => orders.id),
+  requestId: integer('request_id').references(() => requests.id),
+  // For request-scoped messages: identifies the chef in the customer↔chef pair.
+  // Always null for order-scoped messages.
+  chefId:    integer('chef_id').references(() => users.id),
+  senderId:  integer('sender_id').notNull().references(() => users.id),
+  body:      text('body').notNull(),
+  readAt:    timestamp('read_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [
+  check(
+    'messages_parent_check',
+    sql`${t.orderId} IS NOT NULL OR ${t.requestId} IS NOT NULL`,
+  ),
+])
+
+export type Message = typeof messages.$inferSelect
+export type NewMessage = typeof messages.$inferInsert

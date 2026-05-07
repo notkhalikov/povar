@@ -78,6 +78,7 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   setUser: (user: ApiUser) => void
+  signIn: (token: string, user: ApiUser) => void
   needsOnboarding: boolean
   completeOnboarding: () => void
 }
@@ -86,6 +87,7 @@ const AuthContext = createContext<AuthContextValue>({
   token: null,
   user: null,
   setUser: () => {},
+  signIn: () => {},
   needsOnboarding: false,
   completeOnboarding: () => {},
 })
@@ -134,6 +136,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, user }))
   }
 
+  function signIn(token: string, user: ApiUser) {
+    sessionStorage.setItem('jwt', token)
+    setState({ token, user })
+  }
+
   function completeOnboarding() {
     localStorage.setItem('onboarding_done', '1')
     setNeedsOnboarding(false)
@@ -146,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ ...state, setUser, needsOnboarding, completeOnboarding }}>
+    <AuthContext.Provider value={{ ...state, setUser, signIn, needsOnboarding, completeOnboarding }}>
       {children}
     </AuthContext.Provider>
   )

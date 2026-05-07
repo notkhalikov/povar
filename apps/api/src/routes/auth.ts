@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { eq } from 'drizzle-orm'
 import { users } from '../db/schema.js'
-import { validateInitData } from '../services/telegram-auth.js'
+import { validateInitData, validateWidgetData } from '../services/telegram-auth.js'
 
 interface AuthBody {
   initData: string
@@ -10,6 +10,16 @@ interface AuthBody {
   utmCampaign?: string
   utmContent?:  string
   utmTerm?:     string
+}
+
+interface WidgetAuthBody {
+  id: number
+  first_name: string
+  last_name?: string
+  username?: string
+  photo_url?: string
+  auth_date: number
+  hash: string
 }
 
 export default async function authRoutes(app: FastifyInstance) {
@@ -107,6 +117,88 @@ export default async function authRoutes(app: FastifyInstance) {
             utmCampaign: startUtmCampaign ?? null,
             utmContent:  startUtmContent  ?? null,
             utmTerm:     startUtmTerm     ?? null,
+          })
+          .returning()
+
+        user = created
+      }
+
+      if (user.status === 'banned') {
+        return reply.code(403).send({ error: 'Account is banned' })
+      }
+
+      const token = app.jwt.sign(
+        { sub: user.id, role: user.role, telegramId: user.telegramId },
+        { expiresIn: '1d' },
+      )
+
+      return {
+        token,
+        user: { id: user.id, role: user.role, name: user.name },
+      }
+    },
+  )
+
+  /**
+   * POST /auth/telegram-widget
+   *
+   * Body: Telegram Login Widget payload
+   *   { id, first_name, last_name?, username?, photo_url?, auth_date, hash }
+   * Returns: { token, user: { id, role, name } }
+   */
+  app.post<{ Body: WidgetAuthBody }>(
+    '/auth/telegram-widget',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['id', 'first_name', 'auth_date', 'hash'],
+          properties: {
+            id:         { type: 'integer' },
+            first_name: { type: 'string', minLength: 1, maxLength: 255 },
+            last_name:  { type: 'string', maxLength: 255 },
+            username:   { type: 'string', maxLength: 255 },
+            photo_url:  { type: 'string', maxLength: 1024 },
+            auth_date:  { type: 'integer' },
+            hash:       { type: 'string', minLength: 1 },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const botToken = process.env.BOT_TOKEN
+      if (!botToken) {
+        app.log.error('BOT_TOKEN is not set')
+        return reply.code(500).send({ error: 'Server misconfiguration' })
+      }
+
+      const parsed = validateWidgetData(request.body, botToken)
+      if (!parsed) {
+        return reply.code(401).send({ error: 'Invalid widget signature or expired' })
+      }
+
+      const { user: tgUser } = parsed
+      const telegramId = tgUser.id
+
+      const existing = await app.db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, telegramId))
+        .limit(1)
+
+      let user = existing[0]
+
+      if (!user) {
+        const name = [tgUser.first_name, tgUser.last_name]
+          .filter(Boolean)
+          .join(' ')
+
+        const [created] = await app.db
+          .insert(users)
+          .values({
+            telegramId,
+            name,
+            lang: 'ru',
           })
           .returning()
 

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
-import { eq, and, or, sql, desc } from 'drizzle-orm'
-import { requests, chefResponses, chefProfiles, orders, users } from '../db/schema.js'
+import { eq, and, or, sql, desc, isNull, ne } from 'drizzle-orm'
+import { requests, chefResponses, chefProfiles, orders, users, messages } from '../db/schema.js'
 import { notifyNewResponse } from '../services/notify.js'
 
 const MAX_RESPONSES_PER_REQUEST = 5
@@ -423,5 +423,114 @@ export default async function requestsRoutes(app: FastifyInstance) {
       .returning()
 
     return updated
+  })
+
+  // ─── GET /requests/:id/messages ──────────────────────────────────────────────
+  // Last 50 messages for the customer↔chef pair on this request, ASC by createdAt.
+  // ?chefId=N selects the pair. Auth: request owner, OR the chef whose pair this is.
+
+  app.get<{
+    Params: { id: number }
+    Querystring: { chefId: number }
+  }>('/requests/:id/messages', {
+    onRequest: [app.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer' } },
+      },
+      querystring: {
+        type: 'object',
+        required: ['chefId'],
+        properties: { chefId: { type: 'integer' } },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.user.sub
+    const { id } = request.params
+    const { chefId } = request.query
+
+    const [req] = await app.db
+      .select({ customerId: requests.customerId })
+      .from(requests)
+      .where(eq(requests.id, id))
+      .limit(1)
+
+    if (!req) return reply.code(404).send({ error: 'Request not found' })
+
+    if (req.customerId !== userId && chefId !== userId) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const rows = await app.db
+      .select({
+        id:         messages.id,
+        senderId:   messages.senderId,
+        senderName: users.name,
+        body:       messages.body,
+        createdAt:  messages.createdAt,
+        readAt:     messages.readAt,
+      })
+      .from(messages)
+      .innerJoin(users, eq(users.id, messages.senderId))
+      .where(and(eq(messages.requestId, id), eq(messages.chefId, chefId)))
+      .orderBy(desc(messages.createdAt))
+      .limit(50)
+
+    return rows.reverse()
+  })
+
+  // ─── POST /requests/:id/messages/read ────────────────────────────────────────
+  // Marks unread inbound messages in the customer↔chef pair as read.
+
+  app.post<{
+    Params: { id: number }
+    Querystring: { chefId: number }
+  }>('/requests/:id/messages/read', {
+    onRequest: [app.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer' } },
+      },
+      querystring: {
+        type: 'object',
+        required: ['chefId'],
+        properties: { chefId: { type: 'integer' } },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.user.sub
+    const { id } = request.params
+    const { chefId } = request.query
+
+    const [req] = await app.db
+      .select({ customerId: requests.customerId })
+      .from(requests)
+      .where(eq(requests.id, id))
+      .limit(1)
+
+    if (!req) return reply.code(404).send({ error: 'Request not found' })
+
+    if (req.customerId !== userId && chefId !== userId) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const updated = await app.db
+      .update(messages)
+      .set({ readAt: new Date() })
+      .where(
+        and(
+          eq(messages.requestId, id),
+          eq(messages.chefId, chefId),
+          ne(messages.senderId, userId),
+          isNull(messages.readAt),
+        ),
+      )
+      .returning({ id: messages.id })
+
+    return { updated: updated.length }
   })
 }

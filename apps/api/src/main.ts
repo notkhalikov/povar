@@ -9,6 +9,7 @@ import { sendReviewReminder } from './services/notify.js'
 import corsPlugin from './plugins/cors.js'
 import dbPlugin from './plugins/db.js'
 import authPlugin from './plugins/auth.js'
+import chatWsPlugin from './services/chat-ws.js'
 import authRoutes from './routes/auth.js'
 import chefsRoutes from './routes/chefs.js'
 import ordersRoutes from './routes/orders.js'
@@ -86,6 +87,7 @@ async function bootstrap() {
   await app.register(corsPlugin)
   await app.register(dbPlugin)
   await app.register(authPlugin)
+  await app.register(chatWsPlugin)
 
   // Routes
   await app.register(authRoutes)

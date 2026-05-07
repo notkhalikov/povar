@@ -7,7 +7,9 @@ import { useT } from './i18n'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import CatalogPage from './pages/CatalogPage'
 import OnboardingPage from './pages/OnboardingPage'
+import { ProtectedRoute } from './components/ProtectedRoute'
 
+const LoginPage         = lazy(() => import('./pages/LoginPage'))
 const ChefPage           = lazy(() => import('./pages/ChefPage'))
 const OrdersPage         = lazy(() => import('./pages/OrdersPage'))
 const OrderNewPage       = lazy(() => import('./pages/OrderNewPage'))
@@ -80,18 +82,21 @@ function AnimatedRoutes() {
     <div key={location.key} className={animClass} style={{ flex: 1 }}>
       <Suspense fallback={<PageFallback />}>
         <Routes location={location}>
-          <Route path='/'                element={<CatalogPage />} />
-          <Route path='/chefs/:id'       element={<ChefPage />} />
-          <Route path='/orders'          element={<OrdersPage />} />
-          <Route path='/orders/new'      element={<OrderNewPage />} />
-          <Route path='/orders/:id'      element={<OrderDetailPage />} />
-          <Route path='/profile'         element={<ProfilePage />} />
-          <Route path='/chef/onboarding' element={<ChefOnboardingPage />} />
-          <Route path='/chef/requests'   element={<ChefRequestsPage />} />
-          <Route path='/disputes/:id'    element={<DisputePage />} />
-          <Route path='/requests'        element={<RequestsPage />} />
-          <Route path='/requests/:id'    element={<RequestDetailPage />} />
-          <Route path='/onboarding'      element={<OnboardingPage />} />
+          <Route path='/login'             element={<LoginPage />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path='/'                element={<CatalogPage />} />
+            <Route path='/chefs/:id'       element={<ChefPage />} />
+            <Route path='/orders'          element={<OrdersPage />} />
+            <Route path='/orders/new'      element={<OrderNewPage />} />
+            <Route path='/orders/:id'      element={<OrderDetailPage />} />
+            <Route path='/profile'         element={<ProfilePage />} />
+            <Route path='/chef/onboarding' element={<ChefOnboardingPage />} />
+            <Route path='/chef/requests'   element={<ChefRequestsPage />} />
+            <Route path='/disputes/:id'    element={<DisputePage />} />
+            <Route path='/requests'        element={<RequestsPage />} />
+            <Route path='/requests/:id'    element={<RequestDetailPage />} />
+            <Route path='/onboarding'      element={<OnboardingPage />} />
+          </Route>
         </Routes>
       </Suspense>
     </div>
@@ -207,7 +212,7 @@ function BottomNav() {
   const location = useLocation()
   const t = useT()
 
-  if (location.pathname === '/onboarding') return null
+  if (location.pathname === '/onboarding' || location.pathname === '/login') return null
 
   return (
     <nav style={navStyle}>

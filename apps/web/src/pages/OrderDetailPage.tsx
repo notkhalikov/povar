@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext'
 import { StatusBadge, STATUS_COLORS, STATUS_LABELS } from '../components/StatusBadge'
 import { StarRating } from '../components/StarRating'
 import { BottomSheet } from '../components/BottomSheet'
+import { ChatBox } from '../components/ChatBox'
 import type { Order, OrderStatus } from '../types'
 
 // Re-export for backward compatibility
@@ -400,17 +401,9 @@ export default function OrderDetailPage() {
           </div>
         )}
 
-        {/* ── Chef: chat with customer button ───────────────────────── */}
-        {isChef && !['cancelled', 'refunded'].includes(order.status) && import.meta.env.VITE_BOT_USERNAME && (
-          <a
-            href={`https://t.me/${import.meta.env.VITE_BOT_USERNAME}?start=chat_${order.id}`}
-            target='_blank'
-            rel='noreferrer'
-            className='btn-secondary'
-            style={{ display: 'block', textAlign: 'center', marginBottom: 16, textDecoration: 'none' }}
-          >
-            💬 Написать заказчику
-          </a>
+        {/* ── In-app chat ─────────────────────────────────────────── */}
+        {(isCustomer || isChef) && !['cancelled', 'refunded'].includes(order.status) && (
+          <ChatBox orderId={order.id} />
         )}
 
         {/* ── Order details ─────────────────────────────────────────── */}
