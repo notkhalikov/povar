@@ -20,7 +20,7 @@ declare global {
   }
 }
 
-const BOT_USERNAME = import.meta.env.VITE_TELEGRAM_BOT_USERNAME ?? 'povarissimobot'
+const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'povarissimobot'
 
 export default function LoginPage() {
   const navigate = useNavigate()
