@@ -282,6 +282,8 @@ export const messages = pgTable('messages', {
   senderId:  integer('sender_id').notNull().references(() => users.id),
   body:      text('body').notNull(),
   readAt:    timestamp('read_at'),
+  // Set by the unread-notify cron once a Telegram push has been delivered.
+  notifiedAt: timestamp('notified_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (t) => [
   check(

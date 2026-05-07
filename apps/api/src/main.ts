@@ -10,6 +10,7 @@ import corsPlugin from './plugins/cors.js'
 import dbPlugin from './plugins/db.js'
 import authPlugin from './plugins/auth.js'
 import chatWsPlugin from './services/chat-ws.js'
+import { startUnreadNotifier } from './services/unread-notify.js'
 import authRoutes from './routes/auth.js'
 import chefsRoutes from './routes/chefs.js'
 import ordersRoutes from './routes/orders.js'
@@ -188,6 +189,8 @@ async function bootstrap() {
     app.log.error(err)
     process.exit(1)
   }
+
+  startUnreadNotifier(app)
 }
 
 bootstrap()
