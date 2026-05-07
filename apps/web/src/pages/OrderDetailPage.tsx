@@ -324,7 +324,12 @@ export default function OrderDetailPage() {
           <>
             <button
               className='btn-secondary'
-              onClick={() => setIsChatOpen(v => !v)}
+              onClick={() => {
+                if (!isChatOpen) {
+                  setOrder(prev => prev ? { ...prev, unreadCount: 0 } : prev)
+                }
+                setIsChatOpen(v => !v)
+              }}
               style={{ position: 'relative', marginBottom: 16 }}
             >
               💬 {isChef ? 'Чат с заказчиком' : 'Чат с поваром'}
@@ -350,11 +355,9 @@ export default function OrderDetailPage() {
                 </div>
               )}
             </button>
-            {isChatOpen && (
-              <div ref={chatRef}>
-                <ChatBox orderId={order.id} />
-              </div>
-            )}
+            <div ref={chatRef} style={{ display: isChatOpen ? 'block' : 'none' }}>
+              <ChatBox orderId={order.id} />
+            </div>
           </>
         )}
 
