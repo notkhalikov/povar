@@ -78,9 +78,6 @@ export function useChat({ orderId, requestId, chefId, currentUserId }: UseChatOp
       .catch(() => { if (!cancelled) setMessages([]) })
       .finally(() => { if (!cancelled) setIsLoading(false) })
 
-    // Reset unread counter (fire-and-forget)
-    fetch(`${baseUrl}${path}/read${query}`, { method: 'POST', headers }).catch(() => {})
-
     return () => { cancelled = true }
   }, [kind, parentId, chefId, baseUrl])
 

@@ -356,7 +356,7 @@ export default function OrderDetailPage() {
               )}
             </button>
             <div ref={chatRef} style={{ display: isChatOpen ? 'block' : 'none' }}>
-              <ChatBox orderId={order.id} />
+              <ChatBox orderId={order.id} isOpen={isChatOpen} />
             </div>
           </>
         )}

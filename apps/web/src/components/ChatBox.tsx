@@ -7,9 +7,14 @@ interface ChatBoxProps {
   requestId?: number
   // Required when requestId is passed — selects the customer↔chef pair.
   chefId?: number
+  // When the chat is actually visible to the user. Default `true` keeps existing
+  // behaviour for callers that always render the chat (e.g. request page).
+  // Pass `false` from a parent that toggles the chat behind a button — that
+  // suppresses the auto-mark-as-read until the user explicitly opens it.
+  isOpen?: boolean
 }
 
-export function ChatBox({ orderId, requestId, chefId }: ChatBoxProps) {
+export function ChatBox({ orderId, requestId, chefId, isOpen = true }: ChatBoxProps) {
   const { user } = useAuth()
   const { messages, sendMessage, markAsRead, isConnected, isLoading } = useChat({
     orderId,
@@ -28,12 +33,17 @@ export function ChatBox({ orderId, requestId, chefId }: ChatBoxProps) {
   }, [messages.length])
 
   useEffect(() => {
+    if (!isOpen) return
+    markAsRead()
+  }, [isOpen, markAsRead])
+
+  useEffect(() => {
     const onVisible = () => {
-      if (!document.hidden) markAsRead()
+      if (!document.hidden && isOpen) markAsRead()
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [markAsRead])
+  }, [markAsRead, isOpen])
 
   function handleSend() {
     const value = text.trim()
