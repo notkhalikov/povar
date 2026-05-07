@@ -110,6 +110,7 @@ export function useChat({ orderId, requestId, chefId }: UseChatOptions): UseChat
       }
 
       ws.onmessage = (ev) => {
+        console.log('[WS] received:', ev.data)
         let data: { type?: string } & Partial<ChatMessage>
         try { data = JSON.parse(ev.data) } catch { return }
         if (data.type !== 'message' || data.id === undefined) return

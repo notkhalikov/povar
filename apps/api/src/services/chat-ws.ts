@@ -102,6 +102,8 @@ async function handleJoin(
     if (!ok) return sendError(client, 'Forbidden')
     const room: RoomKey = `order_${msg.orderId}`
     addToRoom(room, client)
+    const size = rooms.get(room)?.size ?? 0
+    app.log.info(`[WS] user ${client.userId} joined room ${room}, total connections: ${size}`)
     client.socket.send(JSON.stringify({ type: 'joined', room }))
     return
   }
@@ -122,6 +124,8 @@ async function handleJoin(
     }
     const room: RoomKey = `request_${msg.requestId}_${msg.chefId}`
     addToRoom(room, client)
+    const size = rooms.get(room)?.size ?? 0
+    app.log.info(`[WS] user ${client.userId} joined room ${room}, total connections: ${size}`)
     client.socket.send(JSON.stringify({ type: 'joined', room }))
     return
   }
@@ -175,8 +179,11 @@ async function handleMessage(
   })
 
   const set = rooms.get(client.room)
+  const size = set?.size ?? 0
+  app.log.info(`[WS] message in room ${client.room}, broadcasting to ${size} connections`)
   if (!set) return
   for (const c of set) {
+    app.log.info(`[WS] sending to connection, readyState: ${c.socket.readyState}`)
     if (c.socket.readyState === 1 /* OPEN */) {
       try { c.socket.send(payload) } catch { /* skip */ }
     }
