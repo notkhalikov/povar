@@ -19,6 +19,7 @@ interface UseChatOptions {
 interface UseChatResult {
   messages: ChatMessage[]
   sendMessage: (text: string) => void
+  markAsRead: () => void
   isConnected: boolean
   isLoading: boolean
 }
@@ -114,14 +115,29 @@ export function useChat({ orderId, requestId, chefId }: UseChatOptions): UseChat
         let data: { type?: string } & Partial<ChatMessage>
         try { data = JSON.parse(ev.data) } catch { return }
         if (data.type !== 'message' || data.id === undefined) return
-        setMessages(prev => [...prev, {
+        const incoming: ChatMessage = {
           id:         data.id!,
           senderId:   data.senderId!,
           senderName: data.senderName ?? '',
           body:       data.body ?? '',
           createdAt:  data.createdAt!,
           readAt:     data.readAt ?? null,
-        }])
+        }
+        setMessages(prev => [...prev, incoming])
+
+        if (
+          typeof document !== 'undefined' &&
+          document.hidden &&
+          'Notification' in window &&
+          Notification.permission === 'granted'
+        ) {
+          try {
+            new Notification('Новое сообщение от ' + incoming.senderName, {
+              body: incoming.body.slice(0, 80),
+              icon: '/favicon.ico',
+            })
+          } catch { /* notification API rejected */ }
+        }
       }
 
       ws.onclose = () => {
@@ -156,6 +172,19 @@ export function useChat({ orderId, requestId, chefId }: UseChatOptions): UseChat
     }
   }, [kind, parentId, chefId, wsBase])
 
+  // ── Public read-marker ────────────────────────────────────────────────────
+  const markAsRead = useCallback(() => {
+    if (kind === null || parentId === null) return
+    if (kind === 'request' && chefId === undefined) return
+    const token = sessionStorage.getItem('jwt')
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
+    const path = kind === 'order'
+      ? `/orders/${parentId}/messages`
+      : `/requests/${parentId}/messages`
+    const query = kind === 'request' ? `?chefId=${chefId}` : ''
+    fetch(`${baseUrl}${path}/read${query}`, { method: 'POST', headers }).catch(() => {})
+  }, [kind, parentId, chefId, baseUrl])
+
   // ── Public sender ─────────────────────────────────────────────────────────
   const sendMessage = useCallback((text: string) => {
     const ws = wsRef.current
@@ -172,5 +201,5 @@ export function useChat({ orderId, requestId, chefId }: UseChatOptions): UseChat
     ws.send(JSON.stringify(payload))
   }, [kind, parentId, chefId])
 
-  return { messages, sendMessage, isConnected, isLoading }
+  return { messages, sendMessage, markAsRead, isConnected, isLoading }
 }

@@ -31,6 +31,17 @@ function PageFallback() {
   )
 }
 
+// ─── Browser notification permission ─────────────────────────────────────────
+
+function NotificationPermissionGate() {
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => { /* user dismissed */ })
+    }
+  }, [])
+  return null
+}
+
 // ─── Telegram BackButton manager ─────────────────────────────────────────────
 
 function BackButtonManager() {
@@ -188,6 +199,7 @@ export default function App() {
     <ErrorBoundary>
       <AuthProvider>
         <BrowserRouter>
+          <NotificationPermissionGate />
           <BackButtonManager />
           <OnboardingGate />
           <DeepLinkRedirect />

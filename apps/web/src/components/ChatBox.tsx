@@ -11,7 +11,7 @@ interface ChatBoxProps {
 
 export function ChatBox({ orderId, requestId, chefId }: ChatBoxProps) {
   const { user } = useAuth()
-  const { messages, sendMessage, isConnected, isLoading } = useChat({ orderId, requestId, chefId })
+  const { messages, sendMessage, markAsRead, isConnected, isLoading } = useChat({ orderId, requestId, chefId })
 
   const [text, setText] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
@@ -21,6 +21,14 @@ export function ChatBox({ orderId, requestId, chefId }: ChatBoxProps) {
     if (!el) return
     el.scrollTop = el.scrollHeight
   }, [messages.length])
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (!document.hidden) markAsRead()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [markAsRead])
 
   function handleSend() {
     const value = text.trim()
