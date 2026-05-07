@@ -9,6 +9,14 @@ import {
   users,
 } from '../db/schema.js'
 import type { JwtPayload } from '../plugins/auth.js'
+import { pub, sub } from './redis.js'
+
+const CHAT_CHANNEL = 'chat'
+
+interface ChatBroadcast {
+  roomKey: RoomKey
+  payload: unknown
+}
 
 type RoomKey = `order_${number}` | `request_${number}_${number}`
 
@@ -60,6 +68,24 @@ function sendError(client: ChatClient, error: string) {
   try {
     client.socket.send(JSON.stringify({ type: 'error', error }))
   } catch { /* socket closed */ }
+}
+
+function broadcastToRoom(
+  app: FastifyInstance,
+  roomKey: RoomKey,
+  payload: unknown,
+) {
+  const set = rooms.get(roomKey)
+  const size = set?.size ?? 0
+  app.log.info(`[WS] message in room ${roomKey}, broadcasting to ${size} connections`)
+  if (!set) return
+  const payloadStr = typeof payload === 'string' ? payload : JSON.stringify(payload)
+  for (const c of set) {
+    app.log.info(`[WS] sending to connection, readyState: ${c.socket.readyState}`)
+    if (c.socket.readyState === 1 /* OPEN */) {
+      try { c.socket.send(payloadStr) } catch { /* skip */ }
+    }
+  }
 }
 
 async function authorizeOrder(
@@ -169,29 +195,43 @@ async function handleMessage(
     .where(eq(users.id, client.userId))
     .limit(1)
 
-  const payload = JSON.stringify({
+  const messageObj = {
     type:       'message',
     id:         inserted.id,
     senderId:   client.userId,
     senderName: sender?.name ?? '',
     body:       inserted.body,
     createdAt:  inserted.createdAt,
-  })
-
-  const set = rooms.get(client.room)
-  const size = set?.size ?? 0
-  app.log.info(`[WS] message in room ${client.room}, broadcasting to ${size} connections`)
-  if (!set) return
-  for (const c of set) {
-    app.log.info(`[WS] sending to connection, readyState: ${c.socket.readyState}`)
-    if (c.socket.readyState === 1 /* OPEN */) {
-      try { c.socket.send(payload) } catch { /* skip */ }
-    }
   }
+
+  app.log.info(`[WS] publishing to redis, room ${client.room}`)
+  await pub.publish(
+    CHAT_CHANNEL,
+    JSON.stringify({ roomKey: client.room, payload: messageObj } satisfies ChatBroadcast),
+  )
 }
 
 export default fp(async (app: FastifyInstance) => {
   await app.register(websocket)
+
+  // Visibility into Redis connection state in Railway logs
+  pub.on('error', (err) => app.log.error({ err }, '[WS] redis pub error'))
+  sub.on('error', (err) => app.log.error({ err }, '[WS] redis sub error'))
+
+  // One subscription per app instance. ioredis queues until connected.
+  sub.subscribe(CHAT_CHANNEL).catch(err => {
+    app.log.error({ err }, '[WS] redis subscribe failed')
+  })
+
+  sub.on('message', (channel, data) => {
+    if (channel !== CHAT_CHANNEL) return
+    try {
+      const { roomKey, payload } = JSON.parse(data) as ChatBroadcast
+      broadcastToRoom(app, roomKey, payload)
+    } catch (err) {
+      app.log.error({ err, data }, '[WS] redis parse error')
+    }
+  })
 
   app.get('/ws/chat', { websocket: true }, (conn: SocketStream, req) => {
     const url = new URL(req.url ?? '/', 'http://localhost')
