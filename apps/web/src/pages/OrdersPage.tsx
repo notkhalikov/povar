@@ -19,16 +19,23 @@ export default function OrdersPage() {
   const [error, setError]     = useState<string | null>(null)
   const [tab, setTab]         = useState<'active' | 'done'>('active')
 
-  function load() {
-    setLoading(true)
-    setError(null)
+  function load(silent = false) {
+    if (!silent) {
+      setLoading(true)
+      setError(null)
+    }
     getOrders()
       .then(res => setOrders(res.data))
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+      .catch(e => { if (!silent) setError(e.message) })
+      .finally(() => { if (!silent) setLoading(false) })
   }
 
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    const timer = setInterval(() => load(true), 30_000)
+    return () => clearInterval(timer)
+  }, [])
 
   const active = orders.filter(o => ACTIVE_STATUSES.includes(o.status))
   const done   = orders.filter(o => DONE_STATUSES.includes(o.status))
@@ -100,8 +107,32 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   })
 
+  const unread = order.unreadCount ?? 0
+
   return (
-    <div onClick={onClick} className='card' style={{ cursor: 'pointer' }}>
+    <div onClick={onClick} className='card' style={{ cursor: 'pointer', position: 'relative' }}>
+      {unread > 0 && (
+        <div style={{
+          position: 'absolute',
+          top: -6,
+          left: -6,
+          backgroundColor: 'var(--tg-theme-button-color)',
+          color: '#fff',
+          borderRadius: '50%',
+          minWidth: 18,
+          height: 18,
+          fontSize: 11,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '0 4px',
+          fontWeight: 700,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+        }}>
+          {unread >= 10 ? '9+' : unread}
+        </div>
+      )}
+
       {/* Header row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
         <div>

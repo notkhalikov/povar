@@ -139,4 +139,5 @@ export interface Order {
   customerName?: string
   chatEnabled: boolean
   reviewReminderSentAt: string | null
+  unreadCount?: number
 }

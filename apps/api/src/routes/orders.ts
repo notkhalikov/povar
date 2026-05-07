@@ -176,10 +176,33 @@ export default async function ordersRoutes(app: FastifyInstance) {
 
     const nameMap = new Map(nameRows.map(u => [u.id, u.name]))
 
+    // Unread inbound message counts per order, in one batch query
+    const orderIds = rows.map(r => r.id)
+    const unreadRows = await app.db
+      .select({
+        orderId: messages.orderId,
+        count:   sql<number>`count(*)::int`,
+      })
+      .from(messages)
+      .where(
+        and(
+          inArray(messages.orderId, orderIds),
+          ne(messages.senderId, userId),
+          isNull(messages.readAt),
+        ),
+      )
+      .groupBy(messages.orderId)
+
+    const unreadMap = new Map<number, number>()
+    for (const u of unreadRows) {
+      if (u.orderId !== null) unreadMap.set(u.orderId, u.count)
+    }
+
     const data = rows.map(r => ({
       ...r,
       chefName:     nameMap.get(r.chefId)     ?? null,
       customerName: nameMap.get(r.customerId) ?? null,
+      unreadCount:  unreadMap.get(r.id)        ?? 0,
     }))
 
     return { data }
