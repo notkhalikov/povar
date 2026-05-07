@@ -14,6 +14,8 @@ interface UseChatOptions {
   requestId?: number
   // Required when requestId is provided — selects the customer↔chef pair.
   chefId?: number
+  // Used to suppress browser notifications when own message echoes back via Redis.
+  currentUserId?: number
 }
 
 interface UseChatResult {
@@ -27,7 +29,7 @@ interface UseChatResult {
 const MAX_RECONNECT_ATTEMPTS = 5
 const RECONNECT_DELAY_MS = 3000
 
-export function useChat({ orderId, requestId, chefId }: UseChatOptions): UseChatResult {
+export function useChat({ orderId, requestId, chefId, currentUserId }: UseChatOptions): UseChatResult {
   const kind: 'order' | 'request' | null =
     orderId   !== undefined ? 'order'   :
     requestId !== undefined ? 'request' :
@@ -126,6 +128,7 @@ export function useChat({ orderId, requestId, chefId }: UseChatOptions): UseChat
         setMessages(prev => [...prev, incoming])
 
         if (
+          incoming.senderId !== currentUserId &&
           typeof document !== 'undefined' &&
           document.hidden &&
           'Notification' in window &&
@@ -170,7 +173,7 @@ export function useChat({ orderId, requestId, chefId }: UseChatOptions): UseChat
       }
       setIsConnected(false)
     }
-  }, [kind, parentId, chefId, wsBase])
+  }, [kind, parentId, chefId, wsBase, currentUserId])
 
   // ── Public read-marker ────────────────────────────────────────────────────
   const markAsRead = useCallback(() => {

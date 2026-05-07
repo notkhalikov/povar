@@ -11,7 +11,12 @@ interface ChatBoxProps {
 
 export function ChatBox({ orderId, requestId, chefId }: ChatBoxProps) {
   const { user } = useAuth()
-  const { messages, sendMessage, markAsRead, isConnected, isLoading } = useChat({ orderId, requestId, chefId })
+  const { messages, sendMessage, markAsRead, isConnected, isLoading } = useChat({
+    orderId,
+    requestId,
+    chefId,
+    currentUserId: user?.id,
+  })
 
   const [text, setText] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
