@@ -67,6 +67,9 @@ export default function OrderDetailPage() {
   const [priceInput, setPriceInput] = useState('')
   const [priceSaving, setPriceSaving] = useState(false)
 
+  const [isChatOpen, setIsChatOpen] = useState(false)
+  const chatRef = useRef<HTMLDivElement>(null)
+
   const haptic = useHaptic()
   const t = useT()
   const mbHandlerRef = useRef<(() => void) | null>(null)
@@ -101,6 +104,13 @@ export default function OrderDetailPage() {
   }, [id, navigate])
 
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
+
+  // Smooth-scroll the chat block into view when it opens
+  useEffect(() => {
+    if (isChatOpen && chatRef.current) {
+      chatRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [isChatOpen])
 
   // ── Telegram MainButton ──────────────────────────────────────────────────
   useEffect(() => {
@@ -309,6 +319,45 @@ export default function OrderDetailPage() {
 
       <div style={{ padding: '16px 16px 0' }}>
 
+        {/* ── Chat toggle ──────────────────────────────────────────── */}
+        {(isCustomer || isChef) && !['cancelled', 'refunded'].includes(order.status) && (
+          <>
+            <button
+              className='btn-secondary'
+              onClick={() => setIsChatOpen(v => !v)}
+              style={{ position: 'relative', marginBottom: 16 }}
+            >
+              💬 {isChef ? 'Чат с заказчиком' : 'Чат с поваром'}
+              {(order.unreadCount ?? 0) > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: -6,
+                  right: -6,
+                  backgroundColor: 'var(--tg-theme-button-color)',
+                  color: '#fff',
+                  borderRadius: '50%',
+                  minWidth: 18,
+                  height: 18,
+                  fontSize: 11,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 4px',
+                  fontWeight: 700,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+                }}>
+                  {(order.unreadCount ?? 0) >= 10 ? '9+' : order.unreadCount}
+                </div>
+              )}
+            </button>
+            {isChatOpen && (
+              <div ref={chatRef}>
+                <ChatBox orderId={order.id} />
+              </div>
+            )}
+          </>
+        )}
+
         {/* ── Timeline ──────────────────────────────────────────────── */}
         {!['cancelled', 'refunded', 'dispute_pending'].includes(order.status) && (
           <div style={{
@@ -399,11 +448,6 @@ export default function OrderDetailPage() {
               {priceSaving ? 'Сохраняем...' : 'Подтвердить цену'}
             </button>
           </div>
-        )}
-
-        {/* ── In-app chat ─────────────────────────────────────────── */}
-        {(isCustomer || isChef) && !['cancelled', 'refunded'].includes(order.status) && (
-          <ChatBox orderId={order.id} />
         )}
 
         {/* ── Order details ─────────────────────────────────────────── */}

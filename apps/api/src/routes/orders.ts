@@ -248,10 +248,22 @@ export default async function ordersRoutes(app: FastifyInstance) {
       .where(eq(users.id, order.customerId))
       .limit(1)
 
+    const [unread] = await app.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(messages)
+      .where(
+        and(
+          eq(messages.orderId, id),
+          ne(messages.senderId, userId),
+          isNull(messages.readAt),
+        ),
+      )
+
     return {
       ...order,
       chefName:     chefUser?.name ?? null,
       customerName: customerUser?.name ?? null,
+      unreadCount:  unread?.count   ?? 0,
     }
   })
 
