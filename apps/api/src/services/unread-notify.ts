@@ -108,22 +108,44 @@ async function notifyOne(
   const text = `💬 У вас непрочитанное сообщение ${entityLabel}\n\n"${m.body.slice(0, 100)}"`
   const url  = `${frontendUrl}${entityPath}`
 
-  const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: recipient.telegramId,
-      text,
-      reply_markup: {
-        inline_keyboard: [[{ text: 'Открыть чат', url }]],
+  let res: Response
+  try {
+    res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: recipient.telegramId,
+        text,
+        reply_markup: {
+          inline_keyboard: [[{ text: 'Открыть чат', url }]],
+        },
+      }),
+    })
+  } catch (err) {
+    app.log.warn(
+      {
+        err: err instanceof Error ? err.message : String(err),
+        messageId: m.id,
+        recipientTelegramId: recipient.telegramId,
+        orderId:   m.orderId,
+        requestId: m.requestId,
       },
-    }),
-  })
+      '[unread-notify] telegram send failed',
+    )
+    return false
+  }
 
   if (!res.ok) {
     const detail = await res.text().catch(() => '')
     app.log.warn(
-      { messageId: m.id, status: res.status, detail },
+      {
+        err: detail,
+        status: res.status,
+        messageId: m.id,
+        recipientTelegramId: recipient.telegramId,
+        orderId:   m.orderId,
+        requestId: m.requestId,
+      },
       '[unread-notify] telegram send failed',
     )
     return false
