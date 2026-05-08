@@ -1,316 +1,414 @@
-/* ── Telegram theme pass-through (set at runtime by WebApp) ─────────────────── *
- * var(--tg-theme-bg-color)           page background                            *
- * var(--tg-theme-text-color)         primary text                               *
- * var(--tg-theme-hint-color)         secondary / hint text                      *
- * var(--tg-theme-link-color)         link color                                 *
- * var(--tg-theme-button-color)       primary button background                  *
- * var(--tg-theme-button-text-color)  primary button text                        *
- * var(--tg-theme-secondary-bg-color) card / input surface                       *
- * ────────────────────────────────────────────────────────────────────────────── */
-
+/* ─────────────────────────────────────────
+   1. DESIGN TOKENS
+───────────────────────────────────────── */
 :root {
-  /* Navigation / safe area */
-  --nav-height:               60px;
-  --safe-bottom:              env(safe-area-inset-bottom);
-  /* Standard bottom padding for any scrollable page (nav + safe area + 16px buffer) */
-  --page-padding-bottom:      calc(var(--nav-height) + var(--safe-bottom) + 16px);
-  /* For pages that also have an action-bar above the nav */
-  --page-padding-bottom-bar:  calc(var(--nav-height) + var(--safe-bottom) + 80px);
+  /* Brand */
+  --accent: #D85A30;
+  --accent-bg: #FAECE7;
+  --accent-dark: #993C1D;
+  --accent-hover: #c04e27;
 
-  /* Shape */
-  --radius:    12px;
+  /* Layout */
+  --nav-height: 64px;
+  --header-height: 56px;
   --radius-sm: 8px;
-  --radius-lg: 20px;
-  --spacing:   16px;
-  --spacing-sm: 8px;
-  --spacing-lg: 24px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
 
-  /* Elevation */
-  --card-shadow:  0 1px 3px rgba(0,0,0,.07), 0 0 0 1px rgba(0,0,0,.05);
-  --sheet-shadow: 0 -4px 32px rgba(0,0,0,.14);
+  /* Status badges */
+  --status-new-bg: #FAEEDA;
+  --status-new-text: #854F0B;
+  --status-progress-bg: #B5D4F4;
+  --status-progress-text: #185FA5;
+  --status-done-bg: #C0DD97;
+  --status-done-text: #3B6D11;
+  --status-cancelled-bg: #F7C1C1;
+  --status-cancelled-text: #A32D2D;
+  --status-vacation-bg: #D3D1C7;
+  --status-vacation-text: #5F5E5A;
+  --badge-red: #E24B4A;
 
-  /* Status palette */
-  --color-success: #34c759;
-  --color-warning: #e67e00;
-  --color-danger:  #ff3b30;
-  --color-info:    #007aff;
-  --color-muted:   #8e8e93;
+  /* Fallbacks for when outside Telegram WebApp (browser/login) */
+  --tg-theme-bg-color: #ffffff;
+  --tg-theme-secondary-bg-color: #F7F6F3;
+  --tg-theme-text-color: #1A1917;
+  --tg-theme-hint-color: #9E9B97;
+  --tg-theme-link-color: #D85A30;
+  --tg-theme-button-color: #D85A30;
+  --tg-theme-button-text-color: #ffffff;
 
-  /* Typography */
-  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Semantic aliases (используй эти в новых компонентах) */
+  --color-bg: var(--tg-theme-bg-color);
+  --color-surface: var(--tg-theme-secondary-bg-color);
+  --color-text-primary: var(--tg-theme-text-color);
+  --color-text-secondary: var(--tg-theme-hint-color);
+  --color-text-tertiary: #9E9B97;
+  --color-border: #E8E6E1;
+  --color-border-strong: #D0CEC9;
 }
 
-/* ── Reset ──────────────────────────────────────────────────────────────────── */
-*, *::before, *::after {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
+/* ─────────────────────────────────────────
+   2. RESET & BASE
+───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body, #root {
   height: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: var(--font);
-  background: var(--tg-theme-bg-color, #ffffff);
-  color: var(--tg-theme-text-color, #000000);
+  min-height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
   font-size: 16px;
-  line-height: 1.5;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
 }
 
-/* ── Page transitions ───────────────────────────────────────────────────────── */
-@keyframes page-slide-forward {
-  from { opacity: 0; transform: translateX(20px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes page-slide-back {
-  from { opacity: 0; transform: translateX(-20px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-.page-slide-forward { animation: page-slide-forward 0.2s ease-out both; }
-.page-slide-back    { animation: page-slide-back    0.2s ease-out both; }
+button { cursor: pointer; font-family: inherit; }
+a { text-decoration: none; color: inherit; }
+img { display: block; max-width: 100%; }
 
-/* ── Shimmer (skeleton loading) ─────────────────────────────────────────────── */
-@keyframes shimmer {
-  from { background-position: -200% 0; }
-  to   { background-position:  200% 0; }
+/* ─────────────────────────────────────────
+   3. LAYOUT
+───────────────────────────────────────── */
+.page {
+  min-height: 100dvh;
+  padding-bottom: var(--nav-height);
+  background: var(--color-surface);
 }
 
-/* ── Skeleton pulse ─────────────────────────────────────────────────────────── */
-@keyframes sk-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: .45; }
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: var(--header-height);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
 }
 
-.sk {
-  background: var(--tg-theme-secondary-bg-color, #f2f2f7);
-  border-radius: var(--radius-sm);
-  animation: sk-pulse 1.4s ease-in-out infinite;
+.page-content {
+  padding: 12px 16px;
 }
 
-/* ── Horizontal chip-scroll row ─────────────────────────────────────────────── */
+/* ─────────────────────────────────────────
+   4. CARDS
+───────────────────────────────────────── */
+.card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+}
+
+.card--surface {
+  background: var(--color-surface);
+}
+
+.card + .card { margin-top: 8px; }
+
+/* ─────────────────────────────────────────
+   5. BUTTONS
+───────────────────────────────────────── */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled {
+  background: var(--color-border-strong);
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.btn-danger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 13px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  border: 1px solid #F7C1C1;
+  color: #A32D2D;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* ─────────────────────────────────────────
+   6. FORM ELEMENTS
+───────────────────────────────────────── */
+.field-input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  font-size: 15px;
+  color: var(--color-text-primary);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+  resize: none;
+}
+.field-input:focus { border-color: var(--accent); }
+.field-input::placeholder { color: var(--color-text-tertiary); }
+
+/* ─────────────────────────────────────────
+   7. CHIPS / FILTERS
+───────────────────────────────────────── */
 .chips-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
-  padding: 2px 0 6px;
-  -webkit-overflow-scrolling: touch;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border);
   scrollbar-width: none;
 }
 .chips-row::-webkit-scrollbar { display: none; }
 
-/* ── Chip ───────────────────────────────────────────────────────────────────── */
 .chip {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  height: 34px;
-  padding: 0 14px;
-  border-radius: 17px;
-  font-size: 13px;
-  font-weight: 500;
-  border: 1.5px solid var(--tg-theme-hint-color);
-  background: transparent;
-  color: var(--tg-theme-text-color);
-  cursor: pointer;
   white-space: nowrap;
-  transition: background .15s, color .15s, border-color .15s;
-  -webkit-appearance: none;
-}
-.chip.active,
-.chip:active {
-  background: var(--tg-theme-button-color);
-  color: var(--tg-theme-button-text-color);
-  border-color: var(--tg-theme-button-color);
-}
-
-/* ── Card ───────────────────────────────────────────────────────────────────── */
-.card {
-  background: var(--tg-theme-secondary-bg-color);
-  border-radius: var(--radius);
-  padding: var(--spacing);
-}
-
-/* ── Primary button ─────────────────────────────────────────────────────────── */
-.btn-primary {
-  display: block;
-  width: 100%;
-  padding: 14px;
-  border-radius: var(--radius);
-  border: none;
-  background: var(--tg-theme-button-color);
-  color: var(--tg-theme-button-text-color);
-  font-size: 16px;
-  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
   cursor: pointer;
-  text-align: center;
-  transition: opacity .15s;
+  transition: all 0.15s;
 }
-.btn-primary:disabled { opacity: .55; }
+.chip.active, .chip--active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
 
-/* ── Secondary button ───────────────────────────────────────────────────────── */
-.btn-secondary {
-  display: block;
-  width: 100%;
-  padding: 13px;
-  border-radius: var(--radius);
-  border: 1.5px solid var(--tg-theme-hint-color);
-  background: transparent;
-  color: var(--tg-theme-text-color);
-  font-size: 15px;
+/* ─────────────────────────────────────────
+   8. TABS
+───────────────────────────────────────── */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.tab {
+  flex: 1;
+  padding: 12px 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  border-bottom: 2px solid transparent;
   cursor: pointer;
-  text-align: center;
+  transition: all 0.15s;
+}
+.tab.active, .tab--active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
-/* ── Input / Textarea ───────────────────────────────────────────────────────── */
-.field-input {
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: var(--radius-sm);
-  border: 1.5px solid var(--tg-theme-hint-color);
-  background: var(--tg-theme-secondary-bg-color);
-  color: var(--tg-theme-text-color);
-  font-family: var(--font);
-  font-size: 15px;
-  outline: none;
-  transition: border-color .15s;
-  -webkit-appearance: none;
+/* ─────────────────────────────────────────
+   9. STATUS BADGES
+───────────────────────────────────────── */
+.status-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 6px;
 }
-.field-input:focus { border-color: var(--tg-theme-button-color); }
+.status-badge.new, .status-badge--new { background: var(--status-new-bg); color: var(--status-new-text); }
+.status-badge.progress, .status-badge--progress { background: var(--status-progress-bg); color: var(--status-progress-text); }
+.status-badge.done, .status-badge--done { background: var(--status-done-bg); color: var(--status-done-text); }
+.status-badge.cancelled, .status-badge--cancelled { background: var(--status-cancelled-bg); color: var(--status-cancelled-text); }
+.status-badge.vacation, .status-badge--vacation { background: var(--status-vacation-bg); color: var(--status-vacation-text); }
+.status-badge.free, .status-badge--free { background: var(--accent-bg); color: var(--accent-dark); }
 
-/* ── Section heading ────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────
+   10. SECTION LABEL
+───────────────────────────────────────── */
 .section-label {
   font-size: 12px;
-  font-weight: 600;
-  letter-spacing: .6px;
-  text-transform: uppercase;
-  color: var(--tg-theme-hint-color);
-  margin-bottom: 10px;
-}
-
-/* ── Tag pill ───────────────────────────────────────────────────────────────── */
-.tag-cuisine {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 12px;
   font-weight: 500;
-  background: var(--tg-theme-button-color);
-  color: var(--tg-theme-button-text-color);
+  color: var(--color-text-secondary);
+  padding: 12px 16px 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-.tag-format {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  border: 1px solid var(--tg-theme-hint-color);
-  color: var(--tg-theme-text-color);
-}
-
-/* ── Detail row ─────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────
+   11. DETAIL ROW
+───────────────────────────────────────── */
 .detail-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 8px;
-  padding: 11px 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 14px;
 }
 .detail-row:last-child { border-bottom: none; }
-.detail-row__label { font-size: 13px; color: var(--tg-theme-hint-color); flex-shrink: 0; }
-.detail-row__value { font-size: 14px; text-align: right; }
+.detail-row__label { color: var(--color-text-secondary); }
+.detail-row__value { color: var(--color-text-primary); font-weight: 500; }
 
-/* ── Bottom action bar ──────────────────────────────────────────────────────── */
-/* Sits above the BottomNav — never at bottom: 0 which would hide behind the nav */
-.action-bar {
-  position: fixed;
-  bottom: calc(var(--nav-height) + var(--safe-bottom));
-  left: 0;
-  right: 0;
-  padding: 12px 16px 16px;
-  background: var(--tg-theme-bg-color);
-  border-top: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 25%, transparent);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* ── Tabs ───────────────────────────────────────────────────────────────────── */
-.tabs {
-  display: flex;
-  border-bottom: 1.5px solid color-mix(in srgb, var(--tg-theme-hint-color) 25%, transparent);
-  margin-bottom: 16px;
-}
-.tab {
-  flex: 1;
-  padding: 10px 0;
-  font-size: 14px;
+/* ─────────────────────────────────────────
+   12. TAGS
+───────────────────────────────────────── */
+.tag-cuisine, .tag-format {
+  display: inline-block;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--accent-bg);
+  color: var(--accent-dark);
   font-weight: 500;
-  text-align: center;
-  border: none;
-  background: transparent;
-  color: var(--tg-theme-hint-color);
-  cursor: pointer;
-  border-bottom: 2.5px solid transparent;
-  margin-bottom: -1.5px;
-  transition: color .15s;
-}
-.tab.active {
-  color: var(--tg-theme-button-color);
-  border-bottom-color: var(--tg-theme-button-color);
 }
 
-/* ── Stepper ────────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────
+   13. ACTION BAR (sticky CTA)
+───────────────────────────────────────── */
+.action-bar {
+  position: sticky;
+  bottom: var(--nav-height);
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  padding: 12px 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+/* ─────────────────────────────────────────
+   14. AVATAR
+───────────────────────────────────────── */
+.chef-avatar-sm {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--accent-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--accent-dark);
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────
+   15. STEPPER (order timeline)
+───────────────────────────────────────── */
 .stepper {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 0;
-  margin-bottom: 24px;
+  padding: 12px 16px;
 }
 .stepper-dot {
-  width: 28px;
-  height: 28px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
+  background: var(--color-border-strong);
   flex-shrink: 0;
-  transition: background .2s, color .2s;
+  transition: background 0.2s;
 }
-.stepper-dot.done {
-  background: var(--tg-theme-button-color);
-  color: var(--tg-theme-button-text-color);
-}
-.stepper-dot.current {
-  background: var(--tg-theme-button-color);
-  color: var(--tg-theme-button-text-color);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tg-theme-button-color) 30%, transparent);
-}
-.stepper-dot.todo {
-  background: var(--tg-theme-secondary-bg-color);
-  color: var(--tg-theme-hint-color);
-}
+.stepper-dot.active { background: var(--accent); }
+.stepper-dot.done { background: var(--status-done-text); }
 .stepper-line {
   flex: 1;
   height: 2px;
-  max-width: 40px;
-  background: color-mix(in srgb, var(--tg-theme-hint-color) 30%, transparent);
-}
-.stepper-line.done {
-  background: var(--tg-theme-button-color);
+  background: var(--color-border);
 }
 
-/* ── Hero (ChefPage) ────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────
+   16. SKELETON LOADER
+───────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.sk {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--color-border) 25%, var(--color-surface) 50%, var(--color-border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+@keyframes sk-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.sk-pulse { animation: sk-pulse 1.5s ease-in-out infinite; }
+
+/* ─────────────────────────────────────────
+   17. PAGE TRANSITIONS
+───────────────────────────────────────── */
+@keyframes page-slide-forward {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes page-slide-back {
+  from { transform: translateX(-40%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.page-slide-forward { animation: page-slide-forward 0.2s ease-out both; }
+.page-slide-back    { animation: page-slide-back    0.2s ease-out both; }
+
+/* ─────────────────────────────────────────
+   18. MISC
+───────────────────────────────────────── */
+.divider { height: 1px; background: var(--color-border); }
+
+.unread-badge {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  padding: 0 4px;
+  background: var(--badge-red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─────────────────────────────────────────
+   19. LEGACY HERO / AVATARS (ChefPage, ProfilePage)
+───────────────────────────────────────── */
 .chef-hero {
   display: flex;
   flex-direction: column;
@@ -333,21 +431,6 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Avatar small (ChefCard) ────────────────────────────────────────────────── */
-.chef-avatar-sm {
-  width: 56px;
-  height: 56px;
-  border-radius: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-weight: 700;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-/* ── Profile avatar ─────────────────────────────────────────────────────────── */
 .profile-avatar {
   width: 72px;
   height: 72px;
