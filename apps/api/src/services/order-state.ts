@@ -5,7 +5,7 @@ const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   draft:            ['awaiting_payment', 'cancelled'],
   awaiting_payment: ['paid', 'cancelled'],
   paid:             ['in_progress', 'cancelled'],
-  in_progress:      ['completed', 'dispute_pending'],
+  in_progress:      ['completed', 'dispute_pending', 'cancelled'],
   completed:        [],
   dispute_pending:  ['in_progress', 'refunded', 'cancelled'],
   refunded:         [],
@@ -20,7 +20,8 @@ const ROLE_GUARDS: Partial<Record<`${OrderStatus}->${OrderStatus}`, UserRole[]>>
   'awaiting_payment->paid':      ['customer', 'admin'],   // real payment via webhook later
   'paid->in_progress':           ['chef'],
   'paid->cancelled':             ['customer', 'chef'],
-  'in_progress->completed':      ['customer'],
+  'in_progress->completed':      ['customer', 'chef'],
+  'in_progress->cancelled':      ['chef'],
   'in_progress->dispute_pending':['customer', 'chef'],
   'dispute_pending->in_progress':['support', 'admin'],
   'dispute_pending->refunded':   ['support', 'admin'],
