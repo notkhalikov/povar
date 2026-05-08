@@ -89,6 +89,14 @@ export default function OrderDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Auto-open chat when arriving via Telegram push deep link (?chat=1)
+  useEffect(() => {
+    if (searchParams.get('chat') === '1') {
+      setIsChatOpen(true)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => {
     if (!id) return
     getOrder(Number(id))
