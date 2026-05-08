@@ -146,8 +146,14 @@ async function notifyOne(
         orderId:   m.orderId,
         requestId: m.requestId,
       },
-      '[unread-notify] telegram send failed',
+      '[unread-notify] telegram failed, marking notified to avoid retry',
     )
+    // 4xx/5xx are permanent from our side (bot blocked, chat not found, etc.) —
+    // mark notified so the cron stops retrying every minute.
+    await app.db
+      .update(messages)
+      .set({ notifiedAt: new Date() })
+      .where(eq(messages.id, m.id))
     return false
   }
 
