@@ -117,7 +117,7 @@ async function notifyOne(
         chat_id: recipient.telegramId,
         text,
         reply_markup: {
-          inline_keyboard: [[{ text: 'Открыть чат', url }]],
+          inline_keyboard: [[{ text: '💬 Открыть чат', web_app: { url } }]],
         },
       }),
     })
