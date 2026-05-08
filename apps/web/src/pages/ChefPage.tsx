@@ -336,12 +336,22 @@ export default function ChefPage() {
 
       {/* ── Sticky order button ───────────────────────────────────── */}
       <div className='action-bar'>
-        <button
-          className='btn-primary'
-          onClick={() => navigate(`/orders/new?chefId=${chef.id}`)}
-        >
-          {t.chef.orderBtn} {chef.name.split(' ')[0]}
-        </button>
+        {chef.isOnVacation ? (
+          <button
+            className='btn-primary'
+            disabled
+            style={{ opacity: 0.55, cursor: 'not-allowed' }}
+          >
+            🌴 Повар сейчас в отпуске
+          </button>
+        ) : (
+          <button
+            className='btn-primary'
+            onClick={() => navigate(`/orders/new?chefId=${chef.id}`)}
+          >
+            {t.chef.orderBtn} {chef.name.split(' ')[0]}
+          </button>
+        )}
       </div>
     </div>
   )

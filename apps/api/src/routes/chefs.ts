@@ -64,6 +64,7 @@ const chefSelectFields = {
   ratingCache: chefProfiles.ratingCache,
   ordersCount: chefProfiles.ordersCount,
   verificationStatus: chefProfiles.verificationStatus,
+  isActive: chefProfiles.isActive,
 }
 
 export default async function chefsRoutes(app: FastifyInstance) {
@@ -102,7 +103,6 @@ export default async function chefsRoutes(app: FastifyInstance) {
     } = request.query
 
     const conditions = [
-      eq(chefProfiles.isActive, true),
       eq(chefProfiles.verificationStatus, 'approved'),
       eq(users.status, 'active'),
     ]
@@ -126,7 +126,8 @@ export default async function chefsRoutes(app: FastifyInstance) {
       .limit(limit)
       .offset(offset)
 
-    return { data: rows, limit, offset }
+    const data = rows.map(r => ({ ...r, isOnVacation: !r.isActive }))
+    return { data, limit, offset }
   })
 
   /**
@@ -180,7 +181,7 @@ export default async function chefsRoutes(app: FastifyInstance) {
 
     if (!row) return reply.code(404).send({ error: 'Chef not found' })
 
-    return row
+    return { ...row, isOnVacation: !row.isActive }
   })
 
   /**

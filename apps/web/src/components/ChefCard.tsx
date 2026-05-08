@@ -49,8 +49,27 @@ export function ChefCard({ chef }: { chef: ChefListItem }) {
           display: 'flex', gap: 12, alignItems: 'flex-start',
           transform: pressed ? 'scale(0.97)' : 'scale(1)',
           transition: 'transform 0.1s ease',
+          position: 'relative',
+          opacity: chef.isOnVacation ? 0.7 : 1,
         }}
       >
+        {chef.isOnVacation && (
+          <span style={{
+            position: 'absolute',
+            top: 8, left: 8,
+            padding: '4px 10px',
+            borderRadius: 12,
+            background: 'rgba(0,0,0,0.65)',
+            color: '#fff',
+            fontSize: 11,
+            fontWeight: 600,
+            zIndex: 1,
+            backdropFilter: 'blur(4px)',
+          }}>
+            🌴 В отпуске
+          </span>
+        )}
+
         {/* Avatar */}
         <div
           className='chef-avatar-sm'

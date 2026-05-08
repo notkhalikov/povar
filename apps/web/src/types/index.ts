@@ -17,6 +17,8 @@ export interface ChefListItem {
   ratingCache: string
   ordersCount: number
   verificationStatus: 'pending' | 'approved' | 'rejected'
+  isActive: boolean
+  isOnVacation: boolean
 }
 
 export interface ChefProfile extends ChefListItem {
