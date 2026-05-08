@@ -1,21 +1,19 @@
 import fp from 'fastify-plugin';
 import cors from '@fastify/cors';
 
-const PROD_ORIGINS = ['https://povar-one.vercel.app']
+// Default whitelist — covers production Vercel deployments and local dev.
+// Override in any environment via ALLOWED_ORIGINS (comma-separated).
+const DEFAULT_ORIGINS = [
+  'https://povar-one.vercel.app',
+  'https://povar-notkhalikovs-projects.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+]
 
 export default fp(async (app) => {
-  let origin: string[] | true
-
-  if (process.env.CORS_ORIGIN) {
-    // Explicit list always wins (covers custom domains, staging, etc.)
-    origin = process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
-  } else if (process.env.NODE_ENV === 'production') {
-    // In production with no explicit override, only allow the Vercel domain
-    origin = PROD_ORIGINS
-  } else {
-    // Development — allow all origins so the local Vite dev server works
-    origin = true
-  }
+  const origin = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+    : DEFAULT_ORIGINS
 
   await app.register(cors, { origin })
 });
