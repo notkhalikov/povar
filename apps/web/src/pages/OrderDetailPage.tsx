@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { useHaptic } from '../hooks/useHaptic'
 import { useT } from '../i18n'
-import { getOrder, createInvoice, completeOrder, setOrderPrice } from '../api/orders'
+import { getOrder, createInvoice, completeOrder, setOrderPrice, patchOrderStatus } from '../api/orders'
 import { ApiError } from '../api/client'
 import { createReview } from '../api/reviews'
 import { createDispute, getDisputeByOrder } from '../api/disputes'
@@ -189,6 +189,20 @@ export default function OrderDetailPage() {
 
   function tgAlert(msg: string) {
     try { WebApp.showAlert(msg) } catch { alert(msg) }
+  }
+
+  async function handleChefStatus(nextStatus: OrderStatus) {
+    haptic.medium()
+    setActionLoading(true)
+    try {
+      const updated = await patchOrderStatus(Number(id), nextStatus)
+      setOrder(updated)
+      haptic.success()
+    } catch (e: unknown) {
+      tgAlert(e instanceof Error ? e.message : t.errors.generic)
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   async function handleSetPrice() {
@@ -457,6 +471,40 @@ export default function OrderDetailPage() {
               onClick={handleSetPrice}
             >
               {priceSaving ? 'Сохраняем...' : 'Подтвердить цену'}
+            </button>
+          </div>
+        )}
+
+        {/* ── Chef: status actions ──────────────────────────────────── */}
+        {isChef && (order.status === 'paid' || order.status === 'in_progress') && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+            {order.status === 'paid' && (
+              <button
+                className='btn-primary'
+                disabled={actionLoading}
+                style={{ opacity: actionLoading ? 0.6 : 1 }}
+                onClick={() => handleChefStatus('in_progress')}
+              >
+                {actionLoading ? '...' : 'Взять в работу'}
+              </button>
+            )}
+            {order.status === 'in_progress' && (
+              <button
+                className='btn-primary'
+                disabled={actionLoading}
+                style={{ opacity: actionLoading ? 0.6 : 1 }}
+                onClick={() => handleChefStatus('completed')}
+              >
+                {actionLoading ? '...' : 'Завершить заказ'}
+              </button>
+            )}
+            <button
+              className='btn-secondary'
+              disabled={actionLoading}
+              style={{ opacity: actionLoading ? 0.6 : 1 }}
+              onClick={() => handleChefStatus('cancelled')}
+            >
+              Отменить заказ
             </button>
           </div>
         )}

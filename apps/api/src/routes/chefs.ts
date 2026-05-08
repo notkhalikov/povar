@@ -218,34 +218,41 @@ export default async function chefsRoutes(app: FastifyInstance) {
       ...(avgPrice !== undefined ? { avgPrice: String(avgPrice) } : {}),
     }
 
-    const existing = await app.db
-      .select()
-      .from(chefProfiles)
-      .where(eq(chefProfiles.userId, userId))
-      .limit(1)
+    try {
+      return await app.db.transaction(async (tx) => {
+        const existing = await tx
+          .select()
+          .from(chefProfiles)
+          .where(eq(chefProfiles.userId, userId))
+          .limit(1)
 
-    if (!existing[0]) {
-      // First time: create profile + promote user role to chef
-      await app.db
-        .update(users)
-        .set({ role: 'chef' })
-        .where(eq(users.id, userId))
+        if (!existing[0]) {
+          // First time: create profile + promote user role to chef
+          await tx
+            .update(users)
+            .set({ role: 'chef' })
+            .where(eq(users.id, userId))
 
-      const [created] = await app.db
-        .insert(chefProfiles)
-        .values({ userId, verificationStatus: 'approved', ...drizzleBody })
-        .returning()
+          const [created] = await tx
+            .insert(chefProfiles)
+            .values({ userId, verificationStatus: 'approved', ...drizzleBody })
+            .returning()
 
-      return created
+          return created
+        }
+
+        const [updated] = await tx
+          .update(chefProfiles)
+          .set(drizzleBody)
+          .where(eq(chefProfiles.userId, userId))
+          .returning()
+
+        return updated
+      })
+    } catch (err) {
+      app.log.error({ err, userId }, 'patch chef failed')
+      throw err
     }
-
-    const [updated] = await app.db
-      .update(chefProfiles)
-      .set(drizzleBody)
-      .where(eq(chefProfiles.userId, userId))
-      .returning()
-
-    return updated
   })
 
   /**
@@ -372,17 +379,27 @@ export default async function chefsRoutes(app: FastifyInstance) {
     formData.append('chat_id', String(userRow.telegramId))
     formData.append('photo', new Blob([buffer], { type: mimeType }), 'photo.jpg')
 
-    const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-      method: 'POST',
-      body: formData,
-    })
-    const tgJson = await tgRes.json() as {
+    let tgJson: {
       ok: boolean
       result?: { photo: Array<{ file_id: string; width: number; height: number }> }
       description?: string
     }
+    try {
+      const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+        method: 'POST',
+        body: formData,
+      })
+      tgJson = await tgRes.json()
+    } catch (err) {
+      app.log.error({ err, telegramId: userRow.telegramId }, '[chefs] sendPhoto failed')
+      return reply.code(502).send({ error: 'Failed to reach Telegram' })
+    }
 
     if (!tgJson.ok || !tgJson.result) {
+      app.log.error(
+        { err: tgJson.description, telegramId: userRow.telegramId },
+        '[chefs] sendPhoto failed',
+      )
       return reply.code(502).send({ error: tgJson.description ?? 'Telegram error' })
     }
 

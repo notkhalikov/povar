@@ -114,8 +114,8 @@ export default function ChefOnboardingPage() {
       const { fileId } = await uploadPortfolioPhoto(file)
       const { portfolioMediaIds: updated } = await addPortfolioPhotos([fileId])
       setPortfolioMediaIds(updated)
-    } catch (err) {
-      console.error(err)
+    } catch {
+      WebApp.showAlert('Не удалось загрузить фото. Убедитесь что открывали бота @povarissimobot')
     } finally {
       setUploadingPhoto(false)
     }
