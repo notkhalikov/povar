@@ -48,126 +48,151 @@ export default function ProfilePage() {
   const fullName = [tgUser?.first_name, tgUser?.last_name].filter(Boolean).join(' ') || '—'
 
   return (
-    <div style={{ padding: '24px 16px', paddingBottom: 'var(--page-padding-bottom)' }}>
+    <div style={{ backgroundColor: '#F7F6F3', minHeight: '100dvh', paddingBottom: 64 }}>
 
-      {/* ── Avatar + name ───────────────────────────────────────── */}
-      <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <div
-          className='profile-avatar'
-          style={{ background: avatarColor(fullName) }}
-        >
-          {initials(fullName)}
+      {/* ШАПКА */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #E8E6E1',
+        padding: '14px 16px',
+      }}>
+        <h1 style={{ fontSize: 20, fontWeight: 500, color: '#1A1917', margin: 0 }}>
+          Мой профиль
+        </h1>
+      </div>
+
+      <div style={{ padding: '16px' }}>
+
+        {/* ── Avatar + name ───────────────────────────────────────── */}
+        <div style={{ textAlign: 'center', marginBottom: 24, backgroundColor: '#ffffff', borderRadius: 12, border: '1px solid #E8E6E1', padding: '20px 16px' }}>
+          <div
+            style={{
+              width: 80, height: 80, borderRadius: 12, margin: '0 auto 12px',
+              background: avatarColor(fullName),
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 32, fontWeight: 700, color: '#ffffff',
+            }}
+          >
+            {initials(fullName)}
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 4, color: '#1A1917' }}>{fullName}</div>
+          {tgUser?.username && (
+            <div style={{ fontSize: 13, color: '#6B6966', marginBottom: 12 }}>
+              @{tgUser.username}
+            </div>
+          )}
+          {apiUser && (
+            <div style={{
+              display: 'inline-block',
+              padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+              background: apiUser.role === 'chef' ? '#C0DD97' : '#F7F6F3',
+              color: apiUser.role === 'chef' ? '#3B6D11' : '#6B6966',
+            }}>
+              {t.profile.role[apiUser.role as keyof typeof t.profile.role] ?? t.profile.role.customer}
+            </div>
+          )}
         </div>
-        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{fullName}</div>
-        {tgUser?.username && (
-          <div style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>
-            @{tgUser.username}
+
+        {/* ── Chef management ─────────────────────────────────────── */}
+        {apiUser?.role === 'chef' && chefProfile && (
+          <>
+            {/* Status toggle */}
+            <div style={{ marginBottom: 12, backgroundColor: '#ffffff', border: '1px solid #E8E6E1', borderRadius: 12, padding: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3, color: '#1A1917' }}>{t.profile.status}</div>
+                  <div style={{ fontSize: 13, color: '#6B6966' }}>
+                    {chefProfile.isActive ? t.profile.accepting : t.profile.vacation}
+                  </div>
+                </div>
+                {/* iOS-style toggle */}
+                <button
+                  onClick={toggleActive}
+                  disabled={togglingActive}
+                  aria-label={t.a11y.toggleStatus}
+                  style={{
+                    width: 51, height: 31, borderRadius: 16, border: 'none', cursor: 'pointer',
+                    padding: 0, flexShrink: 0, transition: 'background .2s',
+                    background: chefProfile.isActive ? '#D85A30' : '#9E9B97',
+                    opacity: togglingActive ? .6 : 1,
+                    position: 'relative',
+                  }}
+                >
+                  <span style={{
+                    position: 'absolute',
+                    top: 3, width: 25, height: 25, borderRadius: '50%',
+                    background: '#fff',
+                    transition: 'left .2s',
+                    left: chefProfile.isActive ? 23 : 3,
+                    boxShadow: '0 1px 3px rgba(0,0,0,.25)',
+                  }} />
+                </button>
+              </div>
+            </div>
+
+            {/* Stats strip */}
+            <div style={{ marginBottom: 12, backgroundColor: '#ffffff', border: '1px solid #E8E6E1', borderRadius: 12, padding: '16px', display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#1A1917' }}>{chefProfile.ordersCount}</div>
+                <div style={{ fontSize: 12, color: '#6B6966' }}>{t.profile.orders}</div>
+              </div>
+              <div style={{ width: 1, background: '#E8E6E1', opacity: 1 }} />
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#1A1917' }}>
+                  {Number(chefProfile.ratingCache) > 0 ? Number(chefProfile.ratingCache).toFixed(1) : '—'}
+                </div>
+                <div style={{ fontSize: 12, color: '#6B6966' }}>{t.profile.rating}</div>
+              </div>
+              <div style={{ width: 1, background: '#E8E6E1', opacity: 1 }} />
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#1A1917' }}>
+                  {chefProfile.verificationStatus === 'approved' ? '✓' : '…'}
+                </div>
+                <div style={{ fontSize: 12, color: '#6B6966' }}>{t.profile.verification}</div>
+              </div>
+            </div>
+
+            <button
+              style={{
+                width: '100%', padding: '12px 16px', borderRadius: 10,
+                backgroundColor: '#D85A30', color: '#ffffff', fontSize: 14, fontWeight: 500,
+                border: 'none', cursor: 'pointer',
+              }}
+              onClick={() => navigate('/chef/onboarding')}
+            >
+              {t.profile.editProfile}
+            </button>
+          </>
+        )}
+
+        {/* ── Become chef CTA ─────────────────────────────────────── */}
+        {apiUser?.role === 'customer' && (
+          <div style={{ textAlign: 'center', padding: '28px 16px', backgroundColor: '#ffffff', border: '1px solid #E8E6E1', borderRadius: 12 }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>👨‍🍳</div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: '#1A1917' }}>{t.profile.becomeChefTitle}</div>
+            <div style={{ fontSize: 14, color: '#6B6966', marginBottom: 20, lineHeight: 1.5 }}>
+              {t.profile.becomeChefHint}
+            </div>
+            <button
+              style={{
+                width: '100%', padding: '12px 16px', borderRadius: 10,
+                backgroundColor: '#D85A30', color: '#ffffff', fontSize: 14, fontWeight: 500,
+                border: 'none', cursor: 'pointer',
+              }}
+              onClick={() => navigate('/chef/onboarding')}
+            >
+              {t.profile.becomeChef}
+            </button>
           </div>
         )}
-        {apiUser && (
-          <div style={{
-            display: 'inline-block', marginTop: 8,
-            padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-            background: apiUser.role === 'chef' ? '#34c75922' : 'var(--color-surface)',
-            color: apiUser.role === 'chef' ? '#34c759' : 'var(--color-text-secondary)',
-          }}>
-            {t.profile.role[apiUser.role as keyof typeof t.profile.role] ?? t.profile.role.customer}
+
+        {!apiUser && (
+          <div style={{ textAlign: 'center', padding: '32px 0', color: '#6B6966', fontSize: 14 }}>
+            {t.profile.noAuth}
           </div>
         )}
       </div>
-
-      {/* ── Chef management ─────────────────────────────────────── */}
-      {apiUser?.role === 'chef' && chefProfile && (
-        <>
-          {/* Status toggle */}
-          <div className='card' style={{ marginBottom: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>{t.profile.status}</div>
-                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>
-                  {chefProfile.isActive ? t.profile.accepting : t.profile.vacation}
-                </div>
-              </div>
-              {/* iOS-style toggle */}
-              <button
-                onClick={toggleActive}
-                disabled={togglingActive}
-                aria-label={t.a11y.toggleStatus}
-                style={{
-                  width: 51, height: 31, borderRadius: 16, border: 'none', cursor: 'pointer',
-                  padding: 0, flexShrink: 0, transition: 'background .2s',
-                  background: chefProfile.isActive ? 'var(--accent)' : 'var(--color-text-secondary)',
-                  opacity: togglingActive ? .6 : 1,
-                  position: 'relative',
-                }}
-              >
-                <span style={{
-                  position: 'absolute',
-                  top: 3, width: 25, height: 25, borderRadius: '50%',
-                  background: '#fff',
-                  transition: 'left .2s',
-                  left: chefProfile.isActive ? 23 : 3,
-                  boxShadow: '0 1px 3px rgba(0,0,0,.25)',
-                }} />
-              </button>
-            </div>
-          </div>
-
-          {/* Stats strip */}
-          <div className='card' style={{ marginBottom: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 700 }}>{chefProfile.ordersCount}</div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{t.profile.orders}</div>
-              </div>
-              <div style={{ width: 1, background: 'var(--color-text-secondary)', opacity: .2 }} />
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 700 }}>
-                  {Number(chefProfile.ratingCache) > 0 ? Number(chefProfile.ratingCache).toFixed(1) : '—'}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{t.profile.rating}</div>
-              </div>
-              <div style={{ width: 1, background: 'var(--color-text-secondary)', opacity: .2 }} />
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 700 }}>
-                  {chefProfile.verificationStatus === 'approved' ? '✓' : '…'}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{t.profile.verification}</div>
-              </div>
-            </div>
-          </div>
-
-          <button
-            className='btn-primary'
-            onClick={() => navigate('/chef/onboarding')}
-          >
-            {t.profile.editProfile}
-          </button>
-        </>
-      )}
-
-      {/* ── Become chef CTA ─────────────────────────────────────── */}
-      {apiUser?.role === 'customer' && (
-        <div className='card' style={{ textAlign: 'center', padding: '28px 16px' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>👨‍🍳</div>
-          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{t.profile.becomeChefTitle}</div>
-          <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 20, lineHeight: 1.5 }}>
-            {t.profile.becomeChefHint}
-          </div>
-          <button
-            className='btn-primary'
-            onClick={() => navigate('/chef/onboarding')}
-          >
-            {t.profile.becomeChef}
-          </button>
-        </div>
-      )}
-
-      {!apiUser && (
-        <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--color-text-secondary)', fontSize: 14 }}>
-          {t.profile.noAuth}
-        </div>
-      )}
     </div>
   )
 }
