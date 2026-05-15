@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getOrders } from '../api/orders'
-import { StatusBadge } from '../components/StatusBadge'
 import { OrderCardSkeleton } from '../components/LoadingSkeleton'
 import { ErrorScreen } from '../components/ErrorScreen'
 import { EmptyState } from '../components/EmptyState'
@@ -41,41 +40,77 @@ export default function OrdersPage() {
   const done   = orders.filter(o => DONE_STATUSES.includes(o.status))
   const shown  = tab === 'active' ? active : done
 
-  return (
-    <div style={{ paddingBottom: 'var(--page-padding-bottom)' }}>
-      <div style={{ padding: '16px 16px 0' }}>
-        <h2 style={{ margin: '0 0 16px', fontSize: 22, fontWeight: 700 }}>{t.order.myOrders}</h2>
+  const statusMap: Record<OrderStatus, { bg: string; color: string; label: string }> = {
+    draft:           { bg: '#FAEEDA', color: '#854F0B', label: 'Черновик' },
+    awaiting_payment:{ bg: '#FAEEDA', color: '#854F0B', label: 'Ожидание оплаты' },
+    paid:            { bg: '#B5D4F4', color: '#185FA5', label: 'Оплачен' },
+    in_progress:     { bg: '#B5D4F4', color: '#185FA5', label: 'В работе' },
+    dispute_pending: { bg: '#FFA500', color: '#ffffff', label: 'Спор' },
+    completed:       { bg: '#C0DD97', color: '#3B6D11', label: 'Завершён' },
+    refunded:        { bg: '#F7C1C1', color: '#A32D2D', label: 'Возврат' },
+    cancelled:       { bg: '#F7C1C1', color: '#A32D2D', label: 'Отменён' },
+  }
 
-        {/* Tabs */}
-        <div className='tabs'>
-          <button
-            className={`tab${tab === 'active' ? ' active' : ''}`}
-            onClick={() => setTab('active')}
-          >
-            {t.order.active} {active.length > 0 && !loading && (
-              <span style={{
-                marginLeft: 6, padding: '1px 7px', borderRadius: 10, fontSize: 11,
-                background: 'var(--accent)', color: '#ffffff',
-                fontWeight: 700,
-              }}>
-                {active.length}
-              </span>
-            )}
-          </button>
-          <button
-            className={`tab${tab === 'done' ? ' active' : ''}`}
-            onClick={() => setTab('done')}
-          >
-            {t.order.done}
-          </button>
-        </div>
+  return (
+    <div style={{ backgroundColor: '#F7F6F3', minHeight: '100dvh', paddingBottom: 64 }}>
+
+      {/* ШАПКА */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #E8E6E1',
+        padding: '14px 16px',
+      }}>
+        <h1 style={{ fontSize: 20, fontWeight: 500, color: '#1A1917', margin: 0 }}>
+          {t.order.myOrders}
+        </h1>
       </div>
 
-      <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* ТАБЫ */}
+      <div style={{
+        display: 'flex',
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #E8E6E1',
+      }}>
+        {[
+          { key: 'active' as const, label: t.order.active, count: active.length },
+          { key: 'done' as const, label: t.order.done, count: done.length },
+        ].map(t_item => {
+          const isActive = tab === t_item.key
+          return (
+            <button
+              key={t_item.key}
+              onClick={() => setTab(t_item.key)}
+              style={{
+                flex: 1, padding: '12px 0',
+                background: 'none', border: 'none',
+                borderBottom: isActive ? '2px solid #D85A30' : '2px solid transparent',
+                color: isActive ? '#D85A30' : '#6B6966',
+                fontSize: 14, fontWeight: isActive ? 500 : 400,
+                cursor: 'pointer',
+              }}
+            >
+              {t_item.label} {t_item.count > 0 && !loading && (
+                <span style={{
+                  marginLeft: 6, padding: '1px 7px', borderRadius: 10, fontSize: 11,
+                  background: isActive ? '#D85A30' : '#E8E6E1',
+                  color: isActive ? '#ffffff' : '#6B6966',
+                  fontWeight: 700,
+                }}>
+                  {t_item.count}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* СПИСОК ЗАКАЗОВ */}
+      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {loading && Array.from({ length: 3 }, (_, i) => <OrderCardSkeleton key={i} />)}
 
         {!loading && error && (
-          <ErrorScreen message={error} onRetry={load} />
+          <ErrorScreen message={error} onRetry={() => load()} />
         )}
 
         {!loading && !error && shown.length === 0 && (
@@ -93,72 +128,93 @@ export default function OrdersPage() {
           )
         )}
 
-        {!loading && shown.map(order => (
-          <OrderCard key={order.id} order={order} onClick={() => navigate(`/orders/${order.id}`)} />
-        ))}
+        {!loading && shown.map(order => {
+          const status = statusMap[order.status]
+          const date = new Date(order.scheduledAt).toLocaleString('ru-RU', {
+            day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+          })
+          const unread = order.unreadCount ?? 0
+
+          return (
+            <div
+              key={order.id}
+              onClick={() => navigate(`/orders/${order.id}`)}
+              style={{
+                backgroundColor: ['completed', 'refunded', 'cancelled'].includes(order.status) ? '#F7F6F3' : '#ffffff',
+                border: '1px solid #E8E6E1',
+                borderRadius: 16,
+                padding: 14,
+                cursor: 'pointer',
+              }}
+            >
+              {/* Верхняя строка */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                marginBottom: 8,
+              }}>
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 500, color: '#1A1917', margin: '0 0 2px' }}>
+                    Заказ #{order.id}
+                  </p>
+                  <p style={{ fontSize: 13, color: '#6B6966', margin: 0 }}>
+                    {order.chefName ?? `Повар #${order.chefId}`}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 500,
+                    padding: '3px 9px', borderRadius: 6,
+                    backgroundColor: status.bg, color: status.color,
+                  }}>
+                    {status.label}
+                  </span>
+                  <span style={{ fontSize: 11, color: '#9E9B97' }}>
+                    {date}
+                  </span>
+                </div>
+              </div>
+
+              {/* Нижняя строка */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingTop: 8,
+                borderTop: '1px solid #E8E6E1',
+              }}>
+                <p style={{
+                  fontSize: 13, color: '#9E9B97', margin: 0,
+                  flex: 1, overflow: 'hidden',
+                  whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                  paddingRight: 8,
+                }}>
+                  {order.agreedPrice ? `${order.agreedPrice} ₾` : `${order.persons} ${t.common.persons}`}
+                </p>
+
+                {/* Бейдж непрочитанных */}
+                {unread > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M1 11L2.5 9H13V2H1V11Z"
+                        stroke="#9E9B97" strokeWidth="1.2" strokeLinejoin="round"/>
+                    </svg>
+                    <div style={{
+                      minWidth: 18, height: 18, borderRadius: 9, padding: '0 4px',
+                      backgroundColor: '#E24B4A', color: '#ffffff',
+                      fontSize: 10, fontWeight: 500,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {unread >= 10 ? '9+' : unread}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
       </div>
-    </div>
-  )
-}
-
-function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
-  const t = useT()
-  const date = new Date(order.scheduledAt).toLocaleString('ru-RU', {
-    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-  })
-
-  const unread = order.unreadCount ?? 0
-
-  return (
-    <div onClick={onClick} className='card' style={{ cursor: 'pointer', position: 'relative' }}>
-      {unread > 0 && (
-        <div style={{
-          position: 'absolute',
-          top: -6,
-          left: -6,
-          backgroundColor: 'var(--accent)',
-          color: '#fff',
-          borderRadius: '50%',
-          minWidth: 18,
-          height: 18,
-          fontSize: 11,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '0 4px',
-          fontWeight: 700,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
-        }}>
-          {unread >= 10 ? '9+' : unread}
-        </div>
-      )}
-
-      {/* Header row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>
-            {order.chefName ?? `Повар #${order.chefId}`}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>
-            {t.order.orderNum} #{order.id}
-          </div>
-        </div>
-        <StatusBadge status={order.status} />
-      </div>
-
-      {/* Meta row */}
-      <div style={{ display: 'flex', gap: 14, fontSize: 13, color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
-        <span>📅 {date}</span>
-        <span>👥 {order.persons} {t.common.persons}</span>
-        <span>{order.type === 'home_visit' ? t.order.homeVisit : t.order.delivery}</span>
-      </div>
-
-      {/* Price */}
-      {order.agreedPrice && (
-        <div style={{ marginTop: 10, fontWeight: 700, fontSize: 18 }}>
-          {order.agreedPrice} ₾
-        </div>
-      )}
     </div>
   )
 }
