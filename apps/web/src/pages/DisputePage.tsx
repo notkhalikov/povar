@@ -39,7 +39,7 @@ export default function DisputePage() {
       .finally(() => setLoading(false))
   }, [id])
 
-  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>{t.common.loading}</div>
+  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-secondary)' }}>{t.common.loading}</div>
   if (error)   return <div style={{ padding: 24, color: 'red' }}>{t.common.error}: {error}</div>
   if (!dispute) return null
 
@@ -82,7 +82,7 @@ export default function DisputePage() {
             {t.dispute.resolutions[dispute.resolutionType]}
           </div>
           {dispute.resolutionComment && (
-            <div style={{ fontSize: 14, color: 'var(--tg-theme-hint-color)' }}>
+            <div style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>
               {dispute.resolutionComment}
             </div>
           )}
@@ -127,8 +127,8 @@ export default function DisputePage() {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--tg-theme-hint-color)22' }}>
-      <span style={{ color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>{label}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--color-text-secondary)22' }}>
+      <span style={{ color: 'var(--color-text-secondary)', fontSize: 14 }}>{label}</span>
       <span style={{ fontSize: 14 }}>{children}</span>
     </div>
   )
@@ -137,14 +137,14 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const sectionStyle: React.CSSProperties = {
-  background: 'var(--tg-theme-secondary-bg-color)',
+  background: 'var(--color-surface)',
   borderRadius: 12,
   padding: '0 16px',
 }
 
 const labelStyle: React.CSSProperties = {
   fontSize: 13,
-  color: 'var(--tg-theme-hint-color)',
+  color: 'var(--color-text-secondary)',
   marginBottom: 8,
   fontWeight: 600,
   textTransform: 'uppercase',
@@ -175,9 +175,9 @@ const backLinkStyle: React.CSSProperties = {
   width: '100%',
   padding: '12px',
   borderRadius: 12,
-  border: '1px solid var(--tg-theme-hint-color)',
+  border: '1px solid var(--color-text-secondary)',
   background: 'transparent',
-  color: 'var(--tg-theme-text-color)',
+  color: 'var(--color-text-primary)',
   fontSize: 15,
   cursor: 'pointer',
   textAlign: 'center',

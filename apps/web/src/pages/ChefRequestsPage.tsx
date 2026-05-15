@@ -50,13 +50,13 @@ export default function ChefRequestsPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>{t.common.loading}</div>
+    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-secondary)' }}>{t.common.loading}</div>
   }
 
   return (
     <div style={{ padding: '12px 16px 80px' }}>
       <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>{t.requests.incoming}</h2>
-      <p style={{ margin: '0 0 16px', color: 'var(--tg-theme-hint-color)', fontSize: 13 }}>
+      <p style={{ margin: '0 0 16px', color: 'var(--color-text-secondary)', fontSize: 13 }}>
         {t.requests.incomingHint}
       </p>
 
@@ -64,7 +64,7 @@ export default function ChefRequestsPage() {
         <div style={{ textAlign: 'center', padding: '48px 0' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
           <div style={{ fontWeight: 600, marginBottom: 8 }}>{t.requests.noIncoming}</div>
-          <div style={{ color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>
+          <div style={{ color: 'var(--color-text-secondary)', fontSize: 14 }}>
             {t.requests.noIncomingHint}
           </div>
           <button
@@ -159,7 +159,7 @@ function RequestCard({
           <div style={{ fontWeight: 600, fontSize: 15 }}>
             {item.city}{item.district ? `, ${item.district}` : ''}
           </div>
-          <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>
             {item.format === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull} · 👥 {item.persons} {t.common.persons}
           </div>
         </div>
@@ -169,13 +169,13 @@ function RequestCard({
       </div>
 
       {item.description && (
-        <p style={{ margin: '0 0 10px', fontSize: 14, lineHeight: 1.5, color: 'var(--tg-theme-text-color)' }}>
+        <p style={{ margin: '0 0 10px', fontSize: 14, lineHeight: 1.5, color: 'var(--color-text-primary)' }}>
           {item.description}
         </p>
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)' }}>📅 {date}</span>
+        <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>📅 {date}</span>
         {item.hasResponded ? (
           <span style={respondedBadgeStyle}>{t.requests.respondSent}</span>
         ) : (
@@ -195,21 +195,21 @@ function RequestCard({
 const cardStyle: React.CSSProperties = {
   padding: '14px 16px',
   borderRadius: 14,
-  background: 'var(--tg-theme-secondary-bg-color)',
+  background: 'var(--color-surface)',
 }
 
 const respondFormStyle: React.CSSProperties = {
   padding: '14px 16px',
   borderRadius: '0 0 14px 14px',
-  background: 'var(--tg-theme-bg-color)',
-  border: '1px solid var(--tg-theme-hint-color)44',
+  background: 'var(--color-bg)',
+  border: '1px solid var(--color-text-secondary)44',
   borderTop: 'none',
   marginTop: -4,
 }
 
 const labelStyle: React.CSSProperties = {
   fontSize: 13,
-  color: 'var(--tg-theme-hint-color)',
+  color: 'var(--color-text-secondary)',
   marginBottom: 6,
 }
 
@@ -217,9 +217,9 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '11px 13px',
   borderRadius: 10,
-  border: '1px solid var(--tg-theme-hint-color)',
-  background: 'var(--tg-theme-secondary-bg-color)',
-  color: 'var(--tg-theme-text-color)',
+  border: '1px solid var(--color-text-secondary)',
+  background: 'var(--color-surface)',
+  color: 'var(--color-text-primary)',
   fontSize: 15,
   boxSizing: 'border-box',
   outline: 'none',
@@ -229,8 +229,8 @@ const respondBtnStyle: React.CSSProperties = {
   padding: '7px 16px',
   borderRadius: 10,
   border: 'none',
-  background: 'var(--tg-theme-button-color)',
-  color: 'var(--tg-theme-button-text-color)',
+  background: 'var(--accent)',
+  color: '#ffffff',
   fontSize: 14,
   fontWeight: 600,
   cursor: 'pointer',
@@ -240,8 +240,8 @@ const submitBtnStyle: React.CSSProperties = {
   padding: '11px',
   borderRadius: 10,
   border: 'none',
-  background: 'var(--tg-theme-button-color)',
-  color: 'var(--tg-theme-button-text-color)',
+  background: 'var(--accent)',
+  color: '#ffffff',
   fontSize: 15,
   fontWeight: 600,
   cursor: 'pointer',
@@ -250,9 +250,9 @@ const submitBtnStyle: React.CSSProperties = {
 const cancelBtnStyle: React.CSSProperties = {
   padding: '11px',
   borderRadius: 10,
-  border: '1px solid var(--tg-theme-hint-color)',
+  border: '1px solid var(--color-text-secondary)',
   background: 'transparent',
-  color: 'var(--tg-theme-text-color)',
+  color: 'var(--color-text-primary)',
   fontSize: 15,
   cursor: 'pointer',
 }
@@ -261,9 +261,9 @@ const linkBtnStyle: React.CSSProperties = {
   marginTop: 16,
   padding: '10px 20px',
   borderRadius: 10,
-  border: '1px solid var(--tg-theme-hint-color)',
+  border: '1px solid var(--color-text-secondary)',
   background: 'transparent',
-  color: 'var(--tg-theme-text-color)',
+  color: 'var(--color-text-primary)',
   fontSize: 14,
   cursor: 'pointer',
 }

@@ -29,7 +29,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
       <div
         style={{
           width: '100%',
-          background: 'var(--tg-theme-bg-color)',
+          background: 'var(--color-bg)',
           borderRadius: '20px 20px 0 0',
           padding: '8px 16px max(24px, env(safe-area-inset-bottom))',
           maxHeight: '90vh',
@@ -41,7 +41,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
         {/* Drag handle */}
         <div style={{
           width: 36, height: 4, borderRadius: 2,
-          background: 'var(--tg-theme-hint-color)',
+          background: 'var(--color-text-secondary)',
           opacity: .35,
           margin: '8px auto 16px',
         }} />

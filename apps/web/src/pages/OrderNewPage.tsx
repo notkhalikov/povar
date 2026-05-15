@@ -138,9 +138,9 @@ export default function OrderNewPage() {
                   style={{
                     padding: '20px 16px',
                     borderRadius: 16,
-                    border: `2px solid ${active ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-secondary-bg-color)'}`,
-                    background: active ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-secondary-bg-color)',
-                    color: active ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
+                    border: `2px solid ${active ? 'var(--accent)' : 'var(--color-surface)'}`,
+                    background: active ? 'var(--accent)' : 'var(--color-surface)',
+                    color: active ? '#ffffff' : 'var(--color-text-primary)',
                     cursor: 'pointer',
                     textAlign: 'left',
                     display: 'flex',
@@ -283,7 +283,7 @@ export default function OrderNewPage() {
             )}
           </div>
 
-          <p style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginTop: 14, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 14, lineHeight: 1.5 }}>
             {t.order.afterCreate}
           </p>
 
@@ -308,7 +308,7 @@ export default function OrderNewPage() {
           style={{
             marginTop: 20,
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--tg-theme-hint-color)', fontSize: 14,
+            color: 'var(--color-text-secondary)', fontSize: 14,
             padding: '8px 0', minHeight: 44, display: 'flex', alignItems: 'center', gap: 4,
           }}
         >
@@ -323,9 +323,9 @@ const counterBtnStyle: React.CSSProperties = {
   width: 48,
   height: 48,
   borderRadius: 24,
-  border: '1.5px solid var(--tg-theme-hint-color)',
-  background: 'var(--tg-theme-secondary-bg-color)',
-  color: 'var(--tg-theme-text-color)',
+  border: '1.5px solid var(--color-text-secondary)',
+  background: 'var(--color-surface)',
+  color: 'var(--color-text-primary)',
   fontSize: 24,
   cursor: 'pointer',
   display: 'flex',

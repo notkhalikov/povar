@@ -52,7 +52,7 @@ export default function RequestDetailPage() {
     }
   }
 
-  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>{t.common.loading}</div>
+  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-secondary)' }}>{t.common.loading}</div>
   if (error)   return <div style={{ padding: 24, color: 'red' }}>{t.common.error}: {error}</div>
   if (!req)    return null
 
@@ -92,7 +92,7 @@ export default function RequestDetailPage() {
         </div>
 
         {req.responses.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>
+          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--color-text-secondary)', fontSize: 14 }}>
             {t.requests.noResponses}
           </div>
         )}
@@ -152,7 +152,7 @@ function ResponseCard({
   const rating = Number(response.ratingCache)
   const statusColor =
     response.status === 'accepted' ? '#34c759' :
-    response.status === 'rejected' ? '#888' : 'var(--tg-theme-hint-color)'
+    response.status === 'rejected' ? '#888' : 'var(--color-text-secondary)'
 
   return (
     <div style={responseCardStyle}>
@@ -160,13 +160,13 @@ function ResponseCard({
         <div>
           <Link
             to={`/chefs/${response.chefProfileId}`}
-            style={{ fontWeight: 600, fontSize: 15, color: 'var(--tg-theme-text-color)', textDecoration: 'none' }}
+            style={{ fontWeight: 600, fontSize: 15, color: 'var(--color-text-primary)', textDecoration: 'none' }}
           >
             {response.chefName} →
           </Link>
           <div style={{ fontSize: 13, color: '#f5a623', marginTop: 2 }}>
             {'★'.repeat(Math.round(rating))}{'☆'.repeat(5 - Math.round(rating))}
-            <span style={{ color: 'var(--tg-theme-hint-color)', marginLeft: 4 }}>
+            <span style={{ color: 'var(--color-text-secondary)', marginLeft: 4 }}>
               {rating > 0 ? rating.toFixed(1) : '—'}
             </span>
           </div>
@@ -185,7 +185,7 @@ function ResponseCard({
       </div>
 
       {response.comment && (
-        <p style={{ margin: '0 0 10px', fontSize: 14, lineHeight: 1.5, color: 'var(--tg-theme-text-color)' }}>
+        <p style={{ margin: '0 0 10px', fontSize: 14, lineHeight: 1.5, color: 'var(--color-text-primary)' }}>
           {response.comment}
         </p>
       )}
@@ -224,9 +224,9 @@ function CustomerChatTabs({ req }: { req: RequestDetail }) {
                 flex: '0 0 auto',
                 padding: '8px 14px',
                 borderRadius: 20,
-                border: '1px solid var(--tg-theme-hint-color)',
-                background: active ? 'var(--tg-theme-button-color)' : 'transparent',
-                color: active ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
+                border: '1px solid var(--color-text-secondary)',
+                background: active ? 'var(--accent)' : 'transparent',
+                color: active ? '#ffffff' : 'var(--color-text-primary)',
                 fontSize: 13,
                 fontWeight: active ? 600 : 400,
                 cursor: 'pointer',
@@ -245,15 +245,15 @@ function CustomerChatTabs({ req }: { req: RequestDetail }) {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--tg-theme-hint-color)22' }}>
-      <span style={{ color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>{label}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--color-text-secondary)22' }}>
+      <span style={{ color: 'var(--color-text-secondary)', fontSize: 14 }}>{label}</span>
       <span style={{ fontSize: 14, textAlign: 'right', maxWidth: '60%' }}>{children}</span>
     </div>
   )
 }
 
 const sectionStyle: React.CSSProperties = {
-  background: 'var(--tg-theme-secondary-bg-color)',
+  background: 'var(--color-surface)',
   borderRadius: 12,
   padding: '0 16px',
 }
@@ -261,7 +261,7 @@ const sectionStyle: React.CSSProperties = {
 const responseCardStyle: React.CSSProperties = {
   padding: '14px 16px',
   borderRadius: 12,
-  background: 'var(--tg-theme-secondary-bg-color)',
+  background: 'var(--color-surface)',
 }
 
 const acceptBtnStyle: React.CSSProperties = {
@@ -269,8 +269,8 @@ const acceptBtnStyle: React.CSSProperties = {
   padding: '11px',
   borderRadius: 10,
   border: 'none',
-  background: 'var(--tg-theme-button-color)',
-  color: 'var(--tg-theme-button-text-color)',
+  background: 'var(--accent)',
+  color: '#ffffff',
   fontSize: 15,
   fontWeight: 600,
   cursor: 'pointer',
@@ -280,9 +280,9 @@ const closeBtnStyle: React.CSSProperties = {
   width: '100%',
   padding: '13px',
   borderRadius: 12,
-  border: '1px solid var(--tg-theme-hint-color)',
+  border: '1px solid var(--color-text-secondary)',
   background: 'transparent',
-  color: 'var(--tg-theme-text-color)',
+  color: 'var(--color-text-primary)',
   fontSize: 15,
   cursor: 'pointer',
 }

@@ -70,7 +70,7 @@ export default function LoginPage() {
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 56, marginBottom: 12, lineHeight: 1 }}>👨‍🍳</div>
         <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700 }}>Povar</h1>
-        <p style={{ margin: '8px 0 0', color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>
+        <p style={{ margin: '8px 0 0', color: 'var(--color-text-secondary)', fontSize: 14 }}>
           Домашняя кухня в Тбилиси и Батуми
         </p>
       </div>

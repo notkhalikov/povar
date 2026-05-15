@@ -71,7 +71,7 @@ export default function RequestsPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>{t.common.loading}</div>
+    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-secondary)' }}>{t.common.loading}</div>
   }
 
   return (
@@ -173,7 +173,7 @@ export default function RequestsPage() {
         <div style={{ textAlign: 'center', padding: '48px 0' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>📩</div>
           <div style={{ fontWeight: 600, marginBottom: 8 }}>{t.requests.noRequests}</div>
-          <div style={{ color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>
+          <div style={{ color: 'var(--color-text-secondary)', fontSize: 14 }}>
             {t.requests.noRequestsHint}
           </div>
         </div>
@@ -200,7 +200,7 @@ function RequestCard({ item, onClick }: { item: RequestItem; onClick: () => void
           <div style={{ fontWeight: 600, fontSize: 15 }}>
             {item.city}{item.district ? `, ${item.district}` : ''}
           </div>
-          <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>
             {item.format === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull} · 👥 {item.persons} {t.common.persons}
           </div>
         </div>
@@ -208,7 +208,7 @@ function RequestCard({ item, onClick }: { item: RequestItem; onClick: () => void
           {item.status === 'open' ? t.requests.open : t.requests.closed}
         </span>
       </div>
-      <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--tg-theme-hint-color)' }}>
+      <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--color-text-secondary)' }}>
         <span>📅 {date}</span>
         {item.budget && <span>💰 {t.common.upTo} {item.budget} {t.common.currency}</span>}
         <span>💬 {item.responseCount} {plural(item.responseCount, t.requests.responseCount.one, t.requests.responseCount.few, t.requests.responseCount.many)}</span>
@@ -220,7 +220,7 @@ function RequestCard({ item, onClick }: { item: RequestItem; onClick: () => void
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 6 }}>{label}</div>
       {children}
     </div>
   )
@@ -236,14 +236,14 @@ function plural(n: number, one: string, few: string, many: string) {
 const cardStyle: React.CSSProperties = {
   padding: '14px 16px',
   borderRadius: 14,
-  background: 'var(--tg-theme-secondary-bg-color)',
+  background: 'var(--color-surface)',
   cursor: 'pointer',
 }
 
 const formCardStyle: React.CSSProperties = {
   padding: '16px',
   borderRadius: 14,
-  background: 'var(--tg-theme-secondary-bg-color)',
+  background: 'var(--color-surface)',
   marginBottom: 20,
 }
 
@@ -251,9 +251,9 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '11px 13px',
   borderRadius: 10,
-  border: '1px solid var(--tg-theme-hint-color)',
-  background: 'var(--tg-theme-bg-color)',
-  color: 'var(--tg-theme-text-color)',
+  border: '1px solid var(--color-text-secondary)',
+  background: 'var(--color-bg)',
+  color: 'var(--color-text-primary)',
   fontSize: 15,
   boxSizing: 'border-box',
   outline: 'none',
@@ -263,8 +263,8 @@ const createBtnStyle: React.CSSProperties = {
   padding: '8px 16px',
   borderRadius: 10,
   border: 'none',
-  background: 'var(--tg-theme-button-color)',
-  color: 'var(--tg-theme-button-text-color)',
+  background: 'var(--accent)',
+  color: '#ffffff',
   fontSize: 14,
   fontWeight: 600,
   cursor: 'pointer',
@@ -275,8 +275,8 @@ const submitBtnStyle: React.CSSProperties = {
   padding: '13px',
   borderRadius: 12,
   border: 'none',
-  background: 'var(--tg-theme-button-color)',
-  color: 'var(--tg-theme-button-text-color)',
+  background: 'var(--accent)',
+  color: '#ffffff',
   fontSize: 16,
   fontWeight: 600,
   cursor: 'pointer',

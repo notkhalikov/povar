@@ -1,3 +1,11 @@
+html,
+body,
+#root {
+  background-color: #ffffff !important;
+  color: #1A1917 !important;
+  color-scheme: light !important;
+}
+
 /* ─────────────────────────────────────────
    1. DESIGN TOKENS
 ───────────────────────────────────────── */
@@ -29,20 +37,11 @@
   --status-vacation-text: #5F5E5A;
   --badge-red: #E24B4A;
 
-  /* Fallbacks for when outside Telegram WebApp (browser/login) */
-  --tg-theme-bg-color: #ffffff;
-  --tg-theme-secondary-bg-color: #F7F6F3;
-  --tg-theme-text-color: #1A1917;
-  --tg-theme-hint-color: #9E9B97;
-  --tg-theme-link-color: #D85A30;
-  --tg-theme-button-color: #D85A30;
-  --tg-theme-button-text-color: #ffffff;
-
-  /* Semantic aliases (используй эти в новых компонентах) */
-  --color-bg: var(--tg-theme-bg-color);
-  --color-surface: var(--tg-theme-secondary-bg-color);
-  --color-text-primary: var(--tg-theme-text-color);
-  --color-text-secondary: var(--tg-theme-hint-color);
+  /* Semantic color aliases — hardcoded light theme values */
+  --color-bg: #ffffff;
+  --color-surface: #F7F6F3;
+  --color-text-primary: #1A1917;
+  --color-text-secondary: #6B6966;
   --color-text-tertiary: #9E9B97;
   --color-border: #E8E6E1;
   --color-border-strong: #D0CEC9;

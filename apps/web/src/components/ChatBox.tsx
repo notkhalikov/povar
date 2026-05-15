@@ -91,8 +91,8 @@ export function ChatBox({ orderId, requestId, chefId, isOpen = true }: ChatBoxPr
               <div
                 style={{
                   ...bubbleBaseStyle,
-                  background: isOwn ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-secondary-bg-color)',
-                  color:      isOwn ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
+                  background: isOwn ? 'var(--accent)' : 'var(--color-surface)',
+                  color:      isOwn ? '#ffffff' : 'var(--color-text-primary)',
                   borderBottomRightRadius: isOwn ? 4 : 14,
                   borderBottomLeftRadius:  isOwn ? 14 : 4,
                 }}
@@ -136,9 +136,9 @@ export function ChatBox({ orderId, requestId, chefId, isOpen = true }: ChatBoxPr
 const containerStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  border: '1px solid var(--tg-theme-hint-color)22',
+  border: '1px solid var(--color-text-secondary)22',
   borderRadius: 12,
-  background: 'var(--tg-theme-bg-color)',
+  background: 'var(--color-bg)',
   marginBottom: 16,
   overflow: 'hidden',
 }
@@ -164,12 +164,12 @@ const listStyle: React.CSSProperties = {
 const emptyStyle: React.CSSProperties = {
   margin: 'auto',
   fontSize: 13,
-  color: 'var(--tg-theme-hint-color)',
+  color: 'var(--color-text-secondary)',
 }
 
 const senderNameStyle: React.CSSProperties = {
   fontSize: 11,
-  color: 'var(--tg-theme-hint-color)',
+  color: 'var(--color-text-secondary)',
   marginBottom: 2,
   padding: '0 8px',
 }
@@ -188,6 +188,6 @@ const inputRowStyle: React.CSSProperties = {
   display: 'flex',
   gap: 8,
   padding: 8,
-  borderTop: '1px solid var(--tg-theme-hint-color)22',
+  borderTop: '1px solid var(--color-text-secondary)22',
   alignItems: 'center',
 }

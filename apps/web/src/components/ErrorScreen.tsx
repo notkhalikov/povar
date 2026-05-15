@@ -30,7 +30,7 @@ export function ErrorScreen({ message, onRetry }: ErrorScreenProps) {
       {message && (
         <div style={{
           fontSize: 14,
-          color: 'var(--tg-theme-hint-color)',
+          color: 'var(--color-text-secondary)',
           marginBottom: 20,
           maxWidth: 280,
           lineHeight: 1.5,

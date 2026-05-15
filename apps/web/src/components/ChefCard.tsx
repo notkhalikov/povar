@@ -87,7 +87,7 @@ export function ChefCard({ chef }: { chef: ChefListItem }) {
             </strong>
             <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
               <span style={{ color: '#f5a623', fontSize: 13 }}>★</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: rating > 0 ? 'var(--tg-theme-text-color)' : 'var(--tg-theme-hint-color)' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: rating > 0 ? 'var(--color-text-primary)' : 'var(--color-text-secondary)' }}>
                 {rating > 0 ? rating.toFixed(1) : '—'}
               </span>
             </div>
@@ -95,7 +95,7 @@ export function ChefCard({ chef }: { chef: ChefListItem }) {
 
           {/* Location */}
           {chef.city && (
-            <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)', marginBottom: 8 }}>
+            <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 8 }}>
               📍 {chef.city}{chef.districts.length > 0 ? ` · ${chef.districts[0]}` : ''}
             </div>
           )}
@@ -128,7 +128,7 @@ export function ChefCard({ chef }: { chef: ChefListItem }) {
 
           {/* Footer */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)' }}>
+            <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>
               {chef.avgPrice ? `от ${chef.avgPrice} ₾` : `${chef.ordersCount} заказов`}
             </span>
             <span style={{
@@ -136,8 +136,8 @@ export function ChefCard({ chef }: { chef: ChefListItem }) {
               borderRadius: 20,
               fontSize: 13,
               fontWeight: 600,
-              background: 'var(--tg-theme-button-color)',
-              color: 'var(--tg-theme-button-text-color)',
+              background: 'var(--accent)',
+              color: '#ffffff',
             }}>
               {t.catalog.moreBtn}
             </span>

@@ -55,7 +55,7 @@ export default function OrdersPage() {
             {t.order.active} {active.length > 0 && !loading && (
               <span style={{
                 marginLeft: 6, padding: '1px 7px', borderRadius: 10, fontSize: 11,
-                background: 'var(--tg-theme-button-color)', color: 'var(--tg-theme-button-text-color)',
+                background: 'var(--accent)', color: '#ffffff',
                 fontWeight: 700,
               }}>
                 {active.length}
@@ -116,7 +116,7 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
           position: 'absolute',
           top: -6,
           left: -6,
-          backgroundColor: 'var(--tg-theme-button-color)',
+          backgroundColor: 'var(--accent)',
           color: '#fff',
           borderRadius: '50%',
           minWidth: 18,
@@ -139,7 +139,7 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
           <div style={{ fontWeight: 700, fontSize: 15 }}>
             {order.chefName ?? `Повар #${order.chefId}`}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>
             {t.order.orderNum} #{order.id}
           </div>
         </div>
@@ -147,7 +147,7 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
       </div>
 
       {/* Meta row */}
-      <div style={{ display: 'flex', gap: 14, fontSize: 13, color: 'var(--tg-theme-hint-color)', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 14, fontSize: 13, color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
         <span>📅 {date}</span>
         <span>👥 {order.persons} {t.common.persons}</span>
         <span>{order.type === 'home_visit' ? t.order.homeVisit : t.order.delivery}</span>

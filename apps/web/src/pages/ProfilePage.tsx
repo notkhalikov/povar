@@ -60,7 +60,7 @@ export default function ProfilePage() {
         </div>
         <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{fullName}</div>
         {tgUser?.username && (
-          <div style={{ fontSize: 14, color: 'var(--tg-theme-hint-color)' }}>
+          <div style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>
             @{tgUser.username}
           </div>
         )}
@@ -68,8 +68,8 @@ export default function ProfilePage() {
           <div style={{
             display: 'inline-block', marginTop: 8,
             padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-            background: apiUser.role === 'chef' ? '#34c75922' : 'var(--tg-theme-secondary-bg-color)',
-            color: apiUser.role === 'chef' ? '#34c759' : 'var(--tg-theme-hint-color)',
+            background: apiUser.role === 'chef' ? '#34c75922' : 'var(--color-surface)',
+            color: apiUser.role === 'chef' ? '#34c759' : 'var(--color-text-secondary)',
           }}>
             {t.profile.role[apiUser.role as keyof typeof t.profile.role] ?? t.profile.role.customer}
           </div>
@@ -84,7 +84,7 @@ export default function ProfilePage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>{t.profile.status}</div>
-                <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)' }}>
+                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>
                   {chefProfile.isActive ? t.profile.accepting : t.profile.vacation}
                 </div>
               </div>
@@ -96,7 +96,7 @@ export default function ProfilePage() {
                 style={{
                   width: 51, height: 31, borderRadius: 16, border: 'none', cursor: 'pointer',
                   padding: 0, flexShrink: 0, transition: 'background .2s',
-                  background: chefProfile.isActive ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-hint-color)',
+                  background: chefProfile.isActive ? 'var(--accent)' : 'var(--color-text-secondary)',
                   opacity: togglingActive ? .6 : 1,
                   position: 'relative',
                 }}
@@ -118,21 +118,21 @@ export default function ProfilePage() {
             <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
               <div>
                 <div style={{ fontSize: 22, fontWeight: 700 }}>{chefProfile.ordersCount}</div>
-                <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)' }}>{t.profile.orders}</div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{t.profile.orders}</div>
               </div>
-              <div style={{ width: 1, background: 'var(--tg-theme-hint-color)', opacity: .2 }} />
+              <div style={{ width: 1, background: 'var(--color-text-secondary)', opacity: .2 }} />
               <div>
                 <div style={{ fontSize: 22, fontWeight: 700 }}>
                   {Number(chefProfile.ratingCache) > 0 ? Number(chefProfile.ratingCache).toFixed(1) : '—'}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)' }}>{t.profile.rating}</div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{t.profile.rating}</div>
               </div>
-              <div style={{ width: 1, background: 'var(--tg-theme-hint-color)', opacity: .2 }} />
+              <div style={{ width: 1, background: 'var(--color-text-secondary)', opacity: .2 }} />
               <div>
                 <div style={{ fontSize: 22, fontWeight: 700 }}>
                   {chefProfile.verificationStatus === 'approved' ? '✓' : '…'}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)' }}>{t.profile.verification}</div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{t.profile.verification}</div>
               </div>
             </div>
           </div>
@@ -151,7 +151,7 @@ export default function ProfilePage() {
         <div className='card' style={{ textAlign: 'center', padding: '28px 16px' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>👨‍🍳</div>
           <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{t.profile.becomeChefTitle}</div>
-          <div style={{ fontSize: 14, color: 'var(--tg-theme-hint-color)', marginBottom: 20, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 20, lineHeight: 1.5 }}>
             {t.profile.becomeChefHint}
           </div>
           <button
@@ -164,7 +164,7 @@ export default function ProfilePage() {
       )}
 
       {!apiUser && (
-        <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>
+        <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--color-text-secondary)', fontSize: 14 }}>
           {t.profile.noAuth}
         </div>
       )}

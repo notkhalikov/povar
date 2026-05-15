@@ -169,7 +169,7 @@ export default function ChefOnboardingPage() {
   return (
     <div style={{ padding: '24px 16px', paddingBottom: 'calc(72px + env(safe-area-inset-bottom))' }}>
       <h2 style={{ margin: '0 0 6px' }}>{t.chefOnboarding.title}</h2>
-      <p style={{ margin: '0 0 24px', color: 'var(--tg-theme-hint-color)', fontSize: 14 }}>
+      <p style={{ margin: '0 0 24px', color: 'var(--color-text-secondary)', fontSize: 14 }}>
         {t.chefOnboarding.hint}
       </p>
 
@@ -253,7 +253,7 @@ export default function ChefOnboardingPage() {
               <div style={{ fontWeight: 600, fontSize: 15 }}>
                 {isActive ? t.profile.accepting : t.profile.vacation}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>
+              <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>
                 {isActive ? t.chefOnboarding.visible : t.chefOnboarding.hidden}
               </div>
             </div>
@@ -263,7 +263,7 @@ export default function ChefOnboardingPage() {
               onClick={handleToggleStatus}
               style={{
                 ...toggleBtnStyle,
-                background: isActive ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-hint-color)',
+                background: isActive ? 'var(--accent)' : 'var(--color-text-secondary)',
                 opacity: togglingStatus ? 0.6 : 1,
               }}
             >
@@ -277,7 +277,7 @@ export default function ChefOnboardingPage() {
       {chefId !== null && (
         <div style={{ marginTop: 28 }}>
           <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{t.chef.portfolio}</div>
-          <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginBottom: 14 }}>
+          <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
             {t.chefOnboarding.portfolioHint}
           </div>
 
@@ -338,7 +338,7 @@ export default function ChefOnboardingPage() {
           {verificationStatus === 'pending' && (
             <div style={{ ...verifyBannerStyle, background: '#007aff11', border: '1px solid #007aff33' }}>
               <div style={{ fontWeight: 600, fontSize: 14, color: '#007aff' }}>{t.verification.pending}</div>
-              <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginTop: 4 }}>{t.verification.pendingHint}</div>
+              <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 4 }}>{t.verification.pendingHint}</div>
             </div>
           )}
 
@@ -347,7 +347,7 @@ export default function ChefOnboardingPage() {
               {verificationStatus === 'rejected' && (
                 <div style={{ ...verifyBannerStyle, background: '#ff3b3011', border: '1px solid #ff3b3033', marginBottom: 12 }}>
                   <div style={{ fontWeight: 600, fontSize: 14, color: '#ff3b30' }}>{t.verification.rejected}</div>
-                  <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginTop: 4 }}>{t.verification.rejectedHint}</div>
+                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 4 }}>{t.verification.rejectedHint}</div>
                 </div>
               )}
               <button
@@ -362,7 +362,7 @@ export default function ChefOnboardingPage() {
 
           {showVerifyForm && (
             <form onSubmit={handleSubmitVerification} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ fontSize: 14, color: 'var(--tg-theme-hint-color)' }}>{t.verification.formHint}</div>
+              <div style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>{t.verification.formHint}</div>
 
               <VerifyPhotoField
                 label={t.verification.docLabel}
@@ -393,7 +393,7 @@ export default function ChefOnboardingPage() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   type='button'
-                  style={{ flex: 1, padding: '11px', borderRadius: 12, border: '1px solid var(--tg-theme-hint-color)', background: 'transparent', color: 'var(--tg-theme-text-color)', fontSize: 15, cursor: 'pointer' }}
+                  style={{ flex: 1, padding: '11px', borderRadius: 12, border: '1px solid var(--color-text-secondary)', background: 'transparent', color: 'var(--color-text-primary)', fontSize: 15, cursor: 'pointer' }}
                   onClick={() => setShowVerifyForm(false)}
                   disabled={sendingVerify}
                 >
@@ -418,15 +418,15 @@ export default function ChefOnboardingPage() {
 function VerifyPhotoField({ label, fileId, onPick }: { label: string; fileId: string | null; onPick: () => void }) {
   return (
     <div>
-      <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 8 }}>{label}</div>
       <button
         type='button'
         onClick={onPick}
         style={{
           width: '100%', padding: '14px', borderRadius: 12,
-          border: `2px dashed ${fileId ? '#34c759' : 'var(--tg-theme-hint-color)'}`,
-          background: fileId ? '#34c75911' : 'var(--tg-theme-secondary-bg-color)',
-          color: fileId ? '#34c759' : 'var(--tg-theme-hint-color)',
+          border: `2px dashed ${fileId ? '#34c759' : 'var(--color-text-secondary)'}`,
+          background: fileId ? '#34c75911' : 'var(--color-surface)',
+          color: fileId ? '#34c759' : 'var(--color-text-secondary)',
           fontSize: 15, cursor: 'pointer', textAlign: 'center',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}
@@ -506,7 +506,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const labelStyle: React.CSSProperties = {
   display: 'block',
   fontSize: 13,
-  color: 'var(--tg-theme-hint-color)',
+  color: 'var(--color-text-secondary)',
   marginBottom: 6,
 }
 
@@ -514,9 +514,9 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '12px 14px',
   borderRadius: 10,
-  border: '1px solid var(--tg-theme-hint-color)',
-  background: 'var(--tg-theme-secondary-bg-color)',
-  color: 'var(--tg-theme-text-color)',
+  border: '1px solid var(--color-text-secondary)',
+  background: 'var(--color-surface)',
+  color: 'var(--color-text-primary)',
   fontSize: 15,
   boxSizing: 'border-box',
   outline: 'none',
@@ -542,8 +542,8 @@ const chipStyle: React.CSSProperties = {
   gap: 4,
   padding: '4px 10px',
   borderRadius: 20,
-  background: 'var(--tg-theme-button-color)',
-  color: 'var(--tg-theme-button-text-color)',
+  background: 'var(--accent)',
+  color: '#ffffff',
   fontSize: 13,
 }
 
@@ -562,8 +562,8 @@ const buttonStyle: React.CSSProperties = {
   padding: '14px',
   borderRadius: 12,
   border: 'none',
-  background: 'var(--tg-theme-button-color)',
-  color: 'var(--tg-theme-button-text-color)',
+  background: 'var(--accent)',
+  color: '#ffffff',
   fontSize: 16,
   fontWeight: 600,
   cursor: 'pointer',
@@ -580,14 +580,14 @@ const statusSectionStyle: React.CSSProperties = {
   marginTop: 28,
   padding: '14px 16px',
   borderRadius: 12,
-  background: 'var(--tg-theme-secondary-bg-color)',
+  background: 'var(--color-surface)',
 }
 
 const toggleBtnStyle: React.CSSProperties = {
   padding: '8px 18px',
   borderRadius: 10,
   border: 'none',
-  color: 'var(--tg-theme-button-text-color)',
+  color: '#ffffff',
   fontSize: 14,
   fontWeight: 600,
   cursor: 'pointer',
@@ -604,7 +604,7 @@ const photoThumbStyle: React.CSSProperties = {
   aspectRatio: '1',
   borderRadius: 10,
   overflow: 'hidden',
-  background: 'var(--tg-theme-secondary-bg-color)',
+  background: 'var(--color-surface)',
 }
 
 const deletePhotoBtnStyle: React.CSSProperties = {
@@ -628,9 +628,9 @@ const deletePhotoBtnStyle: React.CSSProperties = {
 const addPhotoBtnStyle: React.CSSProperties = {
   aspectRatio: '1',
   borderRadius: 10,
-  border: '2px dashed var(--tg-theme-hint-color)',
+  border: '2px dashed var(--color-text-secondary)',
   background: 'transparent',
-  color: 'var(--tg-theme-hint-color)',
+  color: 'var(--color-text-secondary)',
   fontSize: 32,
   cursor: 'pointer',
   display: 'flex',

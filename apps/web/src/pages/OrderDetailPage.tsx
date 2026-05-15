@@ -328,7 +328,7 @@ export default function OrderDetailPage() {
         <div style={{ fontSize: 48, marginBottom: 8, lineHeight: 1 }}>
           {STATUS_ICON[order.status] ?? '📋'}
         </div>
-        <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginBottom: 6 }}>
+        <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 6 }}>
           {t.order.orderNum} #{order.id}
         </div>
         <div style={{ fontSize: 22, fontWeight: 700, color: statusColor, marginBottom: 8 }}>
@@ -360,7 +360,7 @@ export default function OrderDetailPage() {
                   position: 'absolute',
                   top: -6,
                   right: -6,
-                  backgroundColor: 'var(--tg-theme-button-color)',
+                  backgroundColor: 'var(--accent)',
                   color: '#fff',
                   borderRadius: '50%',
                   minWidth: 18,
@@ -392,14 +392,14 @@ export default function OrderDetailPage() {
             {TIMELINE_STATUSES.map((status, i) => {
               const done    = curTimelineIdx > i || order.status === 'completed'
               const current = curTimelineIdx === i
-              const dot_color = done || current ? status === 'completed' ? '#34c759' : STATUS_COLORS[status] : 'var(--tg-theme-secondary-bg-color)'
+              const dot_color = done || current ? status === 'completed' ? '#34c759' : STATUS_COLORS[status] : 'var(--color-surface)'
               return (
                 <div key={status} style={{ display: 'flex', alignItems: 'center', flex: i < TIMELINE_STATUSES.length - 1 ? '1 1 auto' : 'none' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 52 }}>
                     <div style={{
                       width: 32, height: 32, borderRadius: 16,
-                      background: done || current ? dot_color : 'var(--tg-theme-secondary-bg-color)',
-                      color: done || current ? '#fff' : 'var(--tg-theme-hint-color)',
+                      background: done || current ? dot_color : 'var(--color-surface)',
+                      color: done || current ? '#fff' : 'var(--color-text-secondary)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: done ? 14 : 16,
                       fontWeight: 700,
@@ -410,7 +410,7 @@ export default function OrderDetailPage() {
                     </div>
                     <div style={{
                       fontSize: 10, marginTop: 4, textAlign: 'center',
-                      color: current ? statusColor : done ? 'var(--tg-theme-text-color)' : 'var(--tg-theme-hint-color)',
+                      color: current ? statusColor : done ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                       fontWeight: current ? 600 : 400,
                       lineHeight: 1.2,
                     }}>
@@ -420,7 +420,7 @@ export default function OrderDetailPage() {
                   {i < TIMELINE_STATUSES.length - 1 && (
                     <div style={{
                       flex: 1, height: 2, marginBottom: 18,
-                      background: done ? dot_color : 'var(--tg-theme-secondary-bg-color)',
+                      background: done ? dot_color : 'var(--color-surface)',
                       transition: 'background .2s',
                     }} />
                   )}
@@ -434,14 +434,14 @@ export default function OrderDetailPage() {
         <div className='card' style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 44, height: 44, borderRadius: 22,
-            background: 'var(--tg-theme-button-color)',
+            background: 'var(--accent)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--tg-theme-button-text-color)', fontSize: 18, fontWeight: 700, flexShrink: 0,
+            color: '#ffffff', fontSize: 18, fontWeight: 700, flexShrink: 0,
           }}>
             👨‍🍳
           </div>
           <div>
-            <div style={{ fontSize: 11, color: 'var(--tg-theme-hint-color)', marginBottom: 2 }}>{t.order.chef}</div>
+            <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 2 }}>{t.order.chef}</div>
             <div style={{ fontWeight: 600, fontSize: 15 }}>{order.chefName ?? `#${order.chefId}`}</div>
           </div>
         </div>
@@ -458,9 +458,9 @@ export default function OrderDetailPage() {
               min={1}
               style={{
                 width: '100%', padding: '12px 14px', borderRadius: 10,
-                border: '1px solid var(--tg-theme-hint-color)',
-                background: 'var(--tg-theme-secondary-bg-color)',
-                color: 'var(--tg-theme-text-color)',
+                border: '1px solid var(--color-text-secondary)',
+                background: 'var(--color-surface)',
+                color: 'var(--color-text-primary)',
                 fontSize: 15, boxSizing: 'border-box', outline: 'none',
               }}
             />
@@ -581,12 +581,12 @@ export default function OrderDetailPage() {
                     style={{
                       padding: '8px 14px',
                       borderRadius: 20,
-                      border: '1px solid var(--tg-theme-hint-color)',
+                      border: '1px solid var(--color-text-secondary)',
                       cursor: 'pointer',
                       fontSize: 13,
                       minHeight: 44,
-                      background: reviewTags.includes(key) ? 'var(--tg-theme-button-color)' : 'transparent',
-                      color: reviewTags.includes(key) ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
+                      background: reviewTags.includes(key) ? 'var(--accent)' : 'transparent',
+                      color: reviewTags.includes(key) ? '#ffffff' : 'var(--color-text-primary)',
                     }}
                   >
                     {label}
@@ -623,7 +623,7 @@ export default function OrderDetailPage() {
           <div className='card' style={{ textAlign: 'center', padding: '32px 16px', marginBottom: 16 }}>
             <div style={{ fontSize: 48, marginBottom: 10 }}>⭐</div>
             <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>{t.review.thanks}</div>
-            <div style={{ fontSize: 14, color: 'var(--tg-theme-hint-color)' }}>
+            <div style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>
               {t.review.thanksHint}
             </div>
           </div>
@@ -641,7 +641,7 @@ export default function OrderDetailPage() {
             <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6, color: 'var(--color-danger)' }}>
               {t.order.disputeTitle}
             </div>
-            <div style={{ fontSize: 14, color: 'var(--tg-theme-hint-color)', marginBottom: 16, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 16, lineHeight: 1.5 }}>
               {t.order.disputeInfo}
             </div>
             <button className='btn-secondary' style={{ maxWidth: 240, margin: '0 auto' }} onClick={handleGoToDispute}>
@@ -662,7 +662,7 @@ export default function OrderDetailPage() {
                 return (
                   <>
                     {!hasPrice && (
-                      <p style={{ margin: 0, fontSize: 13, color: 'var(--tg-theme-hint-color)', textAlign: 'center' }}>
+                      <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'center' }}>
                         {t.order.noPrice}
                       </p>
                     )}
@@ -709,7 +709,7 @@ export default function OrderDetailPage() {
         onClose={() => setShowDisputeModal(false)}
         title={t.dispute.openTitle}
       >
-        <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--tg-theme-hint-color)', lineHeight: 1.5 }}>
+        <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
           {t.dispute.openInfo}
         </p>
 
@@ -721,9 +721,9 @@ export default function OrderDetailPage() {
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
                 background: disputeReason === r.code
-                  ? 'var(--tg-theme-button-color)' + '18'
-                  : 'var(--tg-theme-secondary-bg-color)',
-                border: `1.5px solid ${disputeReason === r.code ? 'var(--tg-theme-button-color)' : 'transparent'}`,
+                  ? 'var(--accent)' + '18'
+                  : 'var(--color-surface)',
+                border: `1.5px solid ${disputeReason === r.code ? 'var(--accent)' : 'transparent'}`,
                 fontSize: 14, minHeight: 48,
               }}>
                 <input
@@ -732,7 +732,7 @@ export default function OrderDetailPage() {
                   value={r.code}
                   checked={disputeReason === r.code}
                   onChange={() => setDisputeReason(r.code)}
-                  style={{ accentColor: 'var(--tg-theme-button-color)', width: 18, height: 18 }}
+                  style={{ accentColor: 'var(--accent)', width: 18, height: 18 }}
                 />
                 {r.label}
               </label>

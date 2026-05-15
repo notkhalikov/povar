@@ -196,23 +196,31 @@ function OfflineToast() {
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <BrowserRouter>
-          <NotificationPermissionGate />
-          <BackButtonManager />
-          <OnboardingGate />
-          <DeepLinkRedirect />
-          <OfflineToast />
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <main style={{ flex: 1, paddingBottom: 'calc(60px + env(safe-area-inset-bottom))' }}>
-              <AnimatedRoutes />
-            </main>
-            <BottomNav />
-          </div>
-        </BrowserRouter>
-      </AuthProvider>
-    </ErrorBoundary>
+    <div style={{
+      backgroundColor: '#ffffff',
+      minHeight: '100dvh',
+      color: '#1A1917',
+      position: 'relative',
+      isolation: 'isolate',
+    }}>
+      <ErrorBoundary>
+        <AuthProvider>
+          <BrowserRouter>
+            <NotificationPermissionGate />
+            <BackButtonManager />
+            <OnboardingGate />
+            <DeepLinkRedirect />
+            <OfflineToast />
+            <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+              <main style={{ flex: 1, paddingBottom: 'calc(60px + env(safe-area-inset-bottom))' }}>
+                <AnimatedRoutes />
+              </main>
+              <BottomNav />
+            </div>
+          </BrowserRouter>
+        </AuthProvider>
+      </ErrorBoundary>
+    </div>
   )
 }
 
@@ -248,8 +256,8 @@ function NavItem({ to, icon, label }: { to: string; icon: string; label: string 
       style={({ isActive }) => ({
         ...navItemStyle,
         color: isActive
-          ? 'var(--tg-theme-button-color)'
-          : 'var(--tg-theme-hint-color)',
+          ? 'var(--accent)'
+          : 'var(--color-text-secondary)',
       })}
     >
       <span style={{ fontSize: 24, lineHeight: 1 }}>{icon}</span>
@@ -265,8 +273,8 @@ const navStyle: React.CSSProperties = {
   right: 0,
   display: 'flex',
   justifyContent: 'space-around',
-  background: 'var(--tg-theme-bg-color)',
-  borderTop: '1px solid color-mix(in srgb, var(--tg-theme-hint-color) 25%, transparent)',
+  background: 'var(--color-bg)',
+  borderTop: '1px solid color-mix(in srgb, var(--color-text-secondary) 25%, transparent)',
   padding: '6px 0 max(10px, env(safe-area-inset-bottom))',
   zIndex: 100,
 }

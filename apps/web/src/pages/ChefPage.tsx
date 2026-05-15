@@ -95,7 +95,7 @@ export default function ChefPage() {
     <div style={{ paddingBottom: 'var(--page-padding-bottom-bar)' }}>
 
       {/* ── Hero ─────────────────────────────────────────────────── */}
-      <div className='chef-hero' style={{ background: 'var(--tg-theme-secondary-bg-color)' }}>
+      <div className='chef-hero' style={{ background: 'var(--color-surface)' }}>
         <div className='chef-avatar-lg' style={{ background: avatarColor(chef.name) }}>
           {chef.portfolioMediaIds.length > 0
             ? <img src={chefPhotoUrl(chef.id, chef.portfolioMediaIds[0])} alt={chef.name}
@@ -107,7 +107,7 @@ export default function ChefPage() {
         <h1 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 700 }}>{chef.name}</h1>
 
         {chef.city && (
-          <div style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginBottom: 10 }}>
+          <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 10 }}>
             📍 {chef.city}
           </div>
         )}
@@ -118,7 +118,7 @@ export default function ChefPage() {
           <span style={{ fontSize: 18, fontWeight: 700 }}>
             {rating > 0 ? rating.toFixed(1) : '—'}
           </span>
-          <span style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)' }}>
+          <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>
             · {chef.ordersCount} {plural(chef.ordersCount, t.chef.ordersCount.one, t.chef.ordersCount.few, t.chef.ordersCount.many)}
           </span>
         </div>
@@ -167,7 +167,7 @@ export default function ChefPage() {
         {chef.bio && (
           <section className='card' style={{ marginBottom: 12 }}>
             <div className='section-label'>{t.chef.about}</div>
-            <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: 'var(--tg-theme-text-color)' }}>
+            <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: 'var(--color-text-primary)' }}>
               {chef.bio}
             </p>
           </section>
@@ -193,7 +193,7 @@ export default function ChefPage() {
               {chef.workFormats.map(f => (
                 <div key={f} style={{
                   padding: '10px 14px', borderRadius: 10,
-                  background: 'var(--tg-theme-bg-color)',
+                  background: 'var(--color-bg)',
                   fontSize: 14, fontWeight: 500,
                 }}>
                   {f === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull}
@@ -207,7 +207,7 @@ export default function ChefPage() {
         {chef.districts.length > 0 && (
           <section className='card' style={{ marginBottom: 12 }}>
             <div className='section-label'>{t.chef.districts}</div>
-            <div style={{ fontSize: 14, color: 'var(--tg-theme-text-color)', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 14, color: 'var(--color-text-primary)', lineHeight: 1.6 }}>
               {chef.districts.join(', ')}
             </div>
           </section>
@@ -240,8 +240,8 @@ export default function ChefPage() {
                       {review.tagsQuality.map(tag => (
                         <span key={tag} style={{
                           padding: '2px 8px', borderRadius: 10, fontSize: 11,
-                          background: 'var(--tg-theme-bg-color)',
-                          color: 'var(--tg-theme-hint-color)',
+                          background: 'var(--color-bg)',
+                          color: 'var(--color-text-secondary)',
                         }}>
                           {tag}
                         </span>
@@ -255,7 +255,7 @@ export default function ChefPage() {
                     </p>
                   )}
 
-                  <div style={{ fontSize: 11, color: 'var(--tg-theme-hint-color)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>
                     {new Date(review.createdAt).toLocaleDateString('ru-RU', {
                       day: 'numeric', month: 'long', year: 'numeric',
                     })}
@@ -265,10 +265,10 @@ export default function ChefPage() {
                   {review.chefReply && (
                     <div style={{
                       marginTop: 10, padding: '8px 10px', borderRadius: 8,
-                      background: 'var(--tg-theme-bg-color)', fontSize: 13,
-                      borderLeft: '3px solid var(--tg-theme-button-color)',
+                      background: 'var(--color-bg)', fontSize: 13,
+                      borderLeft: '3px solid var(--accent)',
                     }}>
-                      <div style={{ fontWeight: 600, fontSize: 11, color: 'var(--tg-theme-hint-color)', marginBottom: 4 }}>
+                      <div style={{ fontWeight: 600, fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 4 }}>
                         {t.chef.chefReply}
                       </div>
                       {review.chefReply}
@@ -279,7 +279,7 @@ export default function ChefPage() {
                   {isOwnProfile && !review.chefReply && replyingTo !== review.id && (
                     <button
                       style={{
-                        marginTop: 8, fontSize: 12, color: 'var(--tg-theme-button-color)',
+                        marginTop: 8, fontSize: 12, color: 'var(--accent)',
                         background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                         minHeight: 44, display: 'flex', alignItems: 'center',
                       }}
@@ -318,7 +318,7 @@ export default function ChefPage() {
                   {!isOwnProfile && (
                     <button
                       style={{
-                        marginTop: 6, fontSize: 11, color: 'var(--tg-theme-hint-color)',
+                        marginTop: 6, fontSize: 11, color: 'var(--color-text-secondary)',
                         background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                         minHeight: 44, display: 'flex', alignItems: 'center',
                       }}

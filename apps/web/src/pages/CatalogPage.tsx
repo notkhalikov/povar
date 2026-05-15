@@ -138,7 +138,7 @@ export default function CatalogPage() {
       {refreshing && (
         <div style={{
           textAlign: 'center', padding: '8px 0',
-          fontSize: 13, color: 'var(--tg-theme-hint-color)',
+          fontSize: 13, color: 'var(--color-text-secondary)',
         }}>
           {t.catalog.refreshing}
         </div>
@@ -208,7 +208,7 @@ export default function CatalogPage() {
             {'label' in r ? r.label : t.catalog.anyRating}
           </button>
         ))}
-        <div style={{ width: 1, background: 'var(--tg-theme-hint-color)', opacity: .25, flexShrink: 0 }} />
+        <div style={{ width: 1, background: 'var(--color-text-secondary)', opacity: .25, flexShrink: 0 }} />
         {([
           { value: 'rating', label: t.catalog.sortByRating },
           { value: 'price',  label: t.catalog.sortByPrice },
