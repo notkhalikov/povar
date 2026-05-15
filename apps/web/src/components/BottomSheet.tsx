@@ -29,19 +29,19 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
       <div
         style={{
           width: '100%',
-          background: 'var(--color-bg)',
+          background: '#ffffff',
           borderRadius: '20px 20px 0 0',
           padding: '8px 16px max(24px, env(safe-area-inset-bottom))',
           maxHeight: '90vh',
           overflowY: 'auto',
-          boxShadow: 'var(--sheet-shadow)',
+          boxShadow: '0 -1px 10px rgba(0,0,0,.1)',
         }}
         onClick={e => e.stopPropagation()}
       >
         {/* Drag handle */}
         <div style={{
           width: 36, height: 4, borderRadius: 2,
-          background: 'var(--color-text-secondary)',
+          background: '#6B6966',
           opacity: .35,
           margin: '8px auto 16px',
         }} />

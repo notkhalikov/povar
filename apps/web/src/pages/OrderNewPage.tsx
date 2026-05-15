@@ -103,11 +103,11 @@ export default function OrderNewPage() {
   }
 
   if (!chefProfileId) {
-    return <div style={{ padding: 24, color: 'var(--color-danger)' }}>{t.order.badId}</div>
+    return <div style={{ padding: 24, color: '#E24B4A' }}>{t.order.badId}</div>
   }
 
   return (
-    <div style={{ padding: '16px 16px 0', paddingBottom: 'calc(var(--nav-height) + var(--safe-bottom) + 60px)', minHeight: '100vh' }}>
+    <div style={{ padding: '16px 16px 0', paddingBottom: '124px', minHeight: '100vh' }}>
 
       {/* ── Stepper ───────────────────────────────────────────────── */}
       <div className='stepper' style={{ marginBottom: 24 }}>
@@ -138,9 +138,9 @@ export default function OrderNewPage() {
                   style={{
                     padding: '20px 16px',
                     borderRadius: 16,
-                    border: `2px solid ${active ? 'var(--accent)' : 'var(--color-surface)'}`,
-                    background: active ? 'var(--accent)' : 'var(--color-surface)',
-                    color: active ? '#ffffff' : 'var(--color-text-primary)',
+                    border: `2px solid ${active ? '#D85A30' : '#F7F6F3'}`,
+                    background: active ? '#D85A30' : '#F7F6F3',
+                    color: active ? '#ffffff' : '#1A1917',
                     cursor: 'pointer',
                     textAlign: 'left',
                     display: 'flex',
@@ -283,15 +283,15 @@ export default function OrderNewPage() {
             )}
           </div>
 
-          <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 14, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 13, color: '#6B6966', marginTop: 14, lineHeight: 1.5 }}>
             {t.order.afterCreate}
           </p>
 
           {error && (
             <div style={{
               padding: '12px 14px', borderRadius: 10,
-              background: 'var(--color-danger)' + '18',
-              color: 'var(--color-danger)',
+              background: '#E24B4A18',
+              color: '#E24B4A',
               fontSize: 14, marginTop: 12,
             }}>
               {error}
@@ -308,7 +308,7 @@ export default function OrderNewPage() {
           style={{
             marginTop: 20,
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--color-text-secondary)', fontSize: 14,
+            color: '#6B6966', fontSize: 14,
             padding: '8px 0', minHeight: 44, display: 'flex', alignItems: 'center', gap: 4,
           }}
         >
@@ -323,9 +323,9 @@ const counterBtnStyle: React.CSSProperties = {
   width: 48,
   height: 48,
   borderRadius: 24,
-  border: '1.5px solid var(--color-text-secondary)',
-  background: 'var(--color-surface)',
-  color: 'var(--color-text-primary)',
+  border: '1.5px solid #6B6966',
+  background: '#F7F6F3',
+  color: '#1A1917',
   fontSize: 24,
   cursor: 'pointer',
   display: 'flex',

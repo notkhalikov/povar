@@ -18,9 +18,9 @@ export function ErrorScreen({ message, onRetry }: ErrorScreenProps) {
       minHeight: 240,
     }}>
       <svg width="64" height="64" viewBox="0 0 64 64" fill="none" style={{ marginBottom: 16 }}>
-        <circle cx="32" cy="32" r="30" stroke="var(--color-danger)" strokeWidth="2" opacity="0.3" />
-        <path d="M32 20v14" stroke="var(--color-danger)" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="32" cy="42" r="2" fill="var(--color-danger)" />
+        <circle cx="32" cy="32" r="30" stroke="#E24B4A" strokeWidth="2" opacity="0.3" />
+        <path d="M32 20v14" stroke="#E24B4A" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="32" cy="42" r="2" fill="#E24B4A" />
       </svg>
 
       <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8 }}>
@@ -30,7 +30,7 @@ export function ErrorScreen({ message, onRetry }: ErrorScreenProps) {
       {message && (
         <div style={{
           fontSize: 14,
-          color: 'var(--color-text-secondary)',
+          color: '#6B6966',
           marginBottom: 20,
           maxWidth: 280,
           lineHeight: 1.5,

@@ -39,18 +39,18 @@ export class ErrorBoundary extends Component<Props, State> {
           minHeight: '100vh',
           padding: '32px 24px',
           textAlign: 'center',
-          background: 'var(--color-bg)',
+          background: '#ffffff',
         }}>
           <svg width="64" height="64" viewBox="0 0 64 64" fill="none" style={{ marginBottom: 20 }}>
-            <circle cx="32" cy="32" r="30" stroke="var(--color-danger, #ff3b30)" strokeWidth="2" opacity="0.3" />
-            <path d="M32 18v18" stroke="var(--color-danger, #ff3b30)" strokeWidth="2.5" strokeLinecap="round" />
-            <circle cx="32" cy="44" r="2.5" fill="var(--color-danger, #ff3b30)" />
+            <circle cx="32" cy="32" r="30" stroke="#E24B4A" strokeWidth="2" opacity="0.3" />
+            <path d="M32 18v18" stroke="#E24B4A" strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx="32" cy="44" r="2.5" fill="#E24B4A" />
           </svg>
 
-          <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 10, color: 'var(--color-text-primary)' }}>
+          <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 10, color: '#1A1917' }}>
             Что-то пошло не так
           </div>
-          <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, maxWidth: 280, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 14, color: '#6B6966', marginBottom: 28, maxWidth: 280, lineHeight: 1.5 }}>
             Произошла неожиданная ошибка. Попробуйте перезагрузить приложение.
           </div>
 
@@ -60,7 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
               padding: '13px 32px',
               borderRadius: 12,
               border: 'none',
-              background: 'var(--accent)',
+              background: '#D85A30',
               color: '#ffffff',
               fontSize: 16,
               fontWeight: 600,

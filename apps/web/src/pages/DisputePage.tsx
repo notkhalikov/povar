@@ -39,7 +39,7 @@ export default function DisputePage() {
       .finally(() => setLoading(false))
   }, [id])
 
-  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-secondary)' }}>{t.common.loading}</div>
+  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: '#6B6966' }}>{t.common.loading}</div>
   if (error)   return <div style={{ padding: 24, color: 'red' }}>{t.common.error}: {error}</div>
   if (!dispute) return null
 
@@ -82,7 +82,7 @@ export default function DisputePage() {
             {t.dispute.resolutions[dispute.resolutionType]}
           </div>
           {dispute.resolutionComment && (
-            <div style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>
+            <div style={{ fontSize: 14, color: '#6B6966' }}>
               {dispute.resolutionComment}
             </div>
           )}
@@ -127,8 +127,8 @@ export default function DisputePage() {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--color-text-secondary)22' }}>
-      <span style={{ color: 'var(--color-text-secondary)', fontSize: 14 }}>{label}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #6B696622' }}>
+      <span style={{ color: '#6B6966', fontSize: 14 }}>{label}</span>
       <span style={{ fontSize: 14 }}>{children}</span>
     </div>
   )
@@ -137,14 +137,14 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const sectionStyle: React.CSSProperties = {
-  background: 'var(--color-surface)',
+  background: '#F7F6F3',
   borderRadius: 12,
   padding: '0 16px',
 }
 
 const labelStyle: React.CSSProperties = {
   fontSize: 13,
-  color: 'var(--color-text-secondary)',
+  color: '#6B6966',
   marginBottom: 8,
   fontWeight: 600,
   textTransform: 'uppercase',
@@ -175,9 +175,9 @@ const backLinkStyle: React.CSSProperties = {
   width: '100%',
   padding: '12px',
   borderRadius: 12,
-  border: '1px solid var(--color-text-secondary)',
+  border: '1px solid #6B6966',
   background: 'transparent',
-  color: 'var(--color-text-primary)',
+  color: '#1A1917',
   fontSize: 15,
   cursor: 'pointer',
   textAlign: 'center',

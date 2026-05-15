@@ -9,11 +9,11 @@ function ChefIllustration() {
   return (
     <svg width='160' height='180' viewBox='0 0 160 180' fill='none' xmlns='http://www.w3.org/2000/svg'>
       {/* Toque (chef hat) — cylinder top */}
-      <rect x='52' y='18' width='56' height='36' rx='4' fill='var(--accent)' opacity='.9' />
+      <rect x='52' y='18' width='56' height='36' rx='4' fill='#D85A30' opacity='.9' />
       {/* Toque puff (dome) */}
-      <ellipse cx='80' cy='20' rx='32' ry='18' fill='var(--accent)' />
+      <ellipse cx='80' cy='20' rx='32' ry='18' fill='#D85A30' />
       {/* Hat brim */}
-      <rect x='44' y='50' width='72' height='10' rx='5' fill='var(--accent)' opacity='.7' />
+      <rect x='44' y='50' width='72' height='10' rx='5' fill='#D85A30' opacity='.7' />
       {/* Head */}
       <circle cx='80' cy='82' r='28' fill='#FDDBB4' />
       {/* Eyes */}
@@ -24,13 +24,13 @@ function ChefIllustration() {
       {/* Neck */}
       <rect x='72' y='108' width='16' height='10' rx='4' fill='#FDDBB4' />
       {/* Body (apron) */}
-      <rect x='44' y='116' width='72' height='52' rx='12' fill='var(--accent)' opacity='.85' />
+      <rect x='44' y='116' width='72' height='52' rx='12' fill='#D85A30' opacity='.85' />
       {/* Apron strings */}
       <rect x='72' y='116' width='16' height='52' rx='4' fill='white' opacity='.25' />
       {/* Left arm */}
-      <rect x='20' y='120' width='26' height='14' rx='7' fill='var(--accent)' opacity='.85' />
+      <rect x='20' y='120' width='26' height='14' rx='7' fill='#D85A30' opacity='.85' />
       {/* Right arm */}
-      <rect x='114' y='120' width='26' height='14' rx='7' fill='var(--accent)' opacity='.85' />
+      <rect x='114' y='120' width='26' height='14' rx='7' fill='#D85A30' opacity='.85' />
       {/* Pot in right hand */}
       <rect x='126' y='112' width='24' height='16' rx='4' fill='#8e8e93' />
       <rect x='122' y='110' width='32' height='5' rx='2.5' fill='#636366' />
@@ -49,14 +49,14 @@ function SearchIllustration() {
   return (
     <svg width='160' height='160' viewBox='0 0 160 160' fill='none' xmlns='http://www.w3.org/2000/svg'>
       {/* Magnifier circle */}
-      <circle cx='68' cy='68' r='44' stroke='var(--accent)' strokeWidth='8' fill='none' />
-      <circle cx='68' cy='68' r='36' fill='var(--accent)' opacity='.08' />
+      <circle cx='68' cy='68' r='44' stroke='#D85A30' strokeWidth='8' fill='none' />
+      <circle cx='68' cy='68' r='36' fill='#D85A30' opacity='.08' />
       {/* Handle */}
-      <line x1='102' y1='102' x2='136' y2='136' stroke='var(--accent)' strokeWidth='10' strokeLinecap='round' />
+      <line x1='102' y1='102' x2='136' y2='136' stroke='#D85A30' strokeWidth='10' strokeLinecap='round' />
       {/* Stars inside */}
-      <text x='45' y='62' fontSize='18' fill='var(--accent)'>★</text>
-      <text x='64' y='76' fontSize='14' fill='var(--accent)' opacity='.7'>★</text>
-      <text x='76' y='60' fontSize='12' fill='var(--accent)' opacity='.5'>★</text>
+      <text x='45' y='62' fontSize='18' fill='#D85A30'>★</text>
+      <text x='64' y='76' fontSize='14' fill='#D85A30' opacity='.7'>★</text>
+      <text x='76' y='60' fontSize='12' fill='#D85A30' opacity='.5'>★</text>
     </svg>
   )
 }
@@ -67,23 +67,23 @@ function ShieldIllustration() {
       {/* Shield body */}
       <path
         d='M80 16 L134 38 L134 82 C134 112 80 144 80 144 C80 144 26 112 26 82 L26 38 Z'
-        fill='var(--accent)'
+        fill='#D85A30'
         opacity='.12'
-        stroke='var(--accent)'
+        stroke='#D85A30'
         strokeWidth='5'
         strokeLinejoin='round'
       />
       {/* Checkmark */}
       <path
         d='M54 82 L72 100 L108 64'
-        stroke='var(--accent)'
+        stroke='#D85A30'
         strokeWidth='8'
         strokeLinecap='round'
         strokeLinejoin='round'
         fill='none'
       />
       {/* Coin */}
-      <circle cx='116' cy='116' r='22' fill='var(--accent)' opacity='.9' />
+      <circle cx='116' cy='116' r='22' fill='#D85A30' opacity='.9' />
       <text x='107' y='122' fontSize='18' fill='white' fontWeight='700'>₾</text>
     </svg>
   )
@@ -141,7 +141,7 @@ export default function OnboardingPage() {
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
-        background: 'var(--color-bg)',
+        background: '#ffffff',
         overflow: 'hidden',
         userSelect: 'none',
       }}
@@ -157,7 +157,7 @@ export default function OnboardingPage() {
               background: 'none',
               border: 'none',
               fontSize: 15,
-              color: 'var(--color-text-secondary)',
+              color: '#6B6966',
               cursor: 'pointer',
               padding: '8px 4px',
               minHeight: 44,
@@ -193,7 +193,7 @@ export default function OnboardingPage() {
           margin: 0,
           fontSize: 16,
           lineHeight: 1.6,
-          color: 'var(--color-text-secondary)',
+          color: '#6B6966',
           maxWidth: 300,
         }}>
           {current.subtitle}
@@ -222,8 +222,8 @@ export default function OnboardingPage() {
                 cursor: 'pointer',
                 padding: 0,
                 background: i === slide
-                  ? 'var(--accent)'
-                  : 'var(--color-text-secondary)',
+                  ? '#D85A30'
+                  : '#6B6966',
                 opacity: i === slide ? 1 : 0.35,
                 transition: 'width .25s ease, opacity .25s ease, background .25s ease',
               }}

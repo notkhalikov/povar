@@ -79,7 +79,7 @@ export default function ChefPage() {
       </div>
     </div>
   )
-  if (error) return <div style={{ padding: 24, color: 'var(--color-danger)' }}>{t.common.error}: {error}</div>
+  if (error) return <div style={{ padding: 24, color: '#E24B4A' }}>{t.common.error}: {error}</div>
   if (!chef) return null
 
   const rating = Number(chef.ratingCache)

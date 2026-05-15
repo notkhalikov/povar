@@ -10,16 +10,16 @@ interface EmptyStateProps {
 function DefaultIllustration() {
   return (
     <svg width="80" height="80" viewBox="0 0 80 80" fill="none" aria-hidden="true">
-      <circle cx="40" cy="40" r="36" fill="var(--color-surface)" />
+      <circle cx="40" cy="40" r="36" fill="#F7F6F3" />
       <path
         d="M26 52c0-7.732 6.268-14 14-14s14 6.268 14 14"
-        stroke="var(--color-text-secondary)"
+        stroke="#6B6966"
         strokeWidth="2.5"
         strokeLinecap="round"
         opacity="0.5"
       />
-      <circle cx="32" cy="34" r="3" fill="var(--color-text-secondary)" opacity="0.5" />
-      <circle cx="48" cy="34" r="3" fill="var(--color-text-secondary)" opacity="0.5" />
+      <circle cx="32" cy="34" r="3" fill="#6B6966" opacity="0.5" />
+      <circle cx="48" cy="34" r="3" fill="#6B6966" opacity="0.5" />
     </svg>
   )
 }
@@ -45,7 +45,7 @@ export function EmptyState({ title, subtitle, illustration, action }: EmptyState
       {subtitle && (
         <div style={{
           fontSize: 14,
-          color: 'var(--color-text-secondary)',
+          color: '#6B6966',
           maxWidth: 280,
           lineHeight: 1.5,
           marginBottom: action ? 20 : 0,
