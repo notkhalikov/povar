@@ -8,14 +8,10 @@ import { ApiError } from '../api/client'
 import { createReview } from '../api/reviews'
 import { createDispute, getDisputeByOrder } from '../api/disputes'
 import { useAuth } from '../context/AuthContext'
-import { StatusBadge, STATUS_COLORS, STATUS_LABELS } from '../components/StatusBadge'
 import { StarRating } from '../components/StarRating'
 import { BottomSheet } from '../components/BottomSheet'
 import { ChatBox } from '../components/ChatBox'
 import type { Order, OrderStatus } from '../types'
-
-// Re-export for backward compatibility
-export { StatusBadge, STATUS_COLORS, STATUS_LABELS }
 
 type ReviewStep = 'none' | 'form' | 'done'
 
@@ -312,47 +308,123 @@ export default function OrderDetailPage() {
     code,
     label: t.dispute.reasons[code as keyof typeof t.dispute.reasons],
   }))
-  const statusColor   = STATUS_COLORS[order.status]
   const curTimelineIdx = timelineIndex(order.status)
 
-  return (
-    <div style={{ padding: '0 0 var(--page-padding-bottom-bar)' }}>
+  const statusStyles: Record<OrderStatus, { bg: string; color: string; label: string }> = {
+    draft:            { bg: '#FAEEDA', color: '#854F0B',  label: t.order.statuses.draft },
+    awaiting_payment: { bg: '#FAEEDA', color: '#854F0B',  label: t.order.statuses.awaiting_payment },
+    paid:             { bg: '#B5D4F4', color: '#185FA5',  label: t.order.statuses.paid },
+    in_progress:      { bg: '#B5D4F4', color: '#185FA5',  label: t.order.statuses.in_progress },
+    dispute_pending:  { bg: '#FFA500', color: '#ffffff',  label: t.order.statuses.dispute_pending },
+    completed:        { bg: '#C0DD97', color: '#3B6D11',  label: t.order.statuses.completed },
+    refunded:         { bg: '#F7C1C1', color: '#A32D2D',  label: t.order.statuses.refunded },
+    cancelled:        { bg: '#F7C1C1', color: '#A32D2D',  label: t.order.statuses.cancelled },
+  }
 
-      {/* ── Status hero ───────────────────────────────────────────── */}
+  return (
+    <div style={{ backgroundColor: '#F7F6F3', minHeight: '100dvh', paddingBottom: 64 }}>
+
+      {/* ШАПКА */}
       <div style={{
-        padding: '28px 16px 20px',
-        background: statusColor + '14',
-        borderBottom: `1px solid ${statusColor}30`,
-        textAlign: 'center',
+        position: 'sticky', top: 0, zIndex: 10,
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #E8E6E1',
+        padding: '12px 16px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <div style={{ fontSize: 48, marginBottom: 8, lineHeight: 1 }}>
-          {STATUS_ICON[order.status] ?? '📋'}
-        </div>
-        <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 6 }}>
-          {t.order.orderNum} #{order.id}
-        </div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: statusColor, marginBottom: 8 }}>
-          {t.order.statuses[order.status]}
-        </div>
-        {order.agreedPrice && (
-          <div style={{ fontSize: 28, fontWeight: 700 }}>{order.agreedPrice} ₾</div>
-        )}
+        <button
+          onClick={() => navigate(-1)}
+          style={{ background: 'none', border: 'none', padding: 0,
+            display: 'flex', alignItems: 'center', gap: 6,
+            color: '#6B6966', fontSize: 15, cursor: 'pointer' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M13 5L8 10l5 5" stroke="#6B6966" strokeWidth="1.5"
+              strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Назад
+        </button>
+        <span style={{ fontSize: 15, fontWeight: 500, color: '#1A1917' }}>
+          Заказ #{order.id}
+        </span>
+        <span style={{
+          fontSize: 11, fontWeight: 500, padding: '3px 9px', borderRadius: 6,
+          backgroundColor: statusStyles[order.status]?.bg ?? '#E8E6E1',
+          color: statusStyles[order.status]?.color ?? '#6B6966',
+        }}>
+          {statusStyles[order.status]?.label ?? order.status}
+        </span>
       </div>
 
-      <div style={{ padding: '16px 16px 0' }}>
+      {/* ДЕТАЛИ ЗАКАЗА */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #E8E6E1',
+        padding: '14px 16px',
+      }}>
+        {/* Повар */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14,
+          paddingBottom: 14, borderBottom: '1px solid #E8E6E1',
+        }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+            backgroundColor: '#FAECE7',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 18, fontWeight: 500, color: '#993C1D',
+          }}>
+            👨‍🍳
+          </div>
+          <div>
+            <p style={{ fontSize: 15, fontWeight: 500, color: '#1A1917', margin: 0 }}>
+              {order.chefName ?? `#${order.chefId}`}
+            </p>
+            <p style={{ fontSize: 12, color: '#6B6966', margin: 0 }}>
+              {t.order.chef}
+            </p>
+          </div>
+        </div>
+
+        {/* Детали */}
+        {[
+          { label: t.order.format, value: order.type === 'home_visit' ? t.order.homeVisit : t.order.delivery },
+          { label: t.order.dateTime, value: new Date(order.scheduledAt).toLocaleDateString('ru', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) },
+          { label: t.order.persons, value: order.persons },
+          { label: t.order.city, value: order.city },
+          { label: t.order.address, value: order.address },
+          { label: 'Сумма', value: order.agreedPrice ? `${order.agreedPrice} ₾` : null },
+        ].filter(r => r.value).map(row => (
+          <div key={row.label} style={{
+            display: 'flex', justifyContent: 'space-between',
+            alignItems: 'baseline', padding: '9px 0',
+            borderBottom: '1px solid #E8E6E1', fontSize: 14,
+          }}>
+            <span style={{ color: '#6B6966' }}>{row.label}</span>
+            <span style={{ color: '#1A1917', fontWeight: 500, maxWidth: '60%',
+              textAlign: 'right' }}>{row.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* КНОПКИ ДЕЙСТВИЙ */}
+      <div style={{ padding: '12px 16px', display: 'flex', gap: 8, flexDirection: 'column' }}>
 
         {/* ── Chat toggle ──────────────────────────────────────────── */}
         {(isCustomer || isChef) && !['cancelled', 'refunded'].includes(order.status) && (
           <>
             <button
-              className='btn-secondary'
               onClick={() => {
                 if (!isChatOpen) {
                   setOrder(prev => prev ? { ...prev, unreadCount: 0 } : prev)
                 }
                 setIsChatOpen(v => !v)
               }}
-              style={{ position: 'relative', marginBottom: 16 }}
+              style={{
+                position: 'relative', marginBottom: 16,
+                width: '100%', padding: '12px 16px', borderRadius: 12,
+                backgroundColor: '#ffffff', border: '1px solid #E8E6E1',
+                fontSize: 14, color: '#6B6966', fontWeight: 500, cursor: 'pointer',
+              }}
             >
               💬 {isChef ? 'Чат с заказчиком' : 'Чат с поваром'}
               {(order.unreadCount ?? 0) > 0 && (
@@ -360,7 +432,7 @@ export default function OrderDetailPage() {
                   position: 'absolute',
                   top: -6,
                   right: -6,
-                  backgroundColor: 'var(--accent)',
+                  backgroundColor: '#D85A30',
                   color: '#fff',
                   borderRadius: '50%',
                   minWidth: 18,
@@ -387,19 +459,30 @@ export default function OrderDetailPage() {
         {!['cancelled', 'refunded', 'dispute_pending'].includes(order.status) && (
           <div style={{
             display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-            gap: 0, marginBottom: 20,
+            gap: 0, marginBottom: 20, backgroundColor: '#ffffff', borderRadius: 12,
+            padding: '16px', border: '1px solid #E8E6E1',
           }}>
             {TIMELINE_STATUSES.map((status, i) => {
+              const statusColorMap: Record<OrderStatus, string> = {
+                'awaiting_payment': '#854F0B',
+                'paid': '#185FA5',
+                'in_progress': '#185FA5',
+                'completed': '#34c759',
+                'draft': '#854F0B',
+                'dispute_pending': '#ff9500',
+                'refunded': '#A32D2D',
+                'cancelled': '#A32D2D',
+              }
               const done    = curTimelineIdx > i || order.status === 'completed'
               const current = curTimelineIdx === i
-              const dot_color = done || current ? status === 'completed' ? '#34c759' : STATUS_COLORS[status] : 'var(--color-surface)'
+              const dot_color = done || current ? status === 'completed' ? '#34c759' : statusColorMap[status] : '#E8E6E1'
               return (
                 <div key={status} style={{ display: 'flex', alignItems: 'center', flex: i < TIMELINE_STATUSES.length - 1 ? '1 1 auto' : 'none' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 52 }}>
                     <div style={{
                       width: 32, height: 32, borderRadius: 16,
-                      background: done || current ? dot_color : 'var(--color-surface)',
-                      color: done || current ? '#fff' : 'var(--color-text-secondary)',
+                      background: done || current ? dot_color : '#F7F6F3',
+                      color: done || current ? '#fff' : '#9E9B97',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: done ? 14 : 16,
                       fontWeight: 700,
@@ -410,7 +493,7 @@ export default function OrderDetailPage() {
                     </div>
                     <div style={{
                       fontSize: 10, marginTop: 4, textAlign: 'center',
-                      color: current ? statusColor : done ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                      color: current ? dot_color : done ? '#1A1917' : '#9E9B97',
                       fontWeight: current ? 600 : 400,
                       lineHeight: 1.2,
                     }}>
@@ -420,7 +503,7 @@ export default function OrderDetailPage() {
                   {i < TIMELINE_STATUSES.length - 1 && (
                     <div style={{
                       flex: 1, height: 2, marginBottom: 18,
-                      background: done ? dot_color : 'var(--color-surface)',
+                      background: done ? dot_color : '#F7F6F3',
                       transition: 'background .2s',
                     }} />
                   )}
@@ -430,26 +513,10 @@ export default function OrderDetailPage() {
           </div>
         )}
 
-        {/* ── Chef card ─────────────────────────────────────────────── */}
-        <div className='card' style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: 22,
-            background: 'var(--accent)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#ffffff', fontSize: 18, fontWeight: 700, flexShrink: 0,
-          }}>
-            👨‍🍳
-          </div>
-          <div>
-            <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 2 }}>{t.order.chef}</div>
-            <div style={{ fontWeight: 600, fontSize: 15 }}>{order.chefName ?? `#${order.chefId}`}</div>
-          </div>
-        </div>
-
         {/* ── Chef: set price ───────────────────────────────────────── */}
         {isChef && order.status === 'awaiting_payment' && !order.agreedPrice && (
-          <div className='card' style={{ marginBottom: 16 }}>
-            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12 }}>Укажите стоимость заказа</div>
+          <div style={{ marginBottom: 16, backgroundColor: '#ffffff', border: '1px solid #E8E6E1', padding: '16px', borderRadius: 12 }}>
+            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12, color: '#1A1917' }}>Укажите стоимость заказа</div>
             <input
               type='number'
               value={priceInput}
@@ -458,15 +525,18 @@ export default function OrderDetailPage() {
               min={1}
               style={{
                 width: '100%', padding: '12px 14px', borderRadius: 10,
-                border: '1px solid var(--color-text-secondary)',
-                background: 'var(--color-surface)',
-                color: 'var(--color-text-primary)',
-                fontSize: 15, boxSizing: 'border-box', outline: 'none',
+                border: '1px solid #E8E6E1',
+                background: '#F7F6F3',
+                color: '#1A1917',
+                fontSize: 15, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit',
               }}
             />
             <button
-              className='btn-primary'
-              style={{ marginTop: 10, opacity: !priceInput || priceSaving ? .55 : 1 }}
+              style={{
+                marginTop: 10, width: '100%', padding: '12px 16px', borderRadius: 10,
+                backgroundColor: '#D85A30', color: '#ffffff', fontSize: 14, fontWeight: 500,
+                border: 'none', cursor: 'pointer', opacity: !priceInput || priceSaving ? .55 : 1,
+              }}
               disabled={!priceInput || priceSaving}
               onClick={handleSetPrice}
             >
@@ -480,9 +550,12 @@ export default function OrderDetailPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
             {order.status === 'paid' && (
               <button
-                className='btn-primary'
                 disabled={actionLoading}
-                style={{ opacity: actionLoading ? 0.6 : 1 }}
+                style={{
+                  width: '100%', padding: '12px 16px', borderRadius: 10,
+                  backgroundColor: '#D85A30', color: '#ffffff', fontSize: 14, fontWeight: 500,
+                  border: 'none', cursor: 'pointer', opacity: actionLoading ? 0.6 : 1,
+                }}
                 onClick={() => handleChefStatus('in_progress')}
               >
                 {actionLoading ? '...' : 'Взять в работу'}
@@ -490,18 +563,24 @@ export default function OrderDetailPage() {
             )}
             {order.status === 'in_progress' && (
               <button
-                className='btn-primary'
                 disabled={actionLoading}
-                style={{ opacity: actionLoading ? 0.6 : 1 }}
+                style={{
+                  width: '100%', padding: '12px 16px', borderRadius: 10,
+                  backgroundColor: '#D85A30', color: '#ffffff', fontSize: 14, fontWeight: 500,
+                  border: 'none', cursor: 'pointer', opacity: actionLoading ? 0.6 : 1,
+                }}
                 onClick={() => handleChefStatus('completed')}
               >
                 {actionLoading ? '...' : 'Завершить заказ'}
               </button>
             )}
             <button
-              className='btn-secondary'
               disabled={actionLoading}
-              style={{ opacity: actionLoading ? 0.6 : 1 }}
+              style={{
+                width: '100%', padding: '12px 16px', borderRadius: 10,
+                backgroundColor: '#ffffff', color: '#6B6966', fontSize: 14, fontWeight: 500,
+                border: '1px solid #E8E6E1', cursor: 'pointer', opacity: actionLoading ? 0.6 : 1,
+              }}
               onClick={() => handleChefStatus('cancelled')}
             >
               Отменить заказ
@@ -510,68 +589,39 @@ export default function OrderDetailPage() {
         )}
 
         {/* ── Order details ─────────────────────────────────────────── */}
-        <div className='card' style={{ marginBottom: 16 }}>
-          <div className='detail-row'>
-            <span className='detail-row__label'>{t.order.format}</span>
-            <span className='detail-row__value'>{order.type === 'home_visit' ? t.order.homeVisit : t.order.delivery}</span>
-          </div>
-          <div className='detail-row'>
-            <span className='detail-row__label'>{t.order.dateTime}</span>
-            <span className='detail-row__value'>
-              {new Date(order.scheduledAt).toLocaleString('ru-RU', {
-                day: 'numeric', month: 'long', year: 'numeric',
-                hour: '2-digit', minute: '2-digit',
-              })}
-            </span>
-          </div>
-          <div className='detail-row'>
-            <span className='detail-row__label'>{t.order.persons}</span>
-            <span className='detail-row__value'>{order.persons}</span>
-          </div>
-          {order.city && (
-            <div className='detail-row'>
-              <span className='detail-row__label'>{t.order.city}</span>
-              <span className='detail-row__value'>{order.city}</span>
+        <div style={{ marginBottom: 16, backgroundColor: '#ffffff', border: '1px solid #E8E6E1', borderRadius: 12, overflow: 'hidden' }}>
+          {[
+            { label: t.order.format, value: order.type === 'home_visit' ? t.order.homeVisit : t.order.delivery },
+            { label: t.order.dateTime, value: new Date(order.scheduledAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
+            { label: t.order.persons, value: order.persons },
+            order.city ? { label: t.order.city, value: order.city } : null,
+            order.address ? { label: t.order.address, value: order.address } : null,
+            order.description ? { label: t.order.comment, value: order.description } : null,
+            order.agreedPrice ? { label: t.order.amount, value: `${order.agreedPrice} ₾` } : null,
+            order.productsBuyer ? { label: t.order.products, value: order.productsBuyer === 'customer' ? t.order.productsCustomer : t.order.productsChef } : null,
+          ].filter(Boolean).map((row, idx, arr) => (
+            <div key={row!.label} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+              padding: '14px 16px', borderBottom: idx < arr.length - 1 ? '1px solid #E8E6E1' : 'none',
+            }}>
+              <span style={{ color: '#6B6966', fontSize: 14 }}>{row!.label}</span>
+              <span style={{ color: '#1A1917', fontWeight: row!.label === t.order.amount ? 700 : 500, maxWidth: '60%', textAlign: 'right', fontSize: 14 }}>{row!.value}</span>
             </div>
-          )}
-          {order.address && (
-            <div className='detail-row'>
-              <span className='detail-row__label'>{t.order.address}</span>
-              <span className='detail-row__value'>{order.address}</span>
-            </div>
-          )}
-          {order.description && (
-            <div className='detail-row'>
-              <span className='detail-row__label'>{t.order.comment}</span>
-              <span className='detail-row__value'>{order.description}</span>
-            </div>
-          )}
-          {order.agreedPrice && (
-            <div className='detail-row'>
-              <span className='detail-row__label'>{t.order.amount}</span>
-              <span className='detail-row__value' style={{ fontWeight: 700 }}>{order.agreedPrice} ₾</span>
-            </div>
-          )}
-          {order.productsBuyer && (
-            <div className='detail-row'>
-              <span className='detail-row__label'>{t.order.products}</span>
-              <span className='detail-row__value'>{order.productsBuyer === 'customer' ? t.order.productsCustomer : t.order.productsChef}</span>
-            </div>
-          )}
+          ))}
         </div>
 
         {/* ── Review form ───────────────────────────────────────────── */}
         {reviewStep === 'form' && (
-          <div className='card' style={{ marginBottom: 16 }}>
-            <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16 }}>{t.review.title}</div>
+          <div style={{ marginBottom: 16, backgroundColor: '#ffffff', border: '1px solid #E8E6E1', borderRadius: 12, padding: '16px' }}>
+            <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16, color: '#1A1917' }}>{t.review.title}</div>
 
             <div style={{ marginBottom: 20 }}>
-              <div className='section-label'>{t.review.rating}</div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: '#6B6966', marginBottom: 12 }}>{t.review.rating}</div>
               <StarRating value={reviewRating} interactive onChange={setReviewRating} size={36} />
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <div className='section-label'>{t.review.liked}</div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: '#6B6966', marginBottom: 12 }}>{t.review.liked}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {Object.entries(t.review.tags).map(([key, label]) => (
                   <button
@@ -581,12 +631,13 @@ export default function OrderDetailPage() {
                     style={{
                       padding: '8px 14px',
                       borderRadius: 20,
-                      border: '1px solid var(--color-text-secondary)',
+                      border: reviewTags.includes(key) ? 'none' : '1px solid #E8E6E1',
                       cursor: 'pointer',
                       fontSize: 13,
                       minHeight: 44,
-                      background: reviewTags.includes(key) ? 'var(--accent)' : 'transparent',
-                      color: reviewTags.includes(key) ? '#ffffff' : 'var(--color-text-primary)',
+                      background: reviewTags.includes(key) ? '#D85A30' : '#ffffff',
+                      color: reviewTags.includes(key) ? '#ffffff' : '#1A1917',
+                      fontWeight: 500,
                     }}
                   >
                     {label}
@@ -596,21 +647,28 @@ export default function OrderDetailPage() {
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <div className='section-label'>{t.order.comment}</div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: '#6B6966', marginBottom: 12 }}>{t.order.comment}</div>
               <textarea
-                className='field-input'
                 value={reviewText}
                 onChange={e => setReviewText(e.target.value)}
                 placeholder={t.review.commentPlaceholder}
                 maxLength={2000}
                 rows={3}
-                style={{ resize: 'vertical' }}
+                style={{
+                  width: '100%', padding: '12px 14px', borderRadius: 10,
+                  border: '1px solid #E8E6E1', backgroundColor: '#F7F6F3',
+                  color: '#1A1917', fontSize: 14, fontFamily: 'inherit',
+                  outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                }}
               />
             </div>
 
             <button
-              className='btn-primary'
-              style={{ opacity: actionLoading ? .6 : 1 }}
+              style={{
+                width: '100%', padding: '12px 16px', borderRadius: 10,
+                backgroundColor: '#D85A30', color: '#ffffff', fontSize: 14, fontWeight: 500,
+                border: 'none', cursor: 'pointer', opacity: actionLoading ? .6 : 1,
+              }}
               disabled={actionLoading}
               onClick={handleSubmitReview}
             >
@@ -620,10 +678,10 @@ export default function OrderDetailPage() {
         )}
 
         {reviewStep === 'done' && (
-          <div className='card' style={{ textAlign: 'center', padding: '32px 16px', marginBottom: 16 }}>
+          <div style={{ textAlign: 'center', padding: '32px 16px', marginBottom: 16, backgroundColor: '#ffffff', border: '1px solid #E8E6E1', borderRadius: 12 }}>
             <div style={{ fontSize: 48, marginBottom: 10 }}>⭐</div>
-            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>{t.review.thanks}</div>
-            <div style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6, color: '#1A1917' }}>{t.review.thanks}</div>
+            <div style={{ fontSize: 14, color: '#6B6966' }}>
               {t.review.thanksHint}
             </div>
           </div>
@@ -632,19 +690,24 @@ export default function OrderDetailPage() {
         {/* ── Dispute status ────────────────────────────────────────── */}
         {order.status === 'dispute_pending' && (
           <div style={{
-            padding: '24px 16px', borderRadius: 16,
-            background: 'var(--color-danger)' + '12',
-            border: '1px solid var(--color-danger)' + '30',
+            padding: '24px 16px', borderRadius: 12,
+            background: '#FFA50012',
+            border: '1px solid #FFA50030',
             textAlign: 'center', marginBottom: 16,
           }}>
             <div style={{ fontSize: 40, marginBottom: 8 }}>⚠️</div>
-            <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6, color: 'var(--color-danger)' }}>
+            <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6, color: '#ff9500' }}>
               {t.order.disputeTitle}
             </div>
-            <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 16, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, color: '#6B6966', marginBottom: 16, lineHeight: 1.5 }}>
               {t.order.disputeInfo}
             </div>
-            <button className='btn-secondary' style={{ maxWidth: 240, margin: '0 auto' }} onClick={handleGoToDispute}>
+            <button style={{
+              padding: '12px 16px', borderRadius: 10,
+              backgroundColor: '#ffffff', border: '1px solid #E8E6E1',
+              fontSize: 14, fontWeight: 500, color: '#6B6966',
+              cursor: 'pointer', maxWidth: 240, margin: '0 auto', display: 'block',
+            }} onClick={handleGoToDispute}>
               {t.order.disputeDetail}
             </button>
           </div>
@@ -654,7 +717,11 @@ export default function OrderDetailPage() {
 
       {/* ── Action panel ──────────────────────────────────────────── */}
       {(showPayButton || showOutcomeButtons) && (
-        <div className='action-bar'>
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          backgroundColor: '#ffffff', borderTop: '1px solid #E8E6E1',
+          padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
           {showPayButton && (
             <>
               {(() => {
@@ -662,13 +729,16 @@ export default function OrderDetailPage() {
                 return (
                   <>
                     {!hasPrice && (
-                      <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'center' }}>
+                      <p style={{ margin: 0, fontSize: 13, color: '#6B6966', textAlign: 'center' }}>
                         {t.order.noPrice}
                       </p>
                     )}
                     <button
-                      className='btn-primary'
-                      style={{ opacity: actionLoading || !hasPrice ? .55 : 1 }}
+                      style={{
+                        width: '100%', padding: '12px 16px', borderRadius: 10,
+                        backgroundColor: '#D85A30', color: '#ffffff', fontSize: 14, fontWeight: 500,
+                        border: 'none', cursor: 'pointer', opacity: actionLoading || !hasPrice ? .55 : 1,
+                      }}
                       disabled={actionLoading || !hasPrice}
                       onClick={handlePay}
                     >
@@ -684,15 +754,22 @@ export default function OrderDetailPage() {
           {showOutcomeButtons && (
             <>
               <button
-                className='btn-primary'
-                style={{ opacity: actionLoading ? .6 : 1 }}
+                style={{
+                  width: '100%', padding: '12px 16px', borderRadius: 10,
+                  backgroundColor: '#D85A30', color: '#ffffff', fontSize: 14, fontWeight: 500,
+                  border: 'none', cursor: 'pointer', opacity: actionLoading ? .6 : 1,
+                }}
                 disabled={actionLoading}
                 onClick={handleComplete}
               >
                 {actionLoading ? t.order.saving : t.order.allGood}
               </button>
               <button
-                className='btn-secondary'
+                style={{
+                  width: '100%', padding: '12px 16px', borderRadius: 10,
+                  backgroundColor: '#ffffff', color: '#6B6966', fontSize: 14, fontWeight: 500,
+                  border: '1px solid #E8E6E1', cursor: 'pointer',
+                }}
                 disabled={actionLoading}
                 onClick={() => { setDisputeReason(''); setDisputeDesc(''); setShowDisputeModal(true) }}
               >
@@ -709,22 +786,23 @@ export default function OrderDetailPage() {
         onClose={() => setShowDisputeModal(false)}
         title={t.dispute.openTitle}
       >
-        <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+        <p style={{ margin: '0 0 20px', fontSize: 13, color: '#6B6966', lineHeight: 1.5 }}>
           {t.dispute.openInfo}
         </p>
 
         <div style={{ marginBottom: 20 }}>
-          <div className='section-label'>{t.dispute.reason}</div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: '#6B6966', marginBottom: 12 }}>{t.dispute.reason}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {disputeReasons.map(r => (
               <label key={r.code} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
                 background: disputeReason === r.code
-                  ? 'var(--accent)' + '18'
-                  : 'var(--color-surface)',
-                border: `1.5px solid ${disputeReason === r.code ? 'var(--accent)' : 'transparent'}`,
+                  ? '#D85A3018'
+                  : '#F7F6F3',
+                border: `1.5px solid ${disputeReason === r.code ? '#D85A30' : 'transparent'}`,
                 fontSize: 14, minHeight: 48,
+                color: '#1A1917',
               }}>
                 <input
                   type='radio'
@@ -732,7 +810,7 @@ export default function OrderDetailPage() {
                   value={r.code}
                   checked={disputeReason === r.code}
                   onChange={() => setDisputeReason(r.code)}
-                  style={{ accentColor: 'var(--accent)', width: 18, height: 18 }}
+                  style={{ accentColor: '#D85A30', width: 18, height: 18 }}
                 />
                 {r.label}
               </label>
@@ -741,30 +819,40 @@ export default function OrderDetailPage() {
         </div>
 
         <div style={{ marginBottom: 20 }}>
-          <div className='section-label'>{t.dispute.description}</div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: '#6B6966', marginBottom: 12 }}>{t.dispute.description}</div>
           <textarea
-            className='field-input'
             value={disputeDesc}
             onChange={e => setDisputeDesc(e.target.value)}
             placeholder={t.dispute.descPlaceholder}
             maxLength={5000}
             rows={4}
-            style={{ resize: 'vertical' }}
+            style={{
+              width: '100%', padding: '12px 14px', borderRadius: 10,
+              border: '1px solid #E8E6E1', backgroundColor: '#F7F6F3',
+              color: '#1A1917', fontSize: 14, fontFamily: 'inherit',
+              outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+            }}
           />
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>
           <button
-            className='btn-secondary'
-            style={{ flex: 1 }}
+            style={{
+              flex: 1, padding: '12px 16px', borderRadius: 10,
+              backgroundColor: '#ffffff', color: '#6B6966', fontSize: 14, fontWeight: 500,
+              border: '1px solid #E8E6E1', cursor: 'pointer',
+            }}
             onClick={() => setShowDisputeModal(false)}
             disabled={actionLoading}
           >
             {t.common.cancel}
           </button>
           <button
-            className='btn-primary'
-            style={{ flex: 2, opacity: actionLoading ? .6 : 1 }}
+            style={{
+              flex: 2, padding: '12px 16px', borderRadius: 10,
+              backgroundColor: '#D85A30', color: '#ffffff', fontSize: 14, fontWeight: 500,
+              border: 'none', cursor: 'pointer', opacity: actionLoading ? .6 : 1,
+            }}
             onClick={handleSubmitDispute}
             disabled={actionLoading}
           >
