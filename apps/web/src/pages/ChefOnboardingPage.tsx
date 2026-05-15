@@ -222,7 +222,12 @@ export default function ChefOnboardingPage() {
             onChange={(e) => setBio(e.target.value)}
             placeholder={t.chefOnboarding.bioPlaceholder}
             maxLength={1000}
-            style={textareaStyle}
+            style={{
+              width: '100%', padding: '12px 14px', borderRadius: 10,
+              border: '1px solid #E8E6E1', backgroundColor: '#F7F6F3',
+              color: '#1A1917', fontSize: 15, boxSizing: 'border-box', outline: 'none',
+              fontFamily: 'inherit', minHeight: 100, resize: 'vertical',
+            }}
           />
         </Field>
 
@@ -238,12 +243,18 @@ export default function ChefOnboardingPage() {
         {/* Work formats */}
         <Field label={t.chef.workFormat}>
           {(['home_visit', 'delivery'] as WorkFormat[]).map((fmt) => (
-            <label key={fmt} style={checkboxLabelStyle}>
+            <label
+              key={fmt}
+              style={{
+                display: 'flex', alignItems: 'center', fontSize: 15,
+                padding: '8px 0', cursor: 'pointer', color: '#1A1917',
+              }}
+            >
               <input
                 type='checkbox'
                 checked={workFormats.includes(fmt)}
                 onChange={() => toggleFormat(fmt)}
-                style={{ marginRight: 8 }}
+                style={{ marginRight: 8, accentColor: '#D85A30', cursor: 'pointer' }}
               />
               {fmt === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull}
             </label>
@@ -267,7 +278,12 @@ export default function ChefOnboardingPage() {
             onChange={(e) => setAvgPrice(e.target.value)}
             placeholder='150'
             min={0}
-            style={inputStyle}
+            style={{
+              width: '100%', padding: '12px 14px', borderRadius: 10,
+              border: '1px solid #E8E6E1', backgroundColor: '#F7F6F3',
+              color: '#1A1917', fontSize: 15, boxSizing: 'border-box', outline: 'none',
+              fontFamily: 'inherit',
+            }}
           />
         </Field>
 
@@ -331,7 +347,7 @@ export default function ChefOnboardingPage() {
             {t.chefOnboarding.portfolioHint}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {portfolioMediaIds.map(id => (
               <div key={id} style={{
                 position: 'relative', aspectRatio: '1',
