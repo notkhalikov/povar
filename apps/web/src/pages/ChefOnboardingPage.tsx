@@ -163,13 +163,54 @@ export default function ChefOnboardingPage() {
   }
 
   if (loadingProfile) {
-    return <div style={{ padding: 24, textAlign: 'center' }}>{t.common.loading}</div>
+    return <div style={{ padding: 24, textAlign: 'center', color: '#6B6966' }}>{t.common.loading}</div>
   }
 
   return (
-    <div style={{ padding: '24px 16px', paddingBottom: 'calc(72px + env(safe-area-inset-bottom))' }}>
-      <h2 style={{ margin: '0 0 6px' }}>{t.chefOnboarding.title}</h2>
-      <p style={{ margin: '0 0 24px', color: 'var(--color-text-secondary)', fontSize: 14 }}>
+    <div style={{
+      backgroundColor: '#F7F6F3',
+      minHeight: '100dvh',
+      display: 'flex', flexDirection: 'column',
+    }}>
+
+      {/* ШАПКА */}
+      <div style={{
+        padding: '16px 16px 0',
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #E8E6E1',
+      }}>
+        <div style={{ marginBottom: 12 }}>
+          <span style={{ fontSize: 13, color: '#9E9B97' }}>
+            {t.chefOnboarding.title}
+          </span>
+        </div>
+
+        {/* Прогресс-бар */}
+        <div style={{
+          height: 3, backgroundColor: '#E8E6E1',
+          borderRadius: 2, marginBottom: 16,
+        }}>
+          <div style={{
+            height: '100%', borderRadius: 2,
+            backgroundColor: '#D85A30',
+            width: '100%',
+          }} />
+        </div>
+      </div>
+
+      {/* КОНТЕНТ */}
+      <div style={{ flex: 1, padding: '24px 16px', overflowY: 'auto' }}>
+
+      <h2 style={{
+        fontSize: 22, fontWeight: 500, color: '#1A1917',
+        margin: '0 0 8px',
+      }}>
+        {t.chefOnboarding.title}
+      </h2>
+      <p style={{
+        fontSize: 15, color: '#6B6966',
+        margin: '0 0 24px', lineHeight: 1.5,
+      }}>
         {t.chefOnboarding.hint}
       </p>
 
@@ -231,7 +272,7 @@ export default function ChefOnboardingPage() {
         </Field>
 
         {saveError && (
-          <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, background: '#ff3b3011', border: '1px solid #ff3b3033', color: '#ff3b30', fontSize: 14 }}>
+          <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, background: '#E24B4A11', border: '1px solid #E24B4A33', color: '#E24B4A', fontSize: 14 }}>
             {saveError}
           </div>
         )}
@@ -239,7 +280,12 @@ export default function ChefOnboardingPage() {
         <button
           type='submit'
           disabled={saving || saved}
-          style={{ ...buttonStyle, opacity: saving || saved ? 0.8 : 1, background: saved ? '#34c759' : undefined }}
+          style={{
+            width: '100%', padding: '14px 16px', borderRadius: 12,
+            border: 'none', backgroundColor: saved ? '#34c759' : '#D85A30',
+            color: '#ffffff', fontSize: 16, fontWeight: 600, cursor: 'pointer',
+            marginTop: 8, opacity: saving || saved ? 0.8 : 1,
+          }}
         >
           {saved ? '✓ ' + t.chefOnboarding.save : saving ? t.chefOnboarding.saving : t.chefOnboarding.save}
         </button>
@@ -247,13 +293,16 @@ export default function ChefOnboardingPage() {
 
       {/* ── Status toggle (only for existing chef profiles) ── */}
       {chefId !== null && (
-        <div style={statusSectionStyle}>
+        <div style={{
+          marginTop: 28, padding: '14px 16px', borderRadius: 12,
+          backgroundColor: '#ffffff', border: '1px solid #E8E6E1',
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 15 }}>
+              <div style={{ fontWeight: 600, fontSize: 15, color: '#1A1917' }}>
                 {isActive ? t.profile.accepting : t.profile.vacation}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>
+              <div style={{ fontSize: 13, color: '#6B6966', marginTop: 2 }}>
                 {isActive ? t.chefOnboarding.visible : t.chefOnboarding.hidden}
               </div>
             </div>
@@ -262,8 +311,9 @@ export default function ChefOnboardingPage() {
               disabled={togglingStatus}
               onClick={handleToggleStatus}
               style={{
-                ...toggleBtnStyle,
-                background: isActive ? 'var(--accent)' : 'var(--color-text-secondary)',
+                padding: '8px 18px', borderRadius: 10, border: 'none',
+                backgroundColor: isActive ? '#D85A30' : '#9E9B97',
+                color: '#ffffff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
                 opacity: togglingStatus ? 0.6 : 1,
               }}
             >
@@ -276,14 +326,18 @@ export default function ChefOnboardingPage() {
       {/* ── Portfolio (only for existing chef profiles) ── */}
       {chefId !== null && (
         <div style={{ marginTop: 28 }}>
-          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{t.chef.portfolio}</div>
-          <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
+          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4, color: '#1A1917' }}>{t.chef.portfolio}</div>
+          <div style={{ fontSize: 13, color: '#6B6966', marginBottom: 14 }}>
             {t.chefOnboarding.portfolioHint}
           </div>
 
-          <div style={portfolioGridStyle}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}
             {portfolioMediaIds.map(id => (
-              <div key={id} style={photoThumbStyle}>
+              <div key={id} style={{
+                position: 'relative', aspectRatio: '1',
+                borderRadius: 10, overflow: 'hidden',
+                backgroundColor: '#E8E6E1',
+              }}>
                 <img
                   src={chefPhotoUrl(chefId, id)}
                   alt='portfolio'
@@ -292,7 +346,14 @@ export default function ChefOnboardingPage() {
                 <button
                   type='button'
                   onClick={() => handleDeletePhoto(id)}
-                  style={deletePhotoBtnStyle}
+                  style={{
+                    position: 'absolute', top: 4, right: 4,
+                    width: 24, height: 24, borderRadius: '50%',
+                    border: 'none', backgroundColor: 'rgba(0,0,0,0.55)',
+                    color: '#fff', fontSize: 16, lineHeight: 1,
+                    cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}
                   aria-label={t.a11y.deletePhoto}
                 >
                   ×
@@ -305,7 +366,13 @@ export default function ChefOnboardingPage() {
                 type='button'
                 disabled={uploadingPhoto}
                 onClick={() => fileInputRef.current?.click()}
-                style={{ ...addPhotoBtnStyle, opacity: uploadingPhoto ? 0.6 : 1 }}
+                style={{
+                  aspectRatio: '1', borderRadius: 10,
+                  border: '2px dashed #E8E6E1', backgroundColor: '#F7F6F3',
+                  color: '#6B6966', fontSize: 32, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  opacity: uploadingPhoto ? 0.6 : 1,
+                }}
               >
                 {uploadingPhoto ? '…' : '+'}
               </button>
@@ -325,34 +392,39 @@ export default function ChefOnboardingPage() {
       {/* ── Verification section (only for existing profiles) ── */}
       {chefId !== null && (
         <div style={{ marginTop: 28 }}>
-          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 12 }}>
+          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 12, color: '#1A1917' }}>
             {t.verification.sectionTitle}
           </div>
 
           {verificationStatus === 'approved' && (
-            <div style={{ ...verifyBannerStyle, background: '#34c75911', border: '1px solid #34c75933' }}>
-              <span style={{ color: '#34c759', fontWeight: 600, fontSize: 14 }}>{t.verification.approved}</span>
+            <div style={{ padding: '14px 16px', borderRadius: 12, marginBottom: 4, background: '#C0DD9711', border: '1px solid #C0DD9733' }}>
+              <span style={{ color: '#3B6D11', fontWeight: 600, fontSize: 14 }}>{t.verification.approved}</span>
             </div>
           )}
 
           {verificationStatus === 'pending' && (
-            <div style={{ ...verifyBannerStyle, background: '#007aff11', border: '1px solid #007aff33' }}>
+            <div style={{ padding: '14px 16px', borderRadius: 12, marginBottom: 4, background: '#007aff11', border: '1px solid #007aff33' }}>
               <div style={{ fontWeight: 600, fontSize: 14, color: '#007aff' }}>{t.verification.pending}</div>
-              <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 4 }}>{t.verification.pendingHint}</div>
+              <div style={{ fontSize: 13, color: '#6B6966', marginTop: 4 }}>{t.verification.pendingHint}</div>
             </div>
           )}
 
           {(verificationStatus === 'rejected' || verificationStatus === null) && !showVerifyForm && (
             <div>
               {verificationStatus === 'rejected' && (
-                <div style={{ ...verifyBannerStyle, background: '#ff3b3011', border: '1px solid #ff3b3033', marginBottom: 12 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: '#ff3b30' }}>{t.verification.rejected}</div>
-                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 4 }}>{t.verification.rejectedHint}</div>
+                <div style={{ padding: '14px 16px', borderRadius: 12, marginBottom: 12, background: '#E24B4A11', border: '1px solid #E24B4A33' }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: '#E24B4A' }}>{t.verification.rejected}</div>
+                  <div style={{ fontSize: 13, color: '#6B6966', marginTop: 4 }}>{t.verification.rejectedHint}</div>
                 </div>
               )}
               <button
                 type='button'
-                style={{ ...buttonStyle }}
+                style={{
+                  width: '100%', padding: '14px 16px', borderRadius: 12,
+                  border: 'none', backgroundColor: '#D85A30',
+                  color: '#ffffff', fontSize: 16, fontWeight: 600, cursor: 'pointer',
+                  marginTop: 8,
+                }}
                 onClick={() => setShowVerifyForm(true)}
               >
                 {t.verification.submitBtn}
@@ -362,7 +434,7 @@ export default function ChefOnboardingPage() {
 
           {showVerifyForm && (
             <form onSubmit={handleSubmitVerification} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>{t.verification.formHint}</div>
+              <div style={{ fontSize: 14, color: '#6B6966' }}>{t.verification.formHint}</div>
 
               <VerifyPhotoField
                 label={t.verification.docLabel}
@@ -393,7 +465,11 @@ export default function ChefOnboardingPage() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   type='button'
-                  style={{ flex: 1, padding: '11px', borderRadius: 12, border: '1px solid var(--color-text-secondary)', background: 'transparent', color: 'var(--color-text-primary)', fontSize: 15, cursor: 'pointer' }}
+                  style={{
+                    flex: 1, padding: '11px 16px', borderRadius: 12,
+                    border: '1px solid #E8E6E1', backgroundColor: '#ffffff',
+                    color: '#6B6966', fontSize: 15, cursor: 'pointer',
+                  }}
                   onClick={() => setShowVerifyForm(false)}
                   disabled={sendingVerify}
                 >
@@ -401,7 +477,12 @@ export default function ChefOnboardingPage() {
                 </button>
                 <button
                   type='submit'
-                  style={{ flex: 2, ...buttonStyle, opacity: sendingVerify ? 0.6 : 1 }}
+                  style={{
+                    flex: 2, padding: '11px 16px', borderRadius: 12,
+                    border: 'none', backgroundColor: '#D85A30',
+                    color: '#ffffff', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                    opacity: sendingVerify ? 0.6 : 1,
+                  }}
                   disabled={sendingVerify}
                 >
                   {sendingVerify ? t.verification.sending : t.verification.sendBtn}
@@ -411,6 +492,7 @@ export default function ChefOnboardingPage() {
           )}
         </div>
       )}
+      </div>
     </div>
   )
 }
@@ -418,17 +500,18 @@ export default function ChefOnboardingPage() {
 function VerifyPhotoField({ label, fileId, onPick }: { label: string; fileId: string | null; onPick: () => void }) {
   return (
     <div>
-      <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: 13, color: '#6B6966', marginBottom: 8, fontWeight: 500 }}>{label}</div>
       <button
         type='button'
         onClick={onPick}
         style={{
-          width: '100%', padding: '14px', borderRadius: 12,
-          border: `2px dashed ${fileId ? '#34c759' : 'var(--color-text-secondary)'}`,
-          background: fileId ? '#34c75911' : 'var(--color-surface)',
-          color: fileId ? '#34c759' : 'var(--color-text-secondary)',
+          width: '100%', padding: '14px 16px', borderRadius: 12,
+          border: `2px dashed ${fileId ? '#3B6D11' : '#E8E6E1'}`,
+          background: fileId ? '#C0DD9711' : '#F7F6F3',
+          color: fileId ? '#3B6D11' : '#6B6966',
           fontSize: 15, cursor: 'pointer', textAlign: 'center',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          fontWeight: 500,
         }}
       >
         {fileId ? '✓ Фото загружено' : '📷 Выбрать фото'}
@@ -466,12 +549,19 @@ function ChipInput({
       {value.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
           {value.map((chip) => (
-            <span key={chip} style={chipStyle}>
+            <span key={chip} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '4px 10px', borderRadius: 20,
+              backgroundColor: '#D85A30', color: '#ffffff', fontSize: 13,
+            }}>
               {chip}
               <button
                 type='button'
                 onClick={() => onChange(value.filter((c) => c !== chip))}
-                style={chipRemoveStyle}
+                style={{
+                  background: 'none', border: 'none', color: 'inherit',
+                  cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0,
+                }}
               >
                 ×
               </button>
@@ -484,7 +574,12 @@ function ChipInput({
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKey}
         placeholder={placeholder}
-        style={inputStyle}
+        style={{
+          width: '100%', padding: '12px 14px', borderRadius: 10,
+          border: '1px solid #E8E6E1', backgroundColor: '#F7F6F3',
+          color: '#1A1917', fontSize: 15, boxSizing: 'border-box',
+          outline: 'none', fontFamily: 'inherit',
+        }}
       />
     </div>
   )
@@ -495,145 +590,11 @@ function ChipInput({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <label style={labelStyle}>{label}</label>
+      <label style={{
+        display: 'block', fontSize: 13, color: '#6B6966',
+        marginBottom: 6, fontWeight: 500,
+      }}>{label}</label>
       {children}
     </div>
   )
-}
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: 13,
-  color: 'var(--color-text-secondary)',
-  marginBottom: 6,
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '12px 14px',
-  borderRadius: 10,
-  border: '1px solid var(--color-text-secondary)',
-  background: 'var(--color-surface)',
-  color: 'var(--color-text-primary)',
-  fontSize: 15,
-  boxSizing: 'border-box',
-  outline: 'none',
-}
-
-const textareaStyle: React.CSSProperties = {
-  ...inputStyle,
-  minHeight: 100,
-  resize: 'vertical',
-}
-
-const checkboxLabelStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  fontSize: 15,
-  padding: '8px 0',
-  cursor: 'pointer',
-}
-
-const chipStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 4,
-  padding: '4px 10px',
-  borderRadius: 20,
-  background: 'var(--accent)',
-  color: '#ffffff',
-  fontSize: 13,
-}
-
-const chipRemoveStyle: React.CSSProperties = {
-  background: 'none',
-  border: 'none',
-  color: 'inherit',
-  cursor: 'pointer',
-  fontSize: 16,
-  lineHeight: 1,
-  padding: 0,
-}
-
-const buttonStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '14px',
-  borderRadius: 12,
-  border: 'none',
-  background: 'var(--accent)',
-  color: '#ffffff',
-  fontSize: 16,
-  fontWeight: 600,
-  cursor: 'pointer',
-  marginTop: 8,
-}
-
-const verifyBannerStyle: React.CSSProperties = {
-  padding: '14px 16px',
-  borderRadius: 12,
-  marginBottom: 4,
-}
-
-const statusSectionStyle: React.CSSProperties = {
-  marginTop: 28,
-  padding: '14px 16px',
-  borderRadius: 12,
-  background: 'var(--color-surface)',
-}
-
-const toggleBtnStyle: React.CSSProperties = {
-  padding: '8px 18px',
-  borderRadius: 10,
-  border: 'none',
-  color: '#ffffff',
-  fontSize: 14,
-  fontWeight: 600,
-  cursor: 'pointer',
-}
-
-const portfolioGridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(3, 1fr)',
-  gap: 10,
-}
-
-const photoThumbStyle: React.CSSProperties = {
-  position: 'relative',
-  aspectRatio: '1',
-  borderRadius: 10,
-  overflow: 'hidden',
-  background: 'var(--color-surface)',
-}
-
-const deletePhotoBtnStyle: React.CSSProperties = {
-  position: 'absolute',
-  top: 4,
-  right: 4,
-  width: 24,
-  height: 24,
-  borderRadius: '50%',
-  border: 'none',
-  background: 'rgba(0,0,0,0.55)',
-  color: '#fff',
-  fontSize: 16,
-  lineHeight: 1,
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-}
-
-const addPhotoBtnStyle: React.CSSProperties = {
-  aspectRatio: '1',
-  borderRadius: 10,
-  border: '2px dashed var(--color-text-secondary)',
-  background: 'transparent',
-  color: 'var(--color-text-secondary)',
-  fontSize: 32,
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
 }
