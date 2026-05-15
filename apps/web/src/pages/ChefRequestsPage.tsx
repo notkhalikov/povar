@@ -50,25 +50,42 @@ export default function ChefRequestsPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-secondary)' }}>{t.common.loading}</div>
+    return <div style={{ padding: 24, textAlign: 'center', color: '#6B6966' }}>{t.common.loading}</div>
   }
 
   return (
-    <div style={{ padding: '12px 16px 80px' }}>
-      <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>{t.requests.incoming}</h2>
-      <p style={{ margin: '0 0 16px', color: 'var(--color-text-secondary)', fontSize: 13 }}>
-        {t.requests.incomingHint}
-      </p>
+    <div style={{ backgroundColor: '#F7F6F3', minHeight: '100dvh', paddingBottom: 64 }}>
+
+      {/* ШАПКА */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #E8E6E1',
+        padding: '14px 16px',
+      }}>
+        <h1 style={{ fontSize: 20, fontWeight: 500, color: '#1A1917', margin: 0 }}>
+          {t.requests.incoming}
+        </h1>
+        <p style={{ margin: '8px 0 0', color: '#6B6966', fontSize: 13 }}>
+          {t.requests.incomingHint}
+        </p>
+      </div>
+
+      <div style={{ padding: '12px 16px' }}>
 
       {items.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '48px 0' }}>
+        <div style={{ textAlign: 'center', padding: '48px 16px', color: '#9E9B97', fontSize: 15 }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>{t.requests.noIncoming}</div>
-          <div style={{ color: 'var(--color-text-secondary)', fontSize: 14 }}>
+          <div style={{ fontWeight: 600, marginBottom: 8, color: '#1A1917' }}>{t.requests.noIncoming}</div>
+          <div style={{ color: '#6B6966', fontSize: 14, marginBottom: 16 }}>
             {t.requests.noIncomingHint}
           </div>
           <button
-            style={linkBtnStyle}
+            style={{
+              marginTop: 16, padding: '10px 20px', borderRadius: 10,
+              border: '1px solid #E8E6E1', backgroundColor: '#ffffff',
+              color: '#1A1917', fontSize: 14, cursor: 'pointer', fontWeight: 500,
+            }}
             onClick={() => navigate('/chef/onboarding')}
           >
             {t.requests.editProfile}
@@ -76,7 +93,7 @@ export default function ChefRequestsPage() {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {items.map(item => (
           <div key={item.id}>
             <RequestCard
@@ -87,37 +104,54 @@ export default function ChefRequestsPage() {
 
             {/* Inline respond form */}
             {respondingTo === item.id && !item.hasResponded && (
-              <form onSubmit={handleRespond} style={respondFormStyle}>
-                <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12 }}>{t.requests.respondTitle}</div>
+              <form onSubmit={handleRespond} style={{
+                padding: '14px 16px', borderRadius: '0 0 12px 12px',
+                backgroundColor: '#F7F6F3', border: '1px solid #E8E6E144',
+                borderTop: 'none', marginTop: -4,
+              }}>
+                <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12, color: '#1A1917' }}>{t.requests.respondTitle}</div>
 
                 <div style={{ marginBottom: 14 }}>
-                  <div style={labelStyle}>{t.requests.priceLabel}</div>
+                  <div style={{ fontSize: 13, color: '#6B6966', marginBottom: 6, fontWeight: 500 }}>{t.requests.priceLabel}</div>
                   <input
                     type='number'
                     value={price}
                     onChange={e => setPrice(e.target.value)}
                     placeholder='150'
                     min={0}
-                    style={inputStyle}
+                    style={{
+                      width: '100%', padding: '11px 13px', borderRadius: 10,
+                      border: '1px solid #E8E6E1', backgroundColor: '#ffffff',
+                      color: '#1A1917', fontSize: 15, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit',
+                    }}
                   />
                 </div>
 
                 <div style={{ marginBottom: 14 }}>
-                  <div style={labelStyle}>{t.requests.commentLabel}</div>
+                  <div style={{ fontSize: 13, color: '#6B6966', marginBottom: 6, fontWeight: 500 }}>{t.requests.commentLabel}</div>
                   <textarea
                     value={comment}
                     onChange={e => setComment(e.target.value)}
                     placeholder={t.requests.commentPlaceholder}
                     rows={3}
                     maxLength={1000}
-                    style={{ ...inputStyle, resize: 'vertical' }}
+                    style={{
+                      width: '100%', padding: '11px 13px', borderRadius: 10,
+                      border: '1px solid #E8E6E1', backgroundColor: '#ffffff',
+                      color: '#1A1917', fontSize: 15, boxSizing: 'border-box', outline: 'none',
+                      fontFamily: 'inherit', resize: 'vertical',
+                    }}
                   />
                 </div>
 
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
                     type='button'
-                    style={{ ...cancelBtnStyle, flex: 1 }}
+                    style={{
+                      flex: 1, padding: '11px', borderRadius: 10,
+                      border: '1px solid #E8E6E1', backgroundColor: '#ffffff',
+                      color: '#1A1917', fontSize: 15, cursor: 'pointer', fontWeight: 500,
+                    }}
                     onClick={() => setRespondingTo(null)}
                     disabled={sending}
                   >
@@ -125,7 +159,12 @@ export default function ChefRequestsPage() {
                   </button>
                   <button
                     type='submit'
-                    style={{ ...submitBtnStyle, flex: 2, opacity: sending ? 0.6 : 1 }}
+                    style={{
+                      flex: 2, padding: '11px', borderRadius: 10,
+                      border: 'none', backgroundColor: '#D85A30',
+                      color: '#ffffff', fontSize: 15, cursor: 'pointer', fontWeight: 500,
+                      opacity: sending ? 0.6 : 1,
+                    }}
                     disabled={sending}
                   >
                     {sending ? t.requests.sending : t.requests.respond}
@@ -135,6 +174,7 @@ export default function ChefRequestsPage() {
             )}
           </div>
         ))}
+      </div>
       </div>
     </div>
   )
@@ -153,34 +193,45 @@ function RequestCard({
   })
 
   return (
-    <div style={cardStyle}>
+    <div style={{
+      padding: '14px 16px', borderRadius: 12, backgroundColor: '#ffffff',
+      border: '1px solid #E8E6E1',
+    }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <div>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>
+          <div style={{ fontWeight: 600, fontSize: 15, color: '#1A1917' }}>
             {item.city}{item.district ? `, ${item.district}` : ''}
           </div>
-          <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: '#6B6966', marginTop: 2 }}>
             {item.format === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull} · 👥 {item.persons} {t.common.persons}
           </div>
         </div>
         {item.budget && (
-          <span style={{ fontSize: 14, fontWeight: 600 }}>{t.common.upTo} {item.budget} {t.common.currency}</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#1A1917' }}>{t.common.upTo} {item.budget} {t.common.currency}</span>
         )}
       </div>
 
       {item.description && (
-        <p style={{ margin: '0 0 10px', fontSize: 14, lineHeight: 1.5, color: 'var(--color-text-primary)' }}>
+        <p style={{ margin: '0 0 10px', fontSize: 14, lineHeight: 1.5, color: '#1A1917' }}>
           {item.description}
         </p>
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>📅 {date}</span>
+        <span style={{ fontSize: 13, color: '#9E9B97' }}>📅 {date}</span>
         {item.hasResponded ? (
-          <span style={respondedBadgeStyle}>{t.requests.respondSent}</span>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center',
+            padding: '6px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+            backgroundColor: '#C0DD9722', color: '#3B6D11',
+          }}>{t.requests.respondSent}</span>
         ) : (
           <button
-            style={{ ...respondBtnStyle, opacity: isResponding ? 0.5 : 1 }}
+            style={{
+              padding: '7px 16px', borderRadius: 10, fontSize: 14, fontWeight: 600,
+              backgroundColor: '#D85A30', color: '#ffffff', border: 'none',
+              cursor: 'pointer', opacity: isResponding ? 0.5 : 1,
+            }}
             onClick={onRespond}
             disabled={isResponding}
           >
@@ -192,89 +243,3 @@ function RequestCard({
   )
 }
 
-const cardStyle: React.CSSProperties = {
-  padding: '14px 16px',
-  borderRadius: 14,
-  background: 'var(--color-surface)',
-}
-
-const respondFormStyle: React.CSSProperties = {
-  padding: '14px 16px',
-  borderRadius: '0 0 14px 14px',
-  background: 'var(--color-bg)',
-  border: '1px solid var(--color-text-secondary)44',
-  borderTop: 'none',
-  marginTop: -4,
-}
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 13,
-  color: 'var(--color-text-secondary)',
-  marginBottom: 6,
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '11px 13px',
-  borderRadius: 10,
-  border: '1px solid var(--color-text-secondary)',
-  background: 'var(--color-surface)',
-  color: 'var(--color-text-primary)',
-  fontSize: 15,
-  boxSizing: 'border-box',
-  outline: 'none',
-}
-
-const respondBtnStyle: React.CSSProperties = {
-  padding: '7px 16px',
-  borderRadius: 10,
-  border: 'none',
-  background: 'var(--accent)',
-  color: '#ffffff',
-  fontSize: 14,
-  fontWeight: 600,
-  cursor: 'pointer',
-}
-
-const submitBtnStyle: React.CSSProperties = {
-  padding: '11px',
-  borderRadius: 10,
-  border: 'none',
-  background: 'var(--accent)',
-  color: '#ffffff',
-  fontSize: 15,
-  fontWeight: 600,
-  cursor: 'pointer',
-}
-
-const cancelBtnStyle: React.CSSProperties = {
-  padding: '11px',
-  borderRadius: 10,
-  border: '1px solid var(--color-text-secondary)',
-  background: 'transparent',
-  color: 'var(--color-text-primary)',
-  fontSize: 15,
-  cursor: 'pointer',
-}
-
-const linkBtnStyle: React.CSSProperties = {
-  marginTop: 16,
-  padding: '10px 20px',
-  borderRadius: 10,
-  border: '1px solid var(--color-text-secondary)',
-  background: 'transparent',
-  color: 'var(--color-text-primary)',
-  fontSize: 14,
-  cursor: 'pointer',
-}
-
-const respondedBadgeStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '6px 12px',
-  borderRadius: 10,
-  fontSize: 13,
-  fontWeight: 600,
-  background: '#34c75922',
-  color: '#34c759',
-}

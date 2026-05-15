@@ -71,27 +71,54 @@ export default function RequestsPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-secondary)' }}>{t.common.loading}</div>
+    return <div style={{ padding: 24, textAlign: 'center', color: '#6B6966' }}>{t.common.loading}</div>
   }
 
   return (
-    <div style={{ padding: '12px 16px 80px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ margin: 0, fontSize: 20 }}>{t.requests.title}</h2>
+    <div style={{ backgroundColor: '#F7F6F3', minHeight: '100dvh', paddingBottom: 64 }}>
+
+      {/* ШАПКА */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #E8E6E1',
+        padding: '14px 16px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <h1 style={{ fontSize: 20, fontWeight: 500, color: '#1A1917', margin: 0 }}>
+          {t.requests.title}
+        </h1>
         {user?.role !== 'chef' && (
-          <button style={createBtnStyle} onClick={() => setShowForm(v => !v)}>
+          <button onClick={() => setShowForm(v => !v)}
+            style={{
+              padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+              backgroundColor: showForm ? '#ffffff' : '#D85A30',
+              color: showForm ? '#D85A30' : '#ffffff',
+              border: showForm ? '1px solid #D85A30' : 'none',
+              cursor: 'pointer',
+            }}
+          >
             {showForm ? t.common.cancel : t.requests.create}
           </button>
         )}
       </div>
 
+      <div style={{ padding: '12px 16px' }}>
+
       {/* Create form */}
       {showForm && (
-        <form onSubmit={handleCreate} style={formCardStyle}>
-          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16 }}>{t.requests.newRequest}</div>
+        <form onSubmit={handleCreate} style={{
+          padding: '16px', borderRadius: 12, backgroundColor: '#ffffff',
+          border: '1px solid #E8E6E1', marginBottom: 16,
+        }}>
+          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16, color: '#1A1917' }}>{t.requests.newRequest}</div>
 
           <Field label={t.requests.cityLabel}>
-            <select value={form.city} onChange={e => set('city', e.target.value)} style={inputStyle}>
+            <select value={form.city} onChange={e => set('city', e.target.value)} style={{
+              width: '100%', padding: '11px 13px', borderRadius: 10,
+              border: '1px solid #E8E6E1', backgroundColor: '#F7F6F3',
+              color: '#1A1917', fontSize: 15, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit',
+            }}>
               {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </Field>
@@ -101,7 +128,11 @@ export default function RequestsPage() {
               value={form.district}
               onChange={e => set('district', e.target.value)}
               placeholder={t.requests.districtPlaceholder}
-              style={inputStyle}
+              style={{
+                width: '100%', padding: '11px 13px', borderRadius: 10,
+                border: '1px solid #E8E6E1', backgroundColor: '#F7F6F3',
+                color: '#1A1917', fontSize: 15, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit',
+              }}
             />
           </Field>
 
@@ -111,19 +142,24 @@ export default function RequestsPage() {
               value={form.scheduledAt}
               onChange={e => set('scheduledAt', e.target.value)}
               required
-              style={inputStyle}
+              style={{
+                width: '100%', padding: '11px 13px', borderRadius: 10,
+                border: '1px solid #E8E6E1', backgroundColor: '#F7F6F3',
+                color: '#1A1917', fontSize: 15, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit',
+              }}
             />
           </Field>
 
           <Field label={t.requests.formatLabel}>
             <div style={{ display: 'flex', gap: 12 }}>
               {(['home_visit', 'delivery'] as const).map(f => (
-                <label key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 15 }}>
+                <label key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 15, color: '#1A1917' }}>
                   <input
                     type='radio'
                     name='format'
                     checked={form.format === f}
                     onChange={() => set('format', f)}
+                    style={{ accentColor: '#D85A30', cursor: 'pointer' }}
                   />
                   {f === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull}
                 </label>
@@ -137,7 +173,11 @@ export default function RequestsPage() {
               value={form.persons}
               onChange={e => set('persons', e.target.value)}
               min={1} max={50} required
-              style={inputStyle}
+              style={{
+                width: '100%', padding: '11px 13px', borderRadius: 10,
+                border: '1px solid #E8E6E1', backgroundColor: '#F7F6F3',
+                color: '#1A1917', fontSize: 15, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit',
+              }}
             />
           </Field>
 
@@ -147,7 +187,12 @@ export default function RequestsPage() {
               onChange={e => set('description', e.target.value)}
               placeholder={t.requests.descPlaceholder}
               rows={3}
-              style={{ ...inputStyle, resize: 'vertical' }}
+              style={{
+                width: '100%', padding: '11px 13px', borderRadius: 10,
+                border: '1px solid #E8E6E1', backgroundColor: '#F7F6F3',
+                color: '#1A1917', fontSize: 15, boxSizing: 'border-box', outline: 'none',
+                fontFamily: 'inherit', resize: 'vertical',
+              }}
             />
           </Field>
 
@@ -158,11 +203,19 @@ export default function RequestsPage() {
               onChange={e => set('budget', e.target.value)}
               min={0}
               placeholder='200'
-              style={inputStyle}
+              style={{
+                width: '100%', padding: '11px 13px', borderRadius: 10,
+                border: '1px solid #E8E6E1', backgroundColor: '#F7F6F3',
+                color: '#1A1917', fontSize: 15, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit',
+              }}
             />
           </Field>
 
-          <button type='submit' disabled={saving} style={{ ...submitBtnStyle, opacity: saving ? 0.6 : 1 }}>
+          <button type='submit' disabled={saving} style={{
+            width: '100%', padding: '12px 16px', borderRadius: 10,
+            backgroundColor: '#D85A30', color: '#ffffff', fontSize: 14, fontWeight: 500,
+            border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1, marginTop: 4,
+          }}>
             {saving ? t.requests.creating : t.requests.submitCreate}
           </button>
         </form>
@@ -170,19 +223,20 @@ export default function RequestsPage() {
 
       {/* List */}
       {items.length === 0 && !showForm && (
-        <div style={{ textAlign: 'center', padding: '48px 0' }}>
+        <div style={{ textAlign: 'center', padding: '48px 0', color: '#9E9B97', fontSize: 15 }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>📩</div>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>{t.requests.noRequests}</div>
-          <div style={{ color: 'var(--color-text-secondary)', fontSize: 14 }}>
+          <div style={{ fontWeight: 600, marginBottom: 8, color: '#1A1917' }}>{t.requests.noRequests}</div>
+          <div style={{ color: '#6B6966', fontSize: 14 }}>
             {t.requests.noRequestsHint}
           </div>
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {items.map(item => (
           <RequestCard key={item.id} item={item} onClick={() => navigate(`/requests/${item.id}`)} />
         ))}
+      </div>
       </div>
     </div>
   )
@@ -194,21 +248,28 @@ function RequestCard({ item, onClick }: { item: RequestItem; onClick: () => void
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   })
   return (
-    <div onClick={onClick} style={cardStyle}>
+    <div onClick={onClick} style={{
+      padding: '14px 16px', borderRadius: 12, backgroundColor: '#ffffff',
+      border: '1px solid #E8E6E1', cursor: 'pointer',
+    }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <div>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>
+          <div style={{ fontWeight: 600, fontSize: 15, color: '#1A1917' }}>
             {item.city}{item.district ? `, ${item.district}` : ''}
           </div>
-          <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: '#6B6966', marginTop: 2 }}>
             {item.format === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull} · 👥 {item.persons} {t.common.persons}
           </div>
         </div>
-        <span style={{ ...statusBadge, background: item.status === 'open' ? '#34c75922' : '#88888822', color: item.status === 'open' ? '#34c759' : '#888' }}>
+        <span style={{
+          padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, flexShrink: 0,
+          backgroundColor: item.status === 'open' ? '#C0DD9722' : '#D3D1C722',
+          color: item.status === 'open' ? '#3B6D11' : '#5F5E5A',
+        }}>
           {item.status === 'open' ? t.requests.open : t.requests.closed}
         </span>
       </div>
-      <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--color-text-secondary)' }}>
+      <div style={{ display: 'flex', gap: 16, fontSize: 13, color: '#9E9B97' }}>
         <span>📅 {date}</span>
         {item.budget && <span>💰 {t.common.upTo} {item.budget} {t.common.currency}</span>}
         <span>💬 {item.responseCount} {plural(item.responseCount, t.requests.responseCount.one, t.requests.responseCount.few, t.requests.responseCount.many)}</span>
@@ -220,7 +281,7 @@ function RequestCard({ item, onClick }: { item: RequestItem; onClick: () => void
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 13, color: '#6B6966', marginBottom: 6, fontWeight: 500 }}>{label}</div>
       {children}
     </div>
   )
@@ -233,60 +294,3 @@ function plural(n: number, one: string, few: string, many: string) {
   return many
 }
 
-const cardStyle: React.CSSProperties = {
-  padding: '14px 16px',
-  borderRadius: 14,
-  background: 'var(--color-surface)',
-  cursor: 'pointer',
-}
-
-const formCardStyle: React.CSSProperties = {
-  padding: '16px',
-  borderRadius: 14,
-  background: 'var(--color-surface)',
-  marginBottom: 20,
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '11px 13px',
-  borderRadius: 10,
-  border: '1px solid var(--color-text-secondary)',
-  background: 'var(--color-bg)',
-  color: 'var(--color-text-primary)',
-  fontSize: 15,
-  boxSizing: 'border-box',
-  outline: 'none',
-}
-
-const createBtnStyle: React.CSSProperties = {
-  padding: '8px 16px',
-  borderRadius: 10,
-  border: 'none',
-  background: 'var(--accent)',
-  color: '#ffffff',
-  fontSize: 14,
-  fontWeight: 600,
-  cursor: 'pointer',
-}
-
-const submitBtnStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '13px',
-  borderRadius: 12,
-  border: 'none',
-  background: 'var(--accent)',
-  color: '#ffffff',
-  fontSize: 16,
-  fontWeight: 600,
-  cursor: 'pointer',
-  marginTop: 4,
-}
-
-const statusBadge: React.CSSProperties = {
-  padding: '3px 10px',
-  borderRadius: 20,
-  fontSize: 12,
-  fontWeight: 600,
-  flexShrink: 0,
-}
