@@ -1,10 +1,11 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { BrowserRouter, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { AuthProvider } from './context/AuthContext'
 import { useAuth } from './context/AuthContext'
 import { useT } from './i18n'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { AppLayout } from './components/AppLayout'
 import CatalogPage from './pages/CatalogPage'
 import OnboardingPage from './pages/OnboardingPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -93,20 +94,26 @@ function AnimatedRoutes() {
     <div key={location.key} className={animClass} style={{ flex: 1 }}>
       <Suspense fallback={<PageFallback />}>
         <Routes location={location}>
-          <Route path='/login'             element={<LoginPage />} />
+          <Route path='/login' element={
+            <AppLayout showNav={false}><LoginPage /></AppLayout>
+          } />
           <Route element={<ProtectedRoute />}>
-            <Route path='/'                element={<CatalogPage />} />
-            <Route path='/chefs/:id'       element={<ChefPage />} />
-            <Route path='/orders'          element={<OrdersPage />} />
-            <Route path='/orders/new'      element={<OrderNewPage />} />
-            <Route path='/orders/:id'      element={<OrderDetailPage />} />
-            <Route path='/profile'         element={<ProfilePage />} />
-            <Route path='/chef/onboarding' element={<ChefOnboardingPage />} />
-            <Route path='/chef/requests'   element={<ChefRequestsPage />} />
-            <Route path='/disputes/:id'    element={<DisputePage />} />
-            <Route path='/requests'        element={<RequestsPage />} />
-            <Route path='/requests/:id'    element={<RequestDetailPage />} />
-            <Route path='/onboarding'      element={<OnboardingPage />} />
+            <Route path='/' element={<AppLayout><CatalogPage /></AppLayout>} />
+            <Route path='/chefs/:id' element={<AppLayout><ChefPage /></AppLayout>} />
+            <Route path='/orders' element={<AppLayout><OrdersPage /></AppLayout>} />
+            <Route path='/orders/new' element={<AppLayout><OrderNewPage /></AppLayout>} />
+            <Route path='/orders/:id' element={<AppLayout><OrderDetailPage /></AppLayout>} />
+            <Route path='/profile' element={<AppLayout><ProfilePage /></AppLayout>} />
+            <Route path='/chef/onboarding' element={
+              <AppLayout showNav={false}><ChefOnboardingPage /></AppLayout>
+            } />
+            <Route path='/chef/requests' element={<AppLayout><ChefRequestsPage /></AppLayout>} />
+            <Route path='/disputes/:id' element={<AppLayout><DisputePage /></AppLayout>} />
+            <Route path='/requests' element={<AppLayout><RequestsPage /></AppLayout>} />
+            <Route path='/requests/:id' element={<AppLayout><RequestDetailPage /></AppLayout>} />
+            <Route path='/onboarding' element={
+              <AppLayout showNav={false}><OnboardingPage /></AppLayout>
+            } />
           </Route>
         </Routes>
       </Suspense>
@@ -211,81 +218,10 @@ export default function App() {
             <OnboardingGate />
             <DeepLinkRedirect />
             <OfflineToast />
-            <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-              <main style={{ flex: 1, paddingBottom: 'calc(60px + env(safe-area-inset-bottom))' }}>
-                <AnimatedRoutes />
-              </main>
-              <BottomNav />
-            </div>
+            <AnimatedRoutes />
           </BrowserRouter>
         </AuthProvider>
       </ErrorBoundary>
     </div>
   )
-}
-
-// ─── Role-aware bottom navigation ────────────────────────────────────────────
-
-function BottomNav() {
-  const { user } = useAuth()
-  const isChef = user?.role === 'chef'
-  const location = useLocation()
-  const t = useT()
-
-  if (location.pathname === '/onboarding' || location.pathname === '/login') return null
-
-  return (
-    <nav style={navStyle}>
-      <NavItem to='/'        label={t.nav.chefs}    icon='🍽️' />
-      <NavItem
-        to={isChef ? '/chef/requests' : '/requests'}
-        label={t.nav.requests}
-        icon='📩'
-      />
-      <NavItem to='/orders'  label={t.nav.orders}   icon='📋' />
-      <NavItem to='/profile' label={t.nav.profile}  icon='👤' />
-    </nav>
-  )
-}
-
-function NavItem({ to, icon, label }: { to: string; icon: string; label: string }) {
-  return (
-    <NavLink
-      to={to}
-      end={to === '/'}
-      style={({ isActive }) => ({
-        ...navItemStyle,
-        color: isActive
-          ? 'var(--accent)'
-          : 'var(--color-text-secondary)',
-      })}
-    >
-      <span style={{ fontSize: 24, lineHeight: 1 }}>{icon}</span>
-      <span style={{ fontSize: 10, fontWeight: 500 }}>{label}</span>
-    </NavLink>
-  )
-}
-
-const navStyle: React.CSSProperties = {
-  position: 'fixed',
-  bottom: 0,
-  left: 0,
-  right: 0,
-  display: 'flex',
-  justifyContent: 'space-around',
-  background: 'var(--color-bg)',
-  borderTop: '1px solid color-mix(in srgb, var(--color-text-secondary) 25%, transparent)',
-  padding: '6px 0 max(10px, env(safe-area-inset-bottom))',
-  zIndex: 100,
-}
-
-const navItemStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: 2,
-  textDecoration: 'none',
-  minWidth: 60,
-  minHeight: 44,
-  justifyContent: 'center',
 }
