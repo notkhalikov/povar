@@ -54,8 +54,8 @@ export function ChatBox({ orderId, requestId, chefId, isOpen = true }: ChatBoxPr
 
   if (isLoading) {
     return (
-      <div style={containerStyle}>
-        <div style={{ ...listStyle, gap: 10 }}>
+      <div style={{ backgroundColor: '#ffffff', borderTop: '1px solid #E8E6E1', padding: '12px 16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div className='sk' style={{ height: 36, width: '60%', borderRadius: 14 }} />
           <div className='sk' style={{ height: 36, width: '70%', borderRadius: 14, alignSelf: 'flex-end' }} />
           <div className='sk' style={{ height: 36, width: '50%', borderRadius: 14 }} />
@@ -64,130 +64,115 @@ export function ChatBox({ orderId, requestId, chefId, isOpen = true }: ChatBoxPr
     )
   }
 
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
   return (
-    <div style={containerStyle}>
+    <div style={{ backgroundColor: '#ffffff', borderTop: '1px solid #E8E6E1' }}>
+
+      {/* Заголовок чата */}
+      <div style={{
+        padding: '12px 16px 0',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 500, color: '#6B6966' }}>Чат</span>
+      </div>
+
       {!isConnected && (
-        <div style={bannerStyle}>Переподключение…</div>
+        <div style={{
+          padding: '8px 12px',
+          background: '#f5a62322',
+          color: '#b8740a',
+          fontSize: 12,
+          textAlign: 'center',
+          fontWeight: 500,
+        }}>
+          Переподключение…
+        </div>
       )}
 
-      <div ref={listRef} style={listStyle}>
+      {/* Сообщения */}
+      <div
+        ref={listRef}
+        style={{
+          padding: '12px 16px',
+          display: 'flex', flexDirection: 'column', gap: 8,
+          maxHeight: 320, overflowY: 'auto',
+        }}
+      >
         {messages.length === 0 && (
-          <div style={emptyStyle}>Сообщений пока нет</div>
+          <div style={{ margin: 'auto', fontSize: 13, color: '#9E9B97' }}>
+            Сообщений пока нет
+          </div>
         )}
-        {messages.map(m => {
-          const isOwn = m.senderId === user?.id
+        {messages.map(msg => {
+          const isOwn = msg.senderId === user?.id
           return (
-            <div
-              key={m.id}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: isOwn ? 'flex-end' : 'flex-start',
-              }}
-            >
+            <div key={msg.id} style={{
+              display: 'flex', flexDirection: 'column',
+              alignItems: isOwn ? 'flex-end' : 'flex-start',
+              gap: 2,
+            }}>
               {!isOwn && (
-                <div style={senderNameStyle}>{m.senderName}</div>
+                <span style={{ fontSize: 11, color: '#9E9B97', paddingLeft: 2 }}>
+                  {msg.senderName}
+                </span>
               )}
-              <div
-                style={{
-                  ...bubbleBaseStyle,
-                  background: isOwn ? 'var(--accent)' : 'var(--color-surface)',
-                  color:      isOwn ? '#ffffff' : 'var(--color-text-primary)',
-                  borderBottomRightRadius: isOwn ? 4 : 14,
-                  borderBottomLeftRadius:  isOwn ? 14 : 4,
-                }}
-              >
-                {m.body}
+              <div style={{
+                maxWidth: '75%', padding: '8px 12px',
+                borderRadius: isOwn ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                backgroundColor: isOwn ? '#D85A30' : '#F7F6F3',
+                color: isOwn ? '#ffffff' : '#1A1917',
+                fontSize: 14, lineHeight: 1.4,
+              }}>
+                {msg.body}
               </div>
+              {isOwn && (
+                <span style={{ fontSize: 10, color: '#9E9B97' }}>
+                  {new Date(msg.createdAt).toLocaleTimeString('ru', {
+                    hour: '2-digit', minute: '2-digit'
+                  })}
+                </span>
+              )}
             </div>
           )
         })}
+        <div ref={messagesEndRef} />
       </div>
 
-      <div style={inputRowStyle}>
+      {/* Поле ввода */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '10px 14px', borderTop: '1px solid #E8E6E1',
+      }}>
         <input
-          type='text'
-          className='field-input'
           value={text}
           onChange={e => setText(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              handleSend()
-            }
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
+          placeholder="Написать сообщение..."
+          style={{
+            flex: 1, padding: '9px 14px',
+            borderRadius: 20, border: '1px solid #E8E6E1',
+            backgroundColor: '#F7F6F3', fontSize: 14,
+            color: '#1A1917', outline: 'none', fontFamily: 'inherit',
           }}
-          placeholder='Сообщение…'
-          maxLength={4000}
-          style={{ flex: 1 }}
         />
         <button
-          className='btn-primary'
-          style={{ width: 'auto', padding: '0 18px', flexShrink: 0, opacity: text.trim() ? 1 : 0.5 }}
-          disabled={!text.trim()}
           onClick={handleSend}
+          style={{
+            width: 36, height: 36, borderRadius: '50%',
+            backgroundColor: '#D85A30', border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', flexShrink: 0,
+          }}
         >
-          ➤
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 8h10M9 4l4 4-4 4"
+              stroke="#ffffff" strokeWidth="1.5"
+              strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </button>
       </div>
+
     </div>
   )
-}
-
-const containerStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  border: '1px solid var(--color-text-secondary)22',
-  borderRadius: 12,
-  background: 'var(--color-bg)',
-  marginBottom: 16,
-  overflow: 'hidden',
-}
-
-const bannerStyle: React.CSSProperties = {
-  padding: '8px 12px',
-  background: '#f5a62322',
-  color: '#b8740a',
-  fontSize: 12,
-  textAlign: 'center',
-  fontWeight: 500,
-}
-
-const listStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 8,
-  padding: 12,
-  height: 320,
-  overflowY: 'auto',
-}
-
-const emptyStyle: React.CSSProperties = {
-  margin: 'auto',
-  fontSize: 13,
-  color: 'var(--color-text-secondary)',
-}
-
-const senderNameStyle: React.CSSProperties = {
-  fontSize: 11,
-  color: 'var(--color-text-secondary)',
-  marginBottom: 2,
-  padding: '0 8px',
-}
-
-const bubbleBaseStyle: React.CSSProperties = {
-  maxWidth: '80%',
-  padding: '8px 12px',
-  borderRadius: 14,
-  fontSize: 14,
-  lineHeight: 1.4,
-  wordBreak: 'break-word',
-  whiteSpace: 'pre-wrap',
-}
-
-const inputRowStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: 8,
-  padding: 8,
-  borderTop: '1px solid var(--color-text-secondary)22',
-  alignItems: 'center',
 }
