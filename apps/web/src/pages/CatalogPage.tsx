@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getChefs } from '../api/chefs'
 import type { ChefsQuery } from '../api/chefs'
 import type { ChefListItem } from '../types'
-import { ChefCard } from '../components/ChefCard'
 import { ChefCardSkeleton } from '../components/LoadingSkeleton'
 import { ErrorScreen } from '../components/ErrorScreen'
 import { EmptyState } from '../components/EmptyState'
@@ -22,6 +22,7 @@ const DEFAULT_QUERY: ChefsQuery = { sort: 'rating' }
 
 export default function CatalogPage() {
   const t = useT()
+  const navigate = useNavigate()
   const [chefs, setChefs]               = useState<ChefListItem[]>([])
   const [loading, setLoading]           = useState(true)
   const [loadingMore, setLoadingMore]   = useState(false)
@@ -126,10 +127,25 @@ export default function CatalogPage() {
     pullDelta.current = 0
   }
 
+  const AVATAR_COLORS = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+    '#C89FE0', '#F4A261', '#52B788', '#E76F51',
+  ]
+
+  function avatarColor(name: string): string {
+    let h = 0
+    for (let i = 0; i < name.length; i++) h = (h << 5) - h + name.charCodeAt(i)
+    return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]
+  }
+
+  function initials(name: string): string {
+    return name.split(' ').map(w => w[0] ?? '').slice(0, 2).join('').toUpperCase() || '?'
+  }
+
   return (
     <div
       ref={scrollRef}
-      style={{ paddingBottom: 'var(--page-padding-bottom)' }}
+      style={{ backgroundColor: '#F7F6F3', minHeight: '100dvh', paddingBottom: 64 }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -138,102 +154,171 @@ export default function CatalogPage() {
       {refreshing && (
         <div style={{
           textAlign: 'center', padding: '8px 0',
-          fontSize: 13, color: 'var(--color-text-secondary)',
+          fontSize: 13, color: '#6B6966',
         }}>
           {t.catalog.refreshing}
         </div>
       )}
 
-      {/* Header */}
-      <div style={{ padding: '16px 16px 10px' }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{t.catalog.title}</h2>
-      </div>
+      {/* ШАПКА */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #E8E6E1',
+        padding: '12px 16px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 500, color: '#1A1917', margin: 0 }}>
+              {t.catalog.title}
+            </h1>
+          </div>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%',
+            border: '1px solid #E8E6E1', backgroundColor: '#ffffff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <circle cx="6.5" cy="6.5" r="4.5" stroke="#6B6966" strokeWidth="1.3"/>
+              <line x1="10" y1="10" x2="14" y2="14" stroke="#6B6966"
+                strokeWidth="1.3" strokeLinecap="round"/>
+            </svg>
+          </div>
+        </div>
 
-      {/* Cuisine search */}
-      <div style={{ padding: '0 16px 10px' }}>
+        {/* Строка поиска */}
         <input
           type='text'
-          className='field-input'
           placeholder={t.catalog.searchPlaceholder}
           value={cuisineInput}
           onChange={e => setCuisineInput(e.target.value)}
-          style={{ fontSize: 14 }}
+          style={{
+            width: '100%', marginTop: 10, padding: '9px 14px',
+            borderRadius: 12, border: '1px solid #E8E6E1',
+            fontSize: 14, color: '#1A1917', backgroundColor: '#F7F6F3',
+            outline: 'none', fontFamily: 'inherit',
+          }}
         />
       </div>
 
-      {/* City chips */}
-      <div className='chips-row' style={{ padding: '0 16px' }}>
+      {/* ФИЛЬТРЫ */}
+      <div style={{
+        display: 'flex', gap: 6, overflowX: 'auto',
+        padding: '10px 16px',
+        borderBottom: '1px solid #E8E6E1',
+        backgroundColor: '#ffffff',
+        scrollbarWidth: 'none',
+      }}>
+        {/* City filters */}
         <button
-          className={`chip${!query.city ? ' active' : ''}`}
           onClick={() => setQuery(q => ({ ...q, city: undefined }))}
+          style={{
+            padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
+            whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
+            backgroundColor: !query.city ? '#D85A30' : '#ffffff',
+            color: !query.city ? '#fff' : '#6B6966',
+            borderWidth: !query.city ? 0 : 1,
+            borderColor: !query.city ? 'transparent' : '#E8E6E1',
+          }}
         >
           {t.catalog.allCities}
         </button>
         {CITIES.map(c => (
           <button
             key={c}
-            className={`chip${query.city === c ? ' active' : ''}`}
             onClick={() => setQuery(q => ({ ...q, city: c }))}
+            style={{
+              padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
+              whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
+              backgroundColor: query.city === c ? '#D85A30' : '#ffffff',
+              color: query.city === c ? '#fff' : '#6B6966',
+              borderWidth: query.city === c ? 0 : 1,
+              borderColor: query.city === c ? 'transparent' : '#E8E6E1',
+            }}
           >
             {c}
           </button>
         ))}
-      </div>
 
-      {/* Format chips */}
-      <div className='chips-row' style={{ padding: '4px 16px 0' }}>
+        {/* Format filters */}
         {([
-          { value: undefined,    label: t.catalog.allFormats },
+          { value: undefined, label: t.catalog.allFormats },
           { value: 'home_visit', label: t.catalog.homeVisit },
-          { value: 'delivery',   label: t.catalog.delivery },
+          { value: 'delivery', label: t.catalog.delivery },
         ] as const).map(f => (
           <button
             key={String(f.value)}
-            className={`chip${query.format === f.value ? ' active' : ''}`}
             onClick={() => setQuery(q => ({ ...q, format: f.value as ChefsQuery['format'] }))}
+            style={{
+              padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
+              whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
+              backgroundColor: query.format === f.value ? '#D85A30' : '#ffffff',
+              color: query.format === f.value ? '#fff' : '#6B6966',
+              borderWidth: query.format === f.value ? 0 : 1,
+              borderColor: query.format === f.value ? 'transparent' : '#E8E6E1',
+            }}
           >
             {f.label}
           </button>
         ))}
-      </div>
 
-      {/* Rating + sort + reset */}
-      <div className='chips-row' style={{ padding: '4px 16px 8px' }}>
+        {/* Rating + Sort + Reset */}
         {RATING_CHIPS.map(r => (
           <button
             key={String(r.value)}
-            className={`chip${query.minRating === r.value ? ' active' : ''}`}
             onClick={() => setQuery(q => ({ ...q, minRating: r.value }))}
+            style={{
+              padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
+              whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
+              backgroundColor: query.minRating === r.value ? '#D85A30' : '#ffffff',
+              color: query.minRating === r.value ? '#fff' : '#6B6966',
+              borderWidth: query.minRating === r.value ? 0 : 1,
+              borderColor: query.minRating === r.value ? 'transparent' : '#E8E6E1',
+            }}
           >
             {'label' in r ? r.label : t.catalog.anyRating}
           </button>
         ))}
-        <div style={{ width: 1, background: 'var(--color-text-secondary)', opacity: .25, flexShrink: 0 }} />
+
+        <div style={{ width: 1, background: '#6B6966', opacity: .25, flexShrink: 0 }} />
+
         {([
           { value: 'rating', label: t.catalog.sortByRating },
-          { value: 'price',  label: t.catalog.sortByPrice },
+          { value: 'price', label: t.catalog.sortByPrice },
         ] as const).map(s => (
           <button
             key={s.value}
-            className={`chip${(query.sort ?? 'rating') === s.value ? ' active' : ''}`}
             onClick={() => setQuery(q => ({ ...q, sort: s.value }))}
+            style={{
+              padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
+              whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
+              backgroundColor: (query.sort ?? 'rating') === s.value ? '#D85A30' : '#ffffff',
+              color: (query.sort ?? 'rating') === s.value ? '#fff' : '#6B6966',
+              borderWidth: (query.sort ?? 'rating') === s.value ? 0 : 1,
+              borderColor: (query.sort ?? 'rating') === s.value ? 'transparent' : '#E8E6E1',
+            }}
           >
             {s.label}
           </button>
         ))}
+
         {hasActiveFilters && (
           <button
-            className='chip'
             onClick={resetFilters}
-            style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}
+            style={{
+              padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
+              whiteSpace: 'nowrap', cursor: 'pointer',
+              backgroundColor: '#ffffff', border: '1px solid #E24B4A',
+              color: '#E24B4A',
+            }}
           >
             {t.catalog.resetFilters}
           </button>
         )}
       </div>
 
-      {/* List */}
-      <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* СПИСОК ПОВАРОВ */}
+      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {loading && Array.from({ length: 4 }, (_, i) => <ChefCardSkeleton key={i} />)}
 
         {!loading && error && (
@@ -248,7 +333,64 @@ export default function CatalogPage() {
           />
         )}
 
-        {!loading && chefs.map(chef => <ChefCard key={chef.id} chef={chef} />)}
+        {!loading && chefs.map(chef => (
+          <div
+            key={chef.id}
+            onClick={() => navigate(`/chefs/${chef.id}`)}
+            style={{
+              backgroundColor: !chef.isOnVacation ? '#ffffff' : '#F7F6F3',
+              border: '1px solid #E8E6E1',
+              borderRadius: 16,
+              padding: 14,
+              display: 'flex',
+              gap: 12,
+              cursor: 'pointer',
+              opacity: !chef.isOnVacation ? 1 : 0.75,
+            }}
+          >
+            {/* Аватар */}
+            <div style={{
+              width: 54, height: 54, borderRadius: 12, flexShrink: 0,
+              backgroundColor: avatarColor(chef.name),
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 18, fontWeight: 500, color: '#ffffff',
+            }}>
+              {initials(chef.name)}
+            </div>
+
+            {/* Инфо */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 }}>
+                <span style={{ fontSize: 15, fontWeight: 500, color: '#1A1917' }}>
+                  {chef.name}
+                </span>
+                {Number(chef.ratingCache) > 0 && (
+                  <span style={{ fontSize: 13, color: '#BA7517', fontWeight: 500, flexShrink: 0 }}>
+                    ★ {Number(chef.ratingCache).toFixed(1)}
+                  </span>
+                )}
+              </div>
+
+              <p style={{ fontSize: 13, color: '#6B6966', margin: '0 0 8px',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {chef.cuisineTags.slice(0, 3).join(', ')}
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 12, color: '#9E9B97' }}>
+                  {chef.avgPrice ? `от ${chef.avgPrice} ₾` : ''} {chef.avgPrice && chef.ordersCount ? '·' : ''} {chef.ordersCount ?? 0} заказов
+                </span>
+                <span style={{
+                  fontSize: 11, fontWeight: 500, padding: '3px 9px', borderRadius: 6,
+                  backgroundColor: !chef.isOnVacation ? '#FAECE7' : '#D3D1C7',
+                  color: !chef.isOnVacation ? '#993C1D' : '#5F5E5A',
+                }}>
+                  {!chef.isOnVacation ? 'Свободен' : 'В отпуске'}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
 
         {/* Infinite scroll sentinel */}
         {!loading && hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
