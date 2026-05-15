@@ -92,266 +92,286 @@ export default function ChefPage() {
   if (chef.ordersCount < 3)                      badges.push({ label: t.chef.badgeNew,    color: '#8e8e93', bg: '#8e8e9322' })
 
   return (
-    <div style={{ paddingBottom: 'var(--page-padding-bottom-bar)' }}>
+    <div style={{ backgroundColor: '#F7F6F3', minHeight: '100dvh', paddingBottom: 64 }}>
 
-      {/* ── Hero ─────────────────────────────────────────────────── */}
-      <div className='chef-hero' style={{ background: 'var(--color-surface)' }}>
-        <div className='chef-avatar-lg' style={{ background: avatarColor(chef.name) }}>
-          {chef.portfolioMediaIds.length > 0
-            ? <img src={chefPhotoUrl(chef.id, chef.portfolioMediaIds[0])} alt={chef.name}
-                style={{ width: '100%', height: '100%', borderRadius: 44, objectFit: 'cover' }} />
-            : initials(chef.name)
-          }
+      {/* ШАПКА */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #E8E6E1',
+        padding: '12px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+      }}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{ background: 'none', border: 'none', padding: 0,
+            display: 'flex', alignItems: 'center', gap: 6,
+            color: '#6B6966', fontSize: 15, cursor: 'pointer' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M13 5L8 10l5 5" stroke="#6B6966" strokeWidth="1.5"
+              strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Назад
+        </button>
+      </div>
+
+      {/* ПРОФИЛЬ */}
+      <div style={{ backgroundColor: '#ffffff', padding: '20px 16px 16px' }}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 20 }}>
+
+          {/* Аватар */}
+          <div style={{
+            width: 76, height: 76, borderRadius: 16, flexShrink: 0,
+            backgroundColor: avatarColor(chef.name),
+            backgroundImage: chef.portfolioMediaIds.length > 0 ? `url(${chefPhotoUrl(chef.id, chef.portfolioMediaIds[0])})` : undefined,
+            backgroundSize: 'cover', backgroundPosition: 'center',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 28, fontWeight: 500, color: '#ffffff',
+          }}>
+            {chef.portfolioMediaIds.length === 0 && initials(chef.name)}
+          </div>
+
+          {/* Имя и кухня */}
+          <div style={{ flex: 1 }}>
+            <h1 style={{ fontSize: 20, fontWeight: 500, color: '#1A1917', margin: '0 0 4px' }}>
+              {chef.name}
+            </h1>
+            <p style={{ fontSize: 13, color: '#6B6966', margin: '0 0 12px' }}>
+              {chef.cuisineTags.slice(0, 2).join(', ')} {chef.cuisineTags.length > 2 ? '...' : ''} {chef.city ? `· ${chef.city}` : ''}
+            </p>
+
+            {/* Статистика */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+              {[
+                { value: rating > 0 ? rating.toFixed(1) : '—', label: 'рейтинг' },
+                { value: chef.ordersCount ?? 0, label: 'заказов' },
+              ].map((stat, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+                  {i > 0 && (
+                    <div style={{ width: 1, height: 28, backgroundColor: '#E8E6E1', margin: '0 12px' }} />
+                  )}
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 17, fontWeight: 500, color: '#1A1917' }}>
+                      {stat.value}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#9E9B97' }}>{stat.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <h1 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 700 }}>{chef.name}</h1>
-
-        {chef.city && (
-          <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 10 }}>
-            📍 {chef.city}
+        {/* Теги верификации */}
+        {chef.verificationStatus === 'approved' && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+            <span style={{
+              fontSize: 11, fontWeight: 500, padding: '3px 9px', borderRadius: 6,
+              backgroundColor: '#C0DD97', color: '#3B6D11',
+            }}>✓ Проверен</span>
+            {rating >= 4.8 && chef.ordersCount >= 10 && (
+              <span style={{
+                fontSize: 11, fontWeight: 500, padding: '3px 9px', borderRadius: 6,
+                backgroundColor: '#FAEEDA', color: '#854F0B',
+              }}>Топ</span>
+            )}
           </div>
         )}
+      </div>
 
-        {/* Rating row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <StarRating value={Math.round(rating)} size={20} />
-          <span style={{ fontSize: 18, fontWeight: 700 }}>
-            {rating > 0 ? rating.toFixed(1) : '—'}
-          </span>
-          <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>
-            · {chef.ordersCount} {plural(chef.ordersCount, t.chef.ordersCount.one, t.chef.ordersCount.few, t.chef.ordersCount.many)}
-          </span>
+      {/* О СЕБЕ */}
+      {chef.bio && (
+        <div style={{
+          backgroundColor: '#ffffff', margin: '8px 0',
+          padding: '16px 16px',
+          borderTop: '1px solid #E8E6E1', borderBottom: '1px solid #E8E6E1',
+        }}>
+          <p style={{ fontSize: 13, fontWeight: 500, color: '#1A1917', margin: '0 0 8px' }}>
+            О себе
+          </p>
+          <p style={{ fontSize: 14, color: '#6B6966', lineHeight: 1.6, margin: 0 }}>
+            {chef.bio}
+          </p>
         </div>
+      )}
 
-        {/* Badges */}
-        {badges.length > 0 && (
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {badges.map(b => (
-              <span key={b.label} style={{
-                padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                background: b.bg, color: b.color,
+      {/* ПОРТФОЛИО */}
+      {chef.portfolioMediaIds.length > 0 && (
+        <div style={{
+          backgroundColor: '#ffffff', margin: '8px 0',
+          padding: '16px 16px',
+          borderTop: '1px solid #E8E6E1', borderBottom: '1px solid #E8E6E1',
+        }}>
+          <p style={{ fontSize: 13, fontWeight: 500, color: '#1A1917', margin: '0 0 12px' }}>
+            Портфолио
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+            {chef.portfolioMediaIds.map((fileId: string, i: number) => (
+              <div key={i} style={{
+                aspectRatio: '1', borderRadius: 8, overflow: 'hidden',
+                backgroundColor: '#FAECE7',
               }}>
-                {b.label}
-              </span>
+                <img src={chefPhotoUrl(chef.id, fileId)} alt="" style={{
+                  width: '100%', height: '100%', objectFit: 'cover',
+                }} />
+              </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div style={{ padding: '16px 16px 0' }}>
+      {/* ЦЕНА */}
+      {chef.avgPrice && (
+        <div style={{
+          backgroundColor: '#ffffff', margin: '8px 0',
+          padding: '14px 16px',
+          borderTop: '1px solid #E8E6E1', borderBottom: '1px solid #E8E6E1',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <span style={{ fontSize: 14, color: '#6B6966' }}>Стоимость</span>
+          <span style={{ fontSize: 17, fontWeight: 500, color: '#D85A30' }}>
+            от {chef.avgPrice} ₾
+          </span>
+        </div>
+      )}
 
-        {/* ── Portfolio horizontal scroll ───────────────────────── */}
-        {chef.portfolioMediaIds.length > 0 && (
-          <section style={{ marginBottom: 24 }}>
-            <div className='section-label'>{t.chef.portfolio}</div>
-            <div style={{
-              display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
-              WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none',
-            }}>
-              {chef.portfolioMediaIds.map(fileId => (
-                <img
-                  key={fileId}
-                  src={chefPhotoUrl(chef.id, fileId)}
-                  alt='portfolio'
-                  style={{
-                    width: 140, height: 140, borderRadius: 12,
-                    objectFit: 'cover', flexShrink: 0,
-                  }}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ── Bio ──────────────────────────────────────────────────── */}
-        {chef.bio && (
-          <section className='card' style={{ marginBottom: 12 }}>
-            <div className='section-label'>{t.chef.about}</div>
-            <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: 'var(--color-text-primary)' }}>
-              {chef.bio}
-            </p>
-          </section>
-        )}
-
-        {/* ── Cuisine tags ──────────────────────────────────────── */}
-        {chef.cuisineTags.length > 0 && (
-          <section className='card' style={{ marginBottom: 12 }}>
-            <div className='section-label'>{t.chef.cuisine}</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {chef.cuisineTags.map(tag => (
-                <span key={tag} className='tag-cuisine'>{tag}</span>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ── Work formats ─────────────────────────────────────── */}
-        {chef.workFormats.length > 0 && (
-          <section className='card' style={{ marginBottom: 12 }}>
-            <div className='section-label'>{t.chef.workFormat}</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {chef.workFormats.map(f => (
-                <div key={f} style={{
-                  padding: '10px 14px', borderRadius: 10,
-                  background: 'var(--color-bg)',
-                  fontSize: 14, fontWeight: 500,
-                }}>
-                  {f === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull}
+      {/* ОТЗЫВЫ */}
+      {reviews.length > 0 && (
+        <div style={{
+          backgroundColor: '#ffffff', margin: '8px 0',
+          padding: '16px 16px',
+          borderTop: '1px solid #E8E6E1', borderBottom: '1px solid #E8E6E1',
+        }}>
+          <p style={{ fontSize: 13, fontWeight: 500, color: '#1A1917', margin: '0 0 12px' }}>
+            Отзывы ({reviews.length})
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {reviews.map(review => (
+              <div key={review.id} style={{
+                padding: 12, backgroundColor: '#F7F6F3', borderRadius: 12,
+              }}>
+                {/* Author + stars */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>{review.authorName}</span>
+                  <StarRating value={review.rating} size={14} />
                 </div>
-              ))}
-            </div>
-          </section>
-        )}
 
-        {/* ── Districts ────────────────────────────────────────── */}
-        {chef.districts.length > 0 && (
-          <section className='card' style={{ marginBottom: 12 }}>
-            <div className='section-label'>{t.chef.districts}</div>
-            <div style={{ fontSize: 14, color: 'var(--color-text-primary)', lineHeight: 1.6 }}>
-              {chef.districts.join(', ')}
-            </div>
-          </section>
-        )}
-
-        {/* ── Avg price ────────────────────────────────────────── */}
-        {chef.avgPrice && (
-          <section className='card' style={{ marginBottom: 12 }}>
-            <div className='section-label'>{t.chef.avgPrice}</div>
-            <div style={{ fontSize: 24, fontWeight: 700 }}>{t.common.from} {chef.avgPrice} {t.common.currency}</div>
-          </section>
-        )}
-
-        {/* ── Reviews ──────────────────────────────────────────── */}
-        {reviews.length > 0 && (
-          <section style={{ marginBottom: 12 }}>
-            <div className='section-label'>{t.chef.reviews} ({reviews.length})</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {reviews.map(review => (
-                <div key={review.id} className='card'>
-                  {/* Author + stars */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{review.authorName}</span>
-                    <StarRating value={review.rating} size={14} />
+                {/* Quality tags */}
+                {review.tagsQuality.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+                    {review.tagsQuality.map(tag => (
+                      <span key={tag} style={{
+                        padding: '2px 8px', borderRadius: 10, fontSize: 11,
+                        background: '#ffffff',
+                        color: '#6B6966',
+                      }}>
+                        {tag}
+                      </span>
+                    ))}
                   </div>
+                )}
 
-                  {/* Quality tags */}
-                  {review.tagsQuality.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
-                      {review.tagsQuality.map(tag => (
-                        <span key={tag} style={{
-                          padding: '2px 8px', borderRadius: 10, fontSize: 11,
-                          background: 'var(--color-bg)',
-                          color: 'var(--color-text-secondary)',
-                        }}>
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                {review.text && (
+                  <p style={{ margin: '0 0 8px', fontSize: 14, lineHeight: 1.5 }}>
+                    {review.text}
+                  </p>
+                )}
 
-                  {review.text && (
-                    <p style={{ margin: '0 0 8px', fontSize: 14, lineHeight: 1.5 }}>
-                      {review.text}
-                    </p>
-                  )}
-
-                  <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>
-                    {new Date(review.createdAt).toLocaleDateString('ru-RU', {
-                      day: 'numeric', month: 'long', year: 'numeric',
-                    })}
-                  </div>
-
-                  {/* Chef reply */}
-                  {review.chefReply && (
-                    <div style={{
-                      marginTop: 10, padding: '8px 10px', borderRadius: 8,
-                      background: 'var(--color-bg)', fontSize: 13,
-                      borderLeft: '3px solid var(--accent)',
-                    }}>
-                      <div style={{ fontWeight: 600, fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 4 }}>
-                        {t.chef.chefReply}
-                      </div>
-                      {review.chefReply}
-                    </div>
-                  )}
-
-                  {/* Reply button (own profile, no reply yet) */}
-                  {isOwnProfile && !review.chefReply && replyingTo !== review.id && (
-                    <button
-                      style={{
-                        marginTop: 8, fontSize: 12, color: 'var(--accent)',
-                        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                        minHeight: 44, display: 'flex', alignItems: 'center',
-                      }}
-                      onClick={() => { setReplyingTo(review.id); setReplyText('') }}
-                    >
-                      {t.chef.replyBtn}
-                    </button>
-                  )}
-
-                  {/* Inline reply form */}
-                  {isOwnProfile && replyingTo === review.id && (
-                    <div style={{ marginTop: 10 }}>
-                      <textarea
-                        className='field-input'
-                        value={replyText}
-                        onChange={e => setReplyText(e.target.value)}
-                        placeholder={t.chef.chefReply + '…'}
-                        rows={2}
-                        maxLength={2000}
-                        style={{ resize: 'vertical', marginBottom: 8 }}
-                      />
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button className='btn-secondary' style={{ flex: 1, padding: '9px' }}
-                          onClick={() => setReplyingTo(null)} disabled={sendingReply}>
-                          {t.common.cancel}
-                        </button>
-                        <button className='btn-primary' style={{ flex: 2, padding: '9px', opacity: sendingReply ? .6 : 1 }}
-                          onClick={() => handleReply(review.id)} disabled={sendingReply}>
-                          {sendingReply ? t.chef.replySaving : t.chef.replySave}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Report */}
-                  {!isOwnProfile && (
-                    <button
-                      style={{
-                        marginTop: 6, fontSize: 11, color: 'var(--color-text-secondary)',
-                        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                        minHeight: 44, display: 'flex', alignItems: 'center',
-                      }}
-                      onClick={() => handleReport(review.id)}
-                    >
-                      {t.chef.reportBtn}
-                    </button>
-                  )}
+                <div style={{ fontSize: 11, color: '#9E9B97' }}>
+                  {new Date(review.createdAt).toLocaleDateString('ru-RU', {
+                    day: 'numeric', month: 'long', year: 'numeric',
+                  })}
                 </div>
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
 
-      {/* ── Sticky order button ───────────────────────────────────── */}
-      <div className='action-bar'>
-        {chef.isOnVacation ? (
-          <button
-            className='btn-primary'
-            disabled
-            style={{ opacity: 0.55, cursor: 'not-allowed' }}
-          >
-            🌴 Повар сейчас в отпуске
-          </button>
-        ) : (
-          <button
-            className='btn-primary'
-            onClick={() => navigate(`/orders/new?chefId=${chef.id}`)}
-          >
-            {t.chef.orderBtn} {chef.name.split(' ')[0]}
-          </button>
-        )}
+                {/* Chef reply */}
+                {review.chefReply && (
+                  <div style={{
+                    marginTop: 10, padding: '8px 10px', borderRadius: 8,
+                    background: '#ffffff', fontSize: 13,
+                    borderLeft: '3px solid #D85A30',
+                  }}>
+                    <div style={{ fontWeight: 600, fontSize: 11, color: '#6B6966', marginBottom: 4 }}>
+                      Ответ повара
+                    </div>
+                    {review.chefReply}
+                  </div>
+                )}
+
+                {/* Reply button (own profile, no reply yet) */}
+                {isOwnProfile && !review.chefReply && replyingTo !== review.id && (
+                  <button
+                    style={{
+                      marginTop: 8, fontSize: 12, color: '#D85A30',
+                      background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                      minHeight: 44, display: 'flex', alignItems: 'center',
+                    }}
+                    onClick={() => { setReplyingTo(review.id); setReplyText('') }}
+                  >
+                    {t.chef.replyBtn}
+                  </button>
+                )}
+
+                {/* Inline reply form */}
+                {isOwnProfile && replyingTo === review.id && (
+                  <div style={{ marginTop: 10 }}>
+                    <textarea
+                      className='field-input'
+                      value={replyText}
+                      onChange={e => setReplyText(e.target.value)}
+                      placeholder={t.chef.chefReply + '…'}
+                      rows={2}
+                      maxLength={2000}
+                      style={{ resize: 'vertical', marginBottom: 8 }}
+                    />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className='btn-secondary' style={{ flex: 1, padding: '9px' }}
+                        onClick={() => setReplyingTo(null)} disabled={sendingReply}>
+                        {t.common.cancel}
+                      </button>
+                      <button className='btn-primary' style={{ flex: 2, padding: '9px', opacity: sendingReply ? .6 : 1 }}
+                        onClick={() => handleReply(review.id)} disabled={sendingReply}>
+                        {sendingReply ? t.chef.replySaving : t.chef.replySave}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Report */}
+                {!isOwnProfile && (
+                  <button
+                    style={{
+                      marginTop: 6, fontSize: 11, color: '#9E9B97',
+                      background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                      minHeight: 44, display: 'flex', alignItems: 'center',
+                    }}
+                    onClick={() => handleReport(review.id)}
+                  >
+                    {t.chef.reportBtn}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* CTA КНОПКА */}
+      <div style={{ padding: '16px 16px' }}>
+        <button
+          onClick={() => navigate(`/orders/new?chefId=${chef.id}`)}
+          disabled={chef.isOnVacation}
+          style={{
+            width: '100%', padding: 14,
+            borderRadius: 12, border: 'none',
+            backgroundColor: chef.isOnVacation ? '#D0CEC9' : '#D85A30',
+            color: '#ffffff', fontSize: 16, fontWeight: 500,
+            cursor: chef.isOnVacation ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {chef.isOnVacation ? 'Повар сейчас в отпуске' : `Оставить заявку ${chef.name.split(' ')[0]}`}
+        </button>
       </div>
     </div>
   )
