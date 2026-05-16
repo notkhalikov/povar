@@ -341,7 +341,11 @@ export default function CatalogPage() {
             position: 'fixed', bottom: 0, left: 0, right: 0,
             backgroundColor: '#ffffff',
             borderRadius: '20px 20px 0 0',
-            padding: '20px 16px 40px', zIndex: 201,
+            padding: '20px 16px',
+            paddingBottom: 'max(40px, env(safe-area-inset-bottom))',
+            zIndex: 201,
+            maxHeight: '85vh',
+            overflowY: 'auto',
           }}>
             <div style={{ width: 36, height: 4, borderRadius: 2,
               backgroundColor: '#D0CEC9', margin: '0 auto 20px' }}/>
