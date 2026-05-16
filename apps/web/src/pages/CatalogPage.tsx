@@ -60,10 +60,14 @@ export default function CatalogPage() {
   }, [cuisineInput])
 
   useEffect(() => {
+    const formatMap: Record<string, ChefsQuery['format']> = {
+      'home': 'home_visit',
+      'delivery': 'delivery',
+    }
     setQuery(q => ({
       ...q,
       city: cityFilter || undefined,
-      format: (formatFilter || undefined) as ChefsQuery['format'],
+      format: formatFilter ? formatMap[formatFilter] : undefined,
     }))
   }, [cityFilter, formatFilter])
 
@@ -230,30 +234,32 @@ export default function CatalogPage() {
         {/* Сегментированный контрол — город */}
         <div style={{
           display: 'flex',
-          backgroundColor: '#F7F6F3',
+          backgroundColor: '#F0EEE9',
           borderRadius: 10,
           padding: 3,
           marginBottom: 10,
+          border: '1px solid #E8E6E1',
         }}>
-          {([
+          {[
             { label: 'Все города', value: null },
-            { label: 'Тбилиси',    value: 'Тбилиси' },
-            { label: 'Батуми',     value: 'Батуми' },
-          ] as const).map(opt => {
+            { label: 'Тбилиси',    value: 'Tbilisi' },
+            { label: 'Батуми',     value: 'Batumi' },
+          ].map(opt => {
             const active = cityFilter === opt.value;
             return (
               <button
                 key={String(opt.value)}
                 onClick={() => setCityFilter(opt.value)}
                 style={{
-                  flex: 1, padding: '7px 4px',
-                  borderRadius: 8, border: 'none',
-                  fontSize: 13, fontWeight: active ? 500 : 400,
+                  flex: 1,
+                  padding: '8px 0',
+                  borderRadius: 8,
+                  border: 'none',
+                  fontSize: 13,
+                  fontWeight: active ? 500 : 400,
                   cursor: 'pointer',
                   backgroundColor: active ? '#D85A30' : 'transparent',
                   color: active ? '#ffffff' : '#6B6966',
-                  transition: 'all 0.15s',
-                  whiteSpace: 'nowrap',
                 }}
               >
                 {opt.label}
@@ -264,24 +270,26 @@ export default function CatalogPage() {
 
         {/* Чипы — формат */}
         <div style={{ display: 'flex', gap: 6 }}>
-          {([
-            { label: 'Все форматы', value: null },
-            { label: 'На дом',      value: 'home_visit' },
-            { label: 'Доставка',    value: 'delivery' },
-          ] as const).map(opt => {
+          {[
+            { label: 'Все', value: null },
+            { label: 'На дом', value: 'home' },
+            { label: 'Доставка', value: 'delivery' },
+          ].map(opt => {
             const active = formatFilter === opt.value;
             return (
               <button
                 key={String(opt.value)}
                 onClick={() => setFormatFilter(opt.value)}
                 style={{
-                  padding: '6px 14px', borderRadius: 20,
-                  border: `1px solid ${active ? '#D85A30' : '#E8E6E1'}`,
+                  padding: '7px 16px',
+                  borderRadius: 20,
+                  border: `1.5px solid ${active ? '#D85A30' : '#E8E6E1'}`,
                   backgroundColor: active ? '#D85A30' : '#ffffff',
                   color: active ? '#ffffff' : '#6B6966',
-                  fontSize: 13, fontWeight: active ? 500 : 400,
-                  cursor: 'pointer', whiteSpace: 'nowrap',
-                  transition: 'all 0.15s',
+                  fontSize: 13,
+                  fontWeight: active ? 500 : 400,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {opt.label}
