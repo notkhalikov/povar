@@ -34,6 +34,13 @@ export default function CatalogPage() {
   const [cityFilter, setCityFilter]     = useState<string | null>(null)
   const [formatFilter, setFormatFilter] = useState<string | null>(null)
   const [searchOpen, setSearchOpen]     = useState(false)
+  const [filtersOpen, setFiltersOpen]   = useState(false)
+
+  const activeFiltersCount = [
+    !!cityFilter,
+    !!formatFilter,
+    !!query.minRating,
+  ].filter(Boolean).length
 
   // Pull-to-refresh
   const [refreshing, setRefreshing]     = useState(false)
@@ -189,20 +196,34 @@ export default function CatalogPage() {
             </h1>
           </div>
           <button
-            onClick={() => setSearchOpen(!searchOpen)}
+            onClick={() => setFiltersOpen(true)}
             style={{
-              width: 36, height: 36, borderRadius: '50%',
-              border: '1px solid #E8E6E1', backgroundColor: '#ffffff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', padding: 0,
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 14px', borderRadius: 20,
+              border: '1px solid #E8E6E1',
+              backgroundColor: activeFiltersCount > 0 ? '#FAECE7' : '#ffffff',
+              cursor: 'pointer',
             }}
-            aria-label="Поиск"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <circle cx="6.5" cy="6.5" r="4.5" stroke="#6B6966" strokeWidth="1.3"/>
-              <line x1="10" y1="10" x2="14" y2="14" stroke="#6B6966"
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M1 3h12M3 7h8M5 11h4"
+                stroke={activeFiltersCount > 0 ? '#D85A30' : '#6B6966'}
                 strokeWidth="1.3" strokeLinecap="round"/>
             </svg>
+            <span style={{ fontSize: 13, fontWeight: 500,
+              color: activeFiltersCount > 0 ? '#993C1D' : '#6B6966' }}>
+              Фильтры
+            </span>
+            {activeFiltersCount > 0 && (
+              <span style={{
+                width: 18, height: 18, borderRadius: '50%',
+                backgroundColor: '#D85A30', color: '#ffffff',
+                fontSize: 11, fontWeight: 500,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {activeFiltersCount}
+              </span>
+            )}
           </button>
         </div>
 
@@ -222,81 +243,6 @@ export default function CatalogPage() {
             autoFocus
           />
         )}
-      </div>
-
-      {/* ФИЛЬТРЫ */}
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderBottom: '1px solid #E8E6E1',
-        padding: '10px 14px',
-      }}>
-
-        {/* Сегментированный контрол — город */}
-        <div style={{
-          display: 'flex',
-          backgroundColor: '#F0EEE9',
-          borderRadius: 10,
-          padding: 3,
-          marginBottom: 10,
-          border: '1px solid #E8E6E1',
-        }}>
-          {[
-            { label: 'Все города', value: null },
-            { label: 'Тбилиси',    value: 'Tbilisi' },
-            { label: 'Батуми',     value: 'Batumi' },
-          ].map(opt => {
-            const active = cityFilter === opt.value;
-            return (
-              <button
-                key={String(opt.value)}
-                onClick={() => setCityFilter(opt.value)}
-                style={{
-                  flex: 1,
-                  padding: '8px 0',
-                  borderRadius: 8,
-                  border: 'none',
-                  fontSize: 13,
-                  fontWeight: active ? 500 : 400,
-                  cursor: 'pointer',
-                  backgroundColor: active ? '#D85A30' : 'transparent',
-                  color: active ? '#ffffff' : '#6B6966',
-                }}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Чипы — формат */}
-        <div style={{ display: 'flex', gap: 6 }}>
-          {[
-            { label: 'Все', value: null },
-            { label: 'На дом', value: 'home' },
-            { label: 'Доставка', value: 'delivery' },
-          ].map(opt => {
-            const active = formatFilter === opt.value;
-            return (
-              <button
-                key={String(opt.value)}
-                onClick={() => setFormatFilter(opt.value)}
-                style={{
-                  padding: '7px 16px',
-                  borderRadius: 20,
-                  border: `1.5px solid ${active ? '#D85A30' : '#E8E6E1'}`,
-                  backgroundColor: active ? '#D85A30' : '#ffffff',
-                  color: active ? '#ffffff' : '#6B6966',
-                  fontSize: 13,
-                  fontWeight: active ? 500 : 400,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* СПИСОК ПОВАРОВ */}
@@ -383,6 +329,89 @@ export default function CatalogPage() {
           </div>
         )}
       </div>
+
+      {/* BOTTOM SHEET ФИЛЬТРЫ */}
+      {filtersOpen && (
+        <>
+          <div onClick={() => setFiltersOpen(false)} style={{
+            position: 'fixed', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 200,
+          }}/>
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0,
+            backgroundColor: '#ffffff',
+            borderRadius: '20px 20px 0 0',
+            padding: '20px 16px 40px', zIndex: 201,
+          }}>
+            <div style={{ width: 36, height: 4, borderRadius: 2,
+              backgroundColor: '#D0CEC9', margin: '0 auto 20px' }}/>
+            <h3 style={{ fontSize: 17, fontWeight: 500, color: '#1A1917', margin: '0 0 20px' }}>
+              Фильтры
+            </h3>
+
+            <p style={{ fontSize: 11, color: '#9E9B97', margin: '0 0 8px',
+              fontWeight: 500, letterSpacing: '0.06em' }}>ГОРОД</p>
+            <div style={{ display: 'flex', backgroundColor: '#F0EEE9',
+              borderRadius: 10, padding: 3, border: '1px solid #E8E6E1', marginBottom: 20 }}>
+              {[{l:'Все',v:null},{l:'Тбилиси',v:'Tbilisi'},{l:'Батуми',v:'Batumi'}]
+                .map(o => {
+                  const on = cityFilter === o.v;
+                  return <button key={String(o.v)} onClick={() => setCityFilter(o.v)}
+                    style={{ flex:1, padding:'8px 0', borderRadius:8, border:'none',
+                      fontSize:13, fontWeight: on?500:400, cursor:'pointer',
+                      backgroundColor: on?'#D85A30':'transparent',
+                      color: on?'#ffffff':'#6B6966' }}>{o.l}</button>;
+                })}
+            </div>
+
+            <p style={{ fontSize: 11, color: '#9E9B97', margin: '0 0 8px',
+              fontWeight: 500, letterSpacing: '0.06em' }}>ФОРМАТ</p>
+            <div style={{ display:'flex', gap:6, marginBottom:20 }}>
+              {[{l:'Все',v:null},{l:'На дом',v:'home'},{l:'Доставка',v:'delivery'}]
+                .map(o => {
+                  const on = formatFilter === o.v;
+                  return <button key={String(o.v)} onClick={() => setFormatFilter(o.v)}
+                    style={{ padding:'7px 16px', borderRadius:20,
+                      border:`1.5px solid ${on?'#D85A30':'#E8E6E1'}`,
+                      backgroundColor: on?'#D85A30':'#ffffff',
+                      color: on?'#ffffff':'#6B6966',
+                      fontSize:13, fontWeight: on?500:400, cursor:'pointer',
+                      flex: 1, textAlign: 'center' }}>{o.l}</button>;
+                })}
+            </div>
+
+            <p style={{ fontSize: 11, color: '#9E9B97', margin: '0 0 8px',
+              fontWeight: 500, letterSpacing: '0.06em' }}>РЕЙТИНГ</p>
+            <div style={{ display:'flex', gap:6, marginBottom:28 }}>
+              {[{l:'Любой',v:undefined},{l:'3★+',v:3},{l:'4★+',v:4},{l:'4.5★+',v:4.5}]
+                .map(o => {
+                  const on = query.minRating === o.v;
+                  return <button key={String(o.v)} onClick={() => setQuery(q => ({ ...q, minRating: o.v }))}
+                    style={{ flex:1, padding:'7px 0', borderRadius:20,
+                      border:`1.5px solid ${on?'#D85A30':'#E8E6E1'}`,
+                      backgroundColor: on?'#D85A30':'#ffffff',
+                      color: on?'#ffffff':'#6B6966',
+                      fontSize:13, fontWeight: on?500:400, cursor:'pointer' }}>{o.l}</button>;
+                })}
+            </div>
+
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={() => { setCityFilter(null); setFormatFilter(null); setQuery(q => ({ ...q, minRating: undefined })); }}
+                style={{ flex:1, padding:13, borderRadius:12,
+                  border:'1px solid #E8E6E1', backgroundColor:'#ffffff',
+                  color:'#6B6966', fontSize:15, fontWeight:500, cursor:'pointer' }}>
+                Сбросить
+              </button>
+              <button onClick={() => setFiltersOpen(false)}
+                style={{ flex:2, padding:13, borderRadius:12,
+                  border:'none', backgroundColor:'#D85A30',
+                  color:'#ffffff', fontSize:15, fontWeight:500, cursor:'pointer' }}>
+                Показать поваров
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
