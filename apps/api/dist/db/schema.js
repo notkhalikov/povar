@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.chefResponses = exports.chefResponseStatusEnum = exports.requests = exports.requestStatusEnum = exports.requestFormatEnum = exports.disputes = exports.disputeResolutionTypeEnum = exports.disputeStatusEnum = exports.disputeOpenedByEnum = exports.reviews = exports.payments = exports.paymentStatusEnum = exports.orders = exports.productsBuyerEnum = exports.orderStatusEnum = exports.orderTypeEnum = exports.chefProfiles = exports.users = exports.verificationStatusEnum = exports.userStatusEnum = exports.userRoleEnum = void 0;
+exports.messages = exports.chatSessions = exports.chefResponses = exports.chefResponseStatusEnum = exports.requests = exports.requestStatusEnum = exports.requestFormatEnum = exports.disputes = exports.disputeResolutionTypeEnum = exports.disputeStatusEnum = exports.disputeOpenedByEnum = exports.reviews = exports.payments = exports.paymentStatusEnum = exports.orders = exports.productsBuyerEnum = exports.orderStatusEnum = exports.orderTypeEnum = exports.chefProfiles = exports.users = exports.verificationStatusEnum = exports.userStatusEnum = exports.userRoleEnum = void 0;
 const pg_core_1 = require("drizzle-orm/pg-core");
+const drizzle_orm_1 = require("drizzle-orm");
 // ─── Enums ────────────────────────────────────────────────────────────────────
 exports.userRoleEnum = (0, pg_core_1.pgEnum)('user_role', [
     'customer',
@@ -189,3 +190,33 @@ exports.chefResponses = (0, pg_core_1.pgTable)('chef_responses', {
     status: (0, exports.chefResponseStatusEnum)('status').default('new').notNull(),
     createdAt: (0, pg_core_1.timestamp)('created_at').defaultNow().notNull(),
 });
+// ─── chat_sessions ────────────────────────────────────────────────────────────
+// One row per initiator (unique on initiator_telegram_id).
+// Upserted on each /chat_N call so a user can only have one active relay.
+exports.chatSessions = (0, pg_core_1.pgTable)('chat_sessions', {
+    id: (0, pg_core_1.serial)('id').primaryKey(),
+    orderId: (0, pg_core_1.integer)('order_id').notNull(),
+    initiatorTelegramId: (0, pg_core_1.bigint)('initiator_telegram_id', { mode: 'number' }).notNull().unique(),
+    recipientTelegramId: (0, pg_core_1.bigint)('recipient_telegram_id', { mode: 'number' }).notNull(),
+    role: (0, pg_core_1.varchar)('role', { length: 20 }).notNull(),
+    createdAt: (0, pg_core_1.timestamp)('created_at').defaultNow().notNull(),
+});
+// ─── messages ─────────────────────────────────────────────────────────────────
+// In-app chat history. Either order-scoped or request-scoped (enforced by check).
+// readAt = null means unread.
+exports.messages = (0, pg_core_1.pgTable)('messages', {
+    id: (0, pg_core_1.serial)('id').primaryKey(),
+    orderId: (0, pg_core_1.integer)('order_id').references(() => exports.orders.id),
+    requestId: (0, pg_core_1.integer)('request_id').references(() => exports.requests.id),
+    // For request-scoped messages: identifies the chef in the customer↔chef pair.
+    // Always null for order-scoped messages.
+    chefId: (0, pg_core_1.integer)('chef_id').references(() => exports.users.id),
+    senderId: (0, pg_core_1.integer)('sender_id').notNull().references(() => exports.users.id),
+    body: (0, pg_core_1.text)('body').notNull(),
+    readAt: (0, pg_core_1.timestamp)('read_at'),
+    // Set by the unread-notify cron once a Telegram push has been delivered.
+    notifiedAt: (0, pg_core_1.timestamp)('notified_at'),
+    createdAt: (0, pg_core_1.timestamp)('created_at').defaultNow().notNull(),
+}, (t) => [
+    (0, pg_core_1.check)('messages_parent_check', (0, drizzle_orm_1.sql) `${t.orderId} IS NOT NULL OR ${t.requestId} IS NOT NULL`),
+]);

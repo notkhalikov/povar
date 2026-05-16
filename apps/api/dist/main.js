@@ -42,9 +42,13 @@ const fastify_1 = __importDefault(require("fastify"));
 const rate_limit_1 = __importDefault(require("@fastify/rate-limit"));
 const Sentry = __importStar(require("@sentry/node"));
 const drizzle_orm_1 = require("drizzle-orm");
+const schema_js_1 = require("./db/schema.js");
+const notify_js_1 = require("./services/notify.js");
 const cors_js_1 = __importDefault(require("./plugins/cors.js"));
 const db_js_1 = __importDefault(require("./plugins/db.js"));
 const auth_js_1 = __importDefault(require("./plugins/auth.js"));
+const chat_ws_js_1 = __importDefault(require("./services/chat-ws.js"));
+const unread_notify_js_1 = require("./services/unread-notify.js");
 const auth_js_2 = __importDefault(require("./routes/auth.js"));
 const chefs_js_1 = __importDefault(require("./routes/chefs.js"));
 const orders_js_1 = __importDefault(require("./routes/orders.js"));
@@ -54,8 +58,7 @@ const disputes_js_1 = __importDefault(require("./routes/disputes.js"));
 const requests_js_1 = __importDefault(require("./routes/requests.js"));
 const admin_js_1 = __importDefault(require("./routes/admin.js"));
 const dev_js_1 = __importDefault(require("./routes/dev.js"));
-const schema_js_1 = require("./db/schema.js");
-const notify_js_1 = require("./services/notify.js");
+const system_js_1 = __importDefault(require("./routes/system.js"));
 // Fail fast if required env vars are missing
 const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET', 'BOT_TOKEN'];
 for (const key of REQUIRED_ENV) {
@@ -108,6 +111,7 @@ async function bootstrap() {
     await app.register(cors_js_1.default);
     await app.register(db_js_1.default);
     await app.register(auth_js_1.default);
+    await app.register(chat_ws_js_1.default);
     // Routes
     await app.register(auth_js_2.default);
     await app.register(chefs_js_1.default);
@@ -118,7 +122,49 @@ async function bootstrap() {
     await app.register(requests_js_1.default);
     await app.register(admin_js_1.default);
     await app.register(dev_js_1.default);
-    app.get('/health', async () => ({ status: 'ok' }));
+    await app.register(system_js_1.default);
+    app.get('/health', async () => {
+        let dbOk = false;
+        try {
+            await app.db.execute((0, drizzle_orm_1.sql) `SELECT 1`);
+            dbOk = true;
+        }
+        catch { /* db unreachable */ }
+        return {
+            status: dbOk ? 'ok' : 'degraded',
+            db: dbOk ? 'ok' : 'error',
+            uptime: Math.floor(process.uptime()),
+            version: APP_VERSION,
+            timestamp: new Date().toISOString(),
+        };
+    });
+    app.get('/health/detailed', {
+        onRequest: async (request, reply) => {
+            if (request.headers['x-system-secret'] !== process.env.SYSTEM_SECRET) {
+                return reply.code(401).send({ error: 'Unauthorized' });
+            }
+        },
+    }, async () => {
+        const [ordersCount] = await app.db
+            .select({ count: (0, drizzle_orm_1.sql) `count(*)::int` })
+            .from(schema_js_1.orders);
+        const [usersCount] = await app.db
+            .select({ count: (0, drizzle_orm_1.sql) `count(*)::int` })
+            .from(schema_js_1.users);
+        const [chefsCount] = await app.db
+            .select({ count: (0, drizzle_orm_1.sql) `count(*)::int` })
+            .from(schema_js_1.chefProfiles)
+            .where((0, drizzle_orm_1.eq)(schema_js_1.chefProfiles.verificationStatus, 'approved'));
+        return {
+            status: 'ok',
+            counts: {
+                orders: ordersCount.count,
+                users: usersCount.count,
+                active_chefs: chefsCount.count,
+            },
+            uptime: Math.floor(process.uptime()),
+        };
+    });
     // ─── Metrics (Railway health check / ops dashboard) ─────────────────────────
     app.get('/metrics', { config: { rateLimit: false } }, async () => ({
         uptime: process.uptime(),
@@ -159,6 +205,7 @@ async function bootstrap() {
         app.log.error(err);
         process.exit(1);
     }
+    (0, unread_notify_js_1.startUnreadNotifier)(app);
 }
 bootstrap();
 // ─── Review reminder cron (every 30 min) ──────────────────────────────────────
@@ -194,6 +241,6 @@ setInterval(async () => {
         }
     }
     catch (err) {
-        app.log.error({ err }, 'review reminder cron failed');
+        app.log.error({ event: 'review_reminder_cron_error', error: String(err), err }, 'review reminder cron failed');
     }
 }, 30 * 60 * 1000);

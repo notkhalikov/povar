@@ -4,6 +4,7 @@ exports.notifyOrderCreated = notifyOrderCreated;
 exports.notifyOrderPaid = notifyOrderPaid;
 exports.notifyOrderCancelled = notifyOrderCancelled;
 exports.notifyOrderCompleted = notifyOrderCompleted;
+exports.notifyPriceSet = notifyPriceSet;
 exports.notifyNewResponse = notifyNewResponse;
 exports.notifyDisputeOpened = notifyDisputeOpened;
 exports.notifyDisputeResolved = notifyDisputeResolved;
@@ -154,6 +155,22 @@ async function notifyOrderCompleted(order, chefTelegramId) {
         `Заказчик подтвердил выполнение.\n` +
         `💰 ${price} GEL будут переведены в течение 24 часов.`;
     await sendMessage(chefTelegramId, text, orderKeyboard(order.id));
+}
+/**
+ * Notify customer that the chef has set a price on their order.
+ */
+async function notifyPriceSet(order, customerTelegramId, price) {
+    const d = fmtDate(order.scheduledAt);
+    const t = fmtTime(order.scheduledAt);
+    const text = `💰 <b>Повар установил цену</b>\n` +
+        `Заказ #${order.id} · ${d} в ${t}\n` +
+        `Сумма: <b>${price} GEL</b>\n` +
+        `Теперь можно оплатить!`;
+    const url = appUrl(`order_${order.id}`);
+    const keyboard = url
+        ? { inline_keyboard: [[{ text: '💳 Оплатить', web_app: { url } }]] }
+        : undefined;
+    await sendMessage(customerTelegramId, text, keyboard);
 }
 /**
  * Notify customer that a chef responded to their open request.

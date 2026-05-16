@@ -349,4 +349,88 @@ async function requestsRoutes(app) {
             .returning();
         return updated;
     });
+    // ─── GET /requests/:id/messages ──────────────────────────────────────────────
+    // Last 50 messages for the customer↔chef pair on this request, ASC by createdAt.
+    // ?chefId=N selects the pair. Auth: request owner, OR the chef whose pair this is.
+    app.get('/requests/:id/messages', {
+        onRequest: [app.authenticate],
+        schema: {
+            params: {
+                type: 'object',
+                required: ['id'],
+                properties: { id: { type: 'integer' } },
+            },
+            querystring: {
+                type: 'object',
+                required: ['chefId'],
+                properties: { chefId: { type: 'integer' } },
+            },
+        },
+    }, async (request, reply) => {
+        const userId = request.user.sub;
+        const { id } = request.params;
+        const { chefId } = request.query;
+        const [req] = await app.db
+            .select({ customerId: schema_js_1.requests.customerId })
+            .from(schema_js_1.requests)
+            .where((0, drizzle_orm_1.eq)(schema_js_1.requests.id, id))
+            .limit(1);
+        if (!req)
+            return reply.code(404).send({ error: 'Request not found' });
+        if (req.customerId !== userId && chefId !== userId) {
+            return reply.code(403).send({ error: 'Forbidden' });
+        }
+        const rows = await app.db
+            .select({
+            id: schema_js_1.messages.id,
+            senderId: schema_js_1.messages.senderId,
+            senderName: schema_js_1.users.name,
+            body: schema_js_1.messages.body,
+            createdAt: schema_js_1.messages.createdAt,
+            readAt: schema_js_1.messages.readAt,
+        })
+            .from(schema_js_1.messages)
+            .innerJoin(schema_js_1.users, (0, drizzle_orm_1.eq)(schema_js_1.users.id, schema_js_1.messages.senderId))
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_js_1.messages.requestId, id), (0, drizzle_orm_1.eq)(schema_js_1.messages.chefId, chefId)))
+            .orderBy((0, drizzle_orm_1.desc)(schema_js_1.messages.createdAt))
+            .limit(50);
+        return rows.reverse();
+    });
+    // ─── POST /requests/:id/messages/read ────────────────────────────────────────
+    // Marks unread inbound messages in the customer↔chef pair as read.
+    app.post('/requests/:id/messages/read', {
+        onRequest: [app.authenticate],
+        schema: {
+            params: {
+                type: 'object',
+                required: ['id'],
+                properties: { id: { type: 'integer' } },
+            },
+            querystring: {
+                type: 'object',
+                required: ['chefId'],
+                properties: { chefId: { type: 'integer' } },
+            },
+        },
+    }, async (request, reply) => {
+        const userId = request.user.sub;
+        const { id } = request.params;
+        const { chefId } = request.query;
+        const [req] = await app.db
+            .select({ customerId: schema_js_1.requests.customerId })
+            .from(schema_js_1.requests)
+            .where((0, drizzle_orm_1.eq)(schema_js_1.requests.id, id))
+            .limit(1);
+        if (!req)
+            return reply.code(404).send({ error: 'Request not found' });
+        if (req.customerId !== userId && chefId !== userId) {
+            return reply.code(403).send({ error: 'Forbidden' });
+        }
+        const updated = await app.db
+            .update(schema_js_1.messages)
+            .set({ readAt: new Date() })
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_js_1.messages.requestId, id), (0, drizzle_orm_1.eq)(schema_js_1.messages.chefId, chefId), (0, drizzle_orm_1.ne)(schema_js_1.messages.senderId, userId), (0, drizzle_orm_1.isNull)(schema_js_1.messages.readAt)))
+            .returning({ id: schema_js_1.messages.id });
+        return { updated: updated.length };
+    });
 }

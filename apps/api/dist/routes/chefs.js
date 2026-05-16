@@ -19,6 +19,7 @@ const chefSelectFields = {
     ratingCache: schema_js_1.chefProfiles.ratingCache,
     ordersCount: schema_js_1.chefProfiles.ordersCount,
     verificationStatus: schema_js_1.chefProfiles.verificationStatus,
+    isActive: schema_js_1.chefProfiles.isActive,
 };
 async function chefsRoutes(app) {
     /**
@@ -46,7 +47,6 @@ async function chefsRoutes(app) {
     }, async (request) => {
         const { city, district, cuisine, format, sort = 'rating', minRating, limit = 20, offset = 0, } = request.query;
         const conditions = [
-            (0, drizzle_orm_1.eq)(schema_js_1.chefProfiles.isActive, true),
             (0, drizzle_orm_1.eq)(schema_js_1.chefProfiles.verificationStatus, 'approved'),
             (0, drizzle_orm_1.eq)(schema_js_1.users.status, 'active'),
         ];
@@ -71,7 +71,8 @@ async function chefsRoutes(app) {
             .orderBy(orderBy)
             .limit(limit)
             .offset(offset);
-        return { data: rows, limit, offset };
+        const data = rows.map(r => ({ ...r, isOnVacation: !r.isActive }));
+        return { data, limit, offset };
     });
     /**
      * GET /chefs/me
@@ -119,7 +120,7 @@ async function chefsRoutes(app) {
             .limit(1);
         if (!row)
             return reply.code(404).send({ error: 'Chef not found' });
-        return row;
+        return { ...row, isOnVacation: !row.isActive };
     });
     /**
      * PATCH /chefs/me
@@ -154,29 +155,37 @@ async function chefsRoutes(app) {
             ...rest,
             ...(avgPrice !== undefined ? { avgPrice: String(avgPrice) } : {}),
         };
-        const existing = await app.db
-            .select()
-            .from(schema_js_1.chefProfiles)
-            .where((0, drizzle_orm_1.eq)(schema_js_1.chefProfiles.userId, userId))
-            .limit(1);
-        if (!existing[0]) {
-            // First time: create profile + promote user role to chef
-            await app.db
-                .update(schema_js_1.users)
-                .set({ role: 'chef' })
-                .where((0, drizzle_orm_1.eq)(schema_js_1.users.id, userId));
-            const [created] = await app.db
-                .insert(schema_js_1.chefProfiles)
-                .values({ userId, verificationStatus: 'approved', ...drizzleBody })
-                .returning();
-            return created;
+        try {
+            return await app.db.transaction(async (tx) => {
+                const existing = await tx
+                    .select()
+                    .from(schema_js_1.chefProfiles)
+                    .where((0, drizzle_orm_1.eq)(schema_js_1.chefProfiles.userId, userId))
+                    .limit(1);
+                if (!existing[0]) {
+                    // First time: create profile + promote user role to chef
+                    await tx
+                        .update(schema_js_1.users)
+                        .set({ role: 'chef' })
+                        .where((0, drizzle_orm_1.eq)(schema_js_1.users.id, userId));
+                    const [created] = await tx
+                        .insert(schema_js_1.chefProfiles)
+                        .values({ userId, verificationStatus: 'approved', ...drizzleBody })
+                        .returning();
+                    return created;
+                }
+                const [updated] = await tx
+                    .update(schema_js_1.chefProfiles)
+                    .set(drizzleBody)
+                    .where((0, drizzle_orm_1.eq)(schema_js_1.chefProfiles.userId, userId))
+                    .returning();
+                return updated;
+            });
         }
-        const [updated] = await app.db
-            .update(schema_js_1.chefProfiles)
-            .set(drizzleBody)
-            .where((0, drizzle_orm_1.eq)(schema_js_1.chefProfiles.userId, userId))
-            .returning();
-        return updated;
+        catch (err) {
+            app.log.error({ err, userId }, 'patch chef failed');
+            throw err;
+        }
     });
     /**
      * POST /chefs/me/portfolio
@@ -291,12 +300,20 @@ async function chefsRoutes(app) {
         const formData = new FormData();
         formData.append('chat_id', String(userRow.telegramId));
         formData.append('photo', new Blob([buffer], { type: mimeType }), 'photo.jpg');
-        const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-            method: 'POST',
-            body: formData,
-        });
-        const tgJson = await tgRes.json();
+        let tgJson;
+        try {
+            const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                method: 'POST',
+                body: formData,
+            });
+            tgJson = await tgRes.json();
+        }
+        catch (err) {
+            app.log.error({ err, telegramId: userRow.telegramId }, '[chefs] sendPhoto failed');
+            return reply.code(502).send({ error: 'Failed to reach Telegram' });
+        }
         if (!tgJson.ok || !tgJson.result) {
+            app.log.error({ err: tgJson.description, telegramId: userRow.telegramId }, '[chefs] sendPhoto failed');
             return reply.code(502).send({ error: (_a = tgJson.description) !== null && _a !== void 0 ? _a : 'Telegram error' });
         }
         // Use the largest size file_id (last in the array)

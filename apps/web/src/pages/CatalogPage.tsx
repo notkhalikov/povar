@@ -208,7 +208,7 @@ export default function CatalogPage() {
         padding: '10px 14px',
       }}>
 
-        {/* Город — сегментированный контрол */}
+        {/* Сегментированный контрол — город */}
         <div style={{
           display: 'flex',
           backgroundColor: '#F7F6F3',
@@ -216,120 +216,59 @@ export default function CatalogPage() {
           padding: 3,
           marginBottom: 10,
         }}>
-          {[
-            { label: t.catalog.allCities, value: undefined },
-            { label: 'Тбилиси', value: 'Тбилиси' },
-            { label: 'Батуми', value: 'Батуми' },
-          ].map(opt => {
-            const active = query.city === opt.value
+          {([
+            { label: 'Все города', value: undefined },
+            { label: 'Тбилиси',    value: 'Тбилиси' },
+            { label: 'Батуми',     value: 'Батуми' },
+          ] as const).map(opt => {
+            const active = query.city === opt.value;
             return (
               <button
                 key={String(opt.value)}
                 onClick={() => setQuery(q => ({ ...q, city: opt.value }))}
                 style={{
-                  flex: 1,
-                  padding: '7px 0',
-                  borderRadius: 8,
-                  border: 'none',
-                  fontSize: 13,
-                  fontWeight: active ? 500 : 400,
+                  flex: 1, padding: '7px 4px',
+                  borderRadius: 8, border: 'none',
+                  fontSize: 13, fontWeight: active ? 500 : 400,
                   cursor: 'pointer',
                   backgroundColor: active ? '#D85A30' : 'transparent',
                   color: active ? '#ffffff' : '#6B6966',
                   transition: 'all 0.15s',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {opt.label}
               </button>
-            )
+            );
           })}
         </div>
 
-        {/* Формат — чипы */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-          {[
-            { label: t.catalog.allFormats, value: undefined },
-            { label: t.catalog.homeVisit, value: 'home_visit' },
-            { label: t.catalog.delivery, value: 'delivery' },
-          ].map(opt => {
-            const active = query.format === opt.value
+        {/* Чипы — формат */}
+        <div style={{ display: 'flex', gap: 6 }}>
+          {([
+            { label: 'Все форматы', value: undefined },
+            { label: 'На дом',      value: 'home_visit' },
+            { label: 'Доставка',    value: 'delivery' },
+          ] as const).map(opt => {
+            const active = query.format === opt.value;
             return (
               <button
                 key={String(opt.value)}
                 onClick={() => setQuery(q => ({ ...q, format: opt.value as ChefsQuery['format'] }))}
                 style={{
-                  padding: '6px 14px',
-                  borderRadius: 20,
+                  padding: '6px 14px', borderRadius: 20,
                   border: `1px solid ${active ? '#D85A30' : '#E8E6E1'}`,
                   backgroundColor: active ? '#D85A30' : '#ffffff',
                   color: active ? '#ffffff' : '#6B6966',
-                  fontSize: 13,
-                  fontWeight: active ? 500 : 400,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
+                  fontSize: 13, fontWeight: active ? 500 : 400,
+                  cursor: 'pointer', whiteSpace: 'nowrap',
                   transition: 'all 0.15s',
                 }}
               >
                 {opt.label}
               </button>
-            )
+            );
           })}
-        </div>
-
-        {/* Rating + Sort + Reset */}
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {RATING_CHIPS.map(r => (
-            <button
-              key={String(r.value)}
-              onClick={() => setQuery(q => ({ ...q, minRating: r.value }))}
-              style={{
-                padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
-                whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
-                backgroundColor: query.minRating === r.value ? '#D85A30' : '#ffffff',
-                color: query.minRating === r.value ? '#fff' : '#6B6966',
-                borderWidth: query.minRating === r.value ? 0 : 1,
-                borderColor: query.minRating === r.value ? 'transparent' : '#E8E6E1',
-              }}
-            >
-              {'label' in r ? r.label : t.catalog.anyRating}
-            </button>
-          ))}
-
-          <div style={{ width: 1, background: '#6B6966', opacity: .25, flexShrink: 0 }} />
-
-          {([
-            { value: 'rating', label: t.catalog.sortByRating },
-            { value: 'price', label: t.catalog.sortByPrice },
-          ] as const).map(s => (
-            <button
-              key={s.value}
-              onClick={() => setQuery(q => ({ ...q, sort: s.value }))}
-              style={{
-                padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
-                whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
-                backgroundColor: (query.sort ?? 'rating') === s.value ? '#D85A30' : '#ffffff',
-                color: (query.sort ?? 'rating') === s.value ? '#fff' : '#6B6966',
-                borderWidth: (query.sort ?? 'rating') === s.value ? 0 : 1,
-                borderColor: (query.sort ?? 'rating') === s.value ? 'transparent' : '#E8E6E1',
-              }}
-            >
-              {s.label}
-            </button>
-          ))}
-
-          {hasActiveFilters && (
-            <button
-              onClick={resetFilters}
-              style={{
-                padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
-                whiteSpace: 'nowrap', cursor: 'pointer',
-                backgroundColor: '#ffffff', border: '1px solid #E24B4A',
-                color: '#E24B4A',
-              }}
-            >
-              {t.catalog.resetFilters}
-            </button>
-          )}
         </div>
       </div>
 

@@ -55,6 +55,9 @@ async function ordersRoutes(app) {
         if (!profile.isActive || profile.verificationStatus !== 'approved') {
             return reply.code(422).send({ error: 'Chef is not available' });
         }
+        if (profile.userId === customerId) {
+            return reply.code(422).send({ error: 'Нельзя заказать у самого себя' });
+        }
         const [order] = await app.db
             .insert(schema_js_1.orders)
             .values({
@@ -95,6 +98,8 @@ async function ordersRoutes(app) {
         const rows = await app.db
             .select({
             id: schema_js_1.orders.id,
+            customerId: schema_js_1.orders.customerId,
+            chefId: schema_js_1.orders.chefId,
             type: schema_js_1.orders.type,
             city: schema_js_1.orders.city,
             scheduledAt: schema_js_1.orders.scheduledAt,
@@ -102,15 +107,46 @@ async function ordersRoutes(app) {
             agreedPrice: schema_js_1.orders.agreedPrice,
             status: schema_js_1.orders.status,
             createdAt: schema_js_1.orders.createdAt,
-            chefName: (0, drizzle_orm_1.sql) `chef_user.name`,
-            customerName: (0, drizzle_orm_1.sql) `customer_user.name`,
         })
             .from(schema_js_1.orders)
-            .leftJoin((0, drizzle_orm_1.sql) `users AS chef_user`, (0, drizzle_orm_1.sql) `chef_user.id = ${schema_js_1.orders.chefId}`)
-            .leftJoin((0, drizzle_orm_1.sql) `users AS customer_user`, (0, drizzle_orm_1.sql) `customer_user.id = ${schema_js_1.orders.customerId}`)
             .where((0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_js_1.orders.customerId, userId), (0, drizzle_orm_1.eq)(schema_js_1.orders.chefId, userId)))
             .orderBy((0, drizzle_orm_1.sql) `${schema_js_1.orders.createdAt} DESC`);
-        return { data: rows };
+        if (rows.length === 0)
+            return { data: [] };
+        // Fetch participant names in two batch queries
+        const chefIds = [...new Set(rows.map(r => r.chefId))];
+        const customerIds = [...new Set(rows.map(r => r.customerId))];
+        const allIds = [...new Set([...chefIds, ...customerIds])];
+        const nameRows = await app.db
+            .select({ id: schema_js_1.users.id, name: schema_js_1.users.name })
+            .from(schema_js_1.users)
+            .where((0, drizzle_orm_1.inArray)(schema_js_1.users.id, allIds));
+        const nameMap = new Map(nameRows.map(u => [u.id, u.name]));
+        // Unread inbound message counts per order, in one batch query
+        const orderIds = rows.map(r => r.id);
+        const unreadRows = await app.db
+            .select({
+            orderId: schema_js_1.messages.orderId,
+            count: (0, drizzle_orm_1.sql) `count(*)::int`,
+        })
+            .from(schema_js_1.messages)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.inArray)(schema_js_1.messages.orderId, orderIds), (0, drizzle_orm_1.ne)(schema_js_1.messages.senderId, userId), (0, drizzle_orm_1.isNull)(schema_js_1.messages.readAt)))
+            .groupBy(schema_js_1.messages.orderId);
+        const unreadMap = new Map();
+        for (const u of unreadRows) {
+            if (u.orderId !== null)
+                unreadMap.set(u.orderId, u.count);
+        }
+        const data = rows.map(r => {
+            var _a, _b, _c;
+            return ({
+                ...r,
+                chefName: (_a = nameMap.get(r.chefId)) !== null && _a !== void 0 ? _a : null,
+                customerName: (_b = nameMap.get(r.customerId)) !== null && _b !== void 0 ? _b : null,
+                unreadCount: (_c = unreadMap.get(r.id)) !== null && _c !== void 0 ? _c : 0,
+            });
+        });
+        return { data };
     });
     // ─── GET /orders/:id ─────────────────────────────────────────────────────────
     app.get('/orders/:id', {
@@ -123,38 +159,89 @@ async function ordersRoutes(app) {
             },
         },
     }, async (request, reply) => {
+        var _a, _b, _c;
         const userId = request.user.sub;
         const { id } = request.params;
-        const [row] = await app.db
-            .select({
-            id: schema_js_1.orders.id,
-            customerId: schema_js_1.orders.customerId,
-            chefId: schema_js_1.orders.chefId,
-            type: schema_js_1.orders.type,
-            city: schema_js_1.orders.city,
-            district: schema_js_1.orders.district,
-            address: schema_js_1.orders.address,
-            scheduledAt: schema_js_1.orders.scheduledAt,
-            persons: schema_js_1.orders.persons,
-            description: schema_js_1.orders.description,
-            agreedPrice: schema_js_1.orders.agreedPrice,
-            productsBuyer: schema_js_1.orders.productsBuyer,
-            productsBudget: schema_js_1.orders.productsBudget,
-            status: schema_js_1.orders.status,
-            chatEnabled: schema_js_1.orders.chatEnabled,
-            createdAt: schema_js_1.orders.createdAt,
-            updatedAt: schema_js_1.orders.updatedAt,
-            chefName: (0, drizzle_orm_1.sql) `chef_user.name`,
-            customerName: (0, drizzle_orm_1.sql) `customer_user.name`,
-        })
+        const [order] = await app.db
+            .select()
             .from(schema_js_1.orders)
-            .leftJoin((0, drizzle_orm_1.sql) `users AS chef_user`, (0, drizzle_orm_1.sql) `chef_user.id = ${schema_js_1.orders.chefId}`)
-            .leftJoin((0, drizzle_orm_1.sql) `users AS customer_user`, (0, drizzle_orm_1.sql) `customer_user.id = ${schema_js_1.orders.customerId}`)
             .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_js_1.orders.id, id), (0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_js_1.orders.customerId, userId), (0, drizzle_orm_1.eq)(schema_js_1.orders.chefId, userId))))
             .limit(1);
-        if (!row)
+        if (!order)
             return reply.code(404).send({ error: 'Order not found' });
-        return row;
+        const [chefUser] = await app.db
+            .select({ name: schema_js_1.users.name })
+            .from(schema_js_1.users)
+            .where((0, drizzle_orm_1.eq)(schema_js_1.users.id, order.chefId))
+            .limit(1);
+        const [customerUser] = await app.db
+            .select({ name: schema_js_1.users.name })
+            .from(schema_js_1.users)
+            .where((0, drizzle_orm_1.eq)(schema_js_1.users.id, order.customerId))
+            .limit(1);
+        const [unread] = await app.db
+            .select({ count: (0, drizzle_orm_1.sql) `count(*)::int` })
+            .from(schema_js_1.messages)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_js_1.messages.orderId, id), (0, drizzle_orm_1.ne)(schema_js_1.messages.senderId, userId), (0, drizzle_orm_1.isNull)(schema_js_1.messages.readAt)));
+        return {
+            ...order,
+            chefName: (_a = chefUser === null || chefUser === void 0 ? void 0 : chefUser.name) !== null && _a !== void 0 ? _a : null,
+            customerName: (_b = customerUser === null || customerUser === void 0 ? void 0 : customerUser.name) !== null && _b !== void 0 ? _b : null,
+            unreadCount: (_c = unread === null || unread === void 0 ? void 0 : unread.count) !== null && _c !== void 0 ? _c : 0,
+        };
+    });
+    // ─── PATCH /orders/:id/price ─────────────────────────────────────────────────
+    // Authenticated (chef). Sets agreedPrice while order is awaiting_payment.
+    app.patch('/orders/:id/price', {
+        onRequest: [app.authenticate],
+        schema: {
+            params: {
+                type: 'object',
+                required: ['id'],
+                properties: { id: { type: 'integer' } },
+            },
+            body: {
+                type: 'object',
+                required: ['agreedPrice'],
+                additionalProperties: false,
+                properties: {
+                    agreedPrice: { type: 'number', minimum: 1 },
+                },
+            },
+        },
+    }, async (request, reply) => {
+        const userId = request.user.sub;
+        const { id } = request.params;
+        const { agreedPrice } = request.body;
+        const [order] = await app.db
+            .select()
+            .from(schema_js_1.orders)
+            .where((0, drizzle_orm_1.eq)(schema_js_1.orders.id, id))
+            .limit(1);
+        if (!order)
+            return reply.code(404).send({ error: 'Order not found' });
+        if (order.chefId !== userId) {
+            return reply.code(403).send({ error: 'Только повар может устанавливать цену' });
+        }
+        if (order.status !== 'awaiting_payment') {
+            return reply.code(422).send({ error: 'Нельзя изменить цену после оплаты' });
+        }
+        const [updated] = await app.db
+            .update(schema_js_1.orders)
+            .set({ agreedPrice: String(agreedPrice), updatedAt: new Date() })
+            .where((0, drizzle_orm_1.eq)(schema_js_1.orders.id, id))
+            .returning();
+        // Notify customer that a price has been set (fire-and-forget)
+        const [customerUser] = await app.db
+            .select({ telegramId: schema_js_1.users.telegramId })
+            .from(schema_js_1.users)
+            .where((0, drizzle_orm_1.eq)(schema_js_1.users.id, order.customerId))
+            .limit(1);
+        if (customerUser === null || customerUser === void 0 ? void 0 : customerUser.telegramId) {
+            (0, notify_js_1.notifyPriceSet)(updated, customerUser.telegramId, String(agreedPrice))
+                .catch(err => app.log.warn({ err }, 'notify customer price set failed'));
+        }
+        return updated;
     });
     // ─── PATCH /orders/:id ───────────────────────────────────────────────────────
     // Authenticated (customer). Edits mutable fields while order is awaiting_payment.
@@ -414,32 +501,43 @@ async function ordersRoutes(app) {
             },
         },
     }, async (request, reply) => {
+        var _a, _b, _c, _d;
         const secret = request.headers['x-webhook-secret'];
         const expected = process.env.WEBHOOK_SECRET;
         if (!expected || secret !== expected) {
             return reply.code(401).send({ error: 'Unauthorized' });
         }
         const { id } = request.params;
-        const [row] = await app.db
+        const [order] = await app.db
             .select({
             id: schema_js_1.orders.id,
             customerId: schema_js_1.orders.customerId,
             chefId: schema_js_1.orders.chefId,
             status: schema_js_1.orders.status,
             chatEnabled: schema_js_1.orders.chatEnabled,
-            customerTelegramId: (0, drizzle_orm_1.sql) `customer_user.telegram_id`,
-            chefTelegramId: (0, drizzle_orm_1.sql) `chef_user.telegram_id`,
-            customerName: (0, drizzle_orm_1.sql) `customer_user.name`,
-            chefName: (0, drizzle_orm_1.sql) `chef_user.name`,
         })
             .from(schema_js_1.orders)
-            .leftJoin((0, drizzle_orm_1.sql) `users AS customer_user`, (0, drizzle_orm_1.sql) `customer_user.id = ${schema_js_1.orders.customerId}`)
-            .leftJoin((0, drizzle_orm_1.sql) `users AS chef_user`, (0, drizzle_orm_1.sql) `chef_user.id = ${schema_js_1.orders.chefId}`)
             .where((0, drizzle_orm_1.eq)(schema_js_1.orders.id, id))
             .limit(1);
-        if (!row)
+        if (!order)
             return reply.code(404).send({ error: 'Order not found' });
-        return row;
+        const [customerUser] = await app.db
+            .select({ telegramId: schema_js_1.users.telegramId, name: schema_js_1.users.name })
+            .from(schema_js_1.users)
+            .where((0, drizzle_orm_1.eq)(schema_js_1.users.id, order.customerId))
+            .limit(1);
+        const [chefUser] = await app.db
+            .select({ telegramId: schema_js_1.users.telegramId, name: schema_js_1.users.name })
+            .from(schema_js_1.users)
+            .where((0, drizzle_orm_1.eq)(schema_js_1.users.id, order.chefId))
+            .limit(1);
+        return {
+            ...order,
+            customerTelegramId: (_a = customerUser === null || customerUser === void 0 ? void 0 : customerUser.telegramId) !== null && _a !== void 0 ? _a : null,
+            chefTelegramId: (_b = chefUser === null || chefUser === void 0 ? void 0 : chefUser.telegramId) !== null && _b !== void 0 ? _b : null,
+            customerName: (_c = customerUser === null || customerUser === void 0 ? void 0 : customerUser.name) !== null && _c !== void 0 ? _c : null,
+            chefName: (_d = chefUser === null || chefUser === void 0 ? void 0 : chefUser.name) !== null && _d !== void 0 ? _d : null,
+        };
     });
     // ─── POST /orders/:id/enable-chat ────────────────────────────────────────────
     // Authenticated. Either participant can enable the relay chat once the order
@@ -476,5 +574,76 @@ async function ordersRoutes(app) {
         const botUsername = process.env.BOT_USERNAME;
         const chatLink = botUsername ? `https://t.me/${botUsername}?start=chat_${id}` : null;
         return { chatEnabled: true, chatLink };
+    });
+    // ─── GET /orders/:id/messages ────────────────────────────────────────────────
+    // Last 50 messages for the order, sorted by createdAt ASC.
+    app.get('/orders/:id/messages', {
+        onRequest: [app.authenticate],
+        schema: {
+            params: {
+                type: 'object',
+                required: ['id'],
+                properties: { id: { type: 'integer' } },
+            },
+        },
+    }, async (request, reply) => {
+        const userId = request.user.sub;
+        const { id } = request.params;
+        const [order] = await app.db
+            .select({ customerId: schema_js_1.orders.customerId, chefId: schema_js_1.orders.chefId })
+            .from(schema_js_1.orders)
+            .where((0, drizzle_orm_1.eq)(schema_js_1.orders.id, id))
+            .limit(1);
+        if (!order)
+            return reply.code(404).send({ error: 'Order not found' });
+        if (order.customerId !== userId && order.chefId !== userId) {
+            return reply.code(403).send({ error: 'Forbidden' });
+        }
+        const rows = await app.db
+            .select({
+            id: schema_js_1.messages.id,
+            senderId: schema_js_1.messages.senderId,
+            senderName: schema_js_1.users.name,
+            body: schema_js_1.messages.body,
+            createdAt: schema_js_1.messages.createdAt,
+            readAt: schema_js_1.messages.readAt,
+        })
+            .from(schema_js_1.messages)
+            .innerJoin(schema_js_1.users, (0, drizzle_orm_1.eq)(schema_js_1.users.id, schema_js_1.messages.senderId))
+            .where((0, drizzle_orm_1.eq)(schema_js_1.messages.orderId, id))
+            .orderBy((0, drizzle_orm_1.desc)(schema_js_1.messages.createdAt))
+            .limit(50);
+        return rows.reverse();
+    });
+    // ─── POST /orders/:id/messages/read ──────────────────────────────────────────
+    // Marks all unread inbound messages as read.
+    app.post('/orders/:id/messages/read', {
+        onRequest: [app.authenticate],
+        schema: {
+            params: {
+                type: 'object',
+                required: ['id'],
+                properties: { id: { type: 'integer' } },
+            },
+        },
+    }, async (request, reply) => {
+        const userId = request.user.sub;
+        const { id } = request.params;
+        const [order] = await app.db
+            .select({ customerId: schema_js_1.orders.customerId, chefId: schema_js_1.orders.chefId })
+            .from(schema_js_1.orders)
+            .where((0, drizzle_orm_1.eq)(schema_js_1.orders.id, id))
+            .limit(1);
+        if (!order)
+            return reply.code(404).send({ error: 'Order not found' });
+        if (order.customerId !== userId && order.chefId !== userId) {
+            return reply.code(403).send({ error: 'Forbidden' });
+        }
+        const updated = await app.db
+            .update(schema_js_1.messages)
+            .set({ readAt: new Date() })
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_js_1.messages.orderId, id), (0, drizzle_orm_1.ne)(schema_js_1.messages.senderId, userId), (0, drizzle_orm_1.isNull)(schema_js_1.messages.readAt)))
+            .returning({ id: schema_js_1.messages.id });
+        return { updated: updated.length };
     });
 }
