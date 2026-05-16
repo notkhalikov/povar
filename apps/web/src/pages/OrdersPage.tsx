@@ -52,7 +52,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <div style={{ backgroundColor: '#F7F6F3', minHeight: '100dvh', paddingBottom: 64 }}>
+    <div style={{ backgroundColor: '#F7F6F3', minHeight: '100%' }}>
 
       {/* ШАПКА */}
       <div style={{

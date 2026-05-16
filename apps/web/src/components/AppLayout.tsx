@@ -7,10 +7,21 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, showNav = true }: AppLayoutProps) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
-      <main style={{ flex: 1, paddingBottom: showNav ? 'calc(64px + env(safe-area-inset-bottom))' : 0 }}>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100dvh',
+      overflow: 'hidden',
+      backgroundColor: '#ffffff',
+    }}>
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        WebkitOverflowScrolling: 'touch',
+      }}>
         {children}
-      </main>
+      </div>
       {showNav && <BottomNav />}
     </div>
   );

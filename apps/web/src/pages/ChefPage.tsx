@@ -92,7 +92,7 @@ export default function ChefPage() {
   if (chef.ordersCount < 3)                      badges.push({ label: t.chef.badgeNew,    color: '#8e8e93', bg: '#8e8e9322' })
 
   return (
-    <div style={{ backgroundColor: '#F7F6F3', minHeight: '100dvh', paddingBottom: 64 }}>
+    <div style={{ backgroundColor: '#F7F6F3', minHeight: '100%' }}>
 
       {/* ШАПКА */}
       <div style={{

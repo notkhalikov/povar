@@ -167,7 +167,7 @@ export default function CatalogPage() {
   return (
     <div
       ref={scrollRef}
-      style={{ backgroundColor: '#F7F6F3', minHeight: '100dvh', paddingBottom: 64 }}
+      style={{ backgroundColor: '#F7F6F3', minHeight: '100%' }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
