@@ -31,6 +31,9 @@ export default function CatalogPage() {
   const [query, setQuery]               = useState<ChefsQuery>(DEFAULT_QUERY)
   const [cuisineInput, setCuisineInput] = useState('')
   const [offset, setOffset]             = useState(0)
+  const [cityFilter, setCityFilter]     = useState<string | null>(null)
+  const [formatFilter, setFormatFilter] = useState<string | null>(null)
+  const [searchOpen, setSearchOpen]     = useState(false)
 
   // Pull-to-refresh
   const [refreshing, setRefreshing]     = useState(false)
@@ -55,6 +58,14 @@ export default function CatalogPage() {
     )
     return () => clearTimeout(t)
   }, [cuisineInput])
+
+  useEffect(() => {
+    setQuery(q => ({
+      ...q,
+      city: cityFilter || undefined,
+      format: (formatFilter || undefined) as ChefsQuery['format'],
+    }))
+  }, [cityFilter, formatFilter])
 
   // Initial / filter-change load
   function load(q: ChefsQuery) {
@@ -173,32 +184,40 @@ export default function CatalogPage() {
               {t.catalog.title}
             </h1>
           </div>
-          <div style={{
-            width: 36, height: 36, borderRadius: '50%',
-            border: '1px solid #E8E6E1', backgroundColor: '#ffffff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+          <button
+            onClick={() => setSearchOpen(!searchOpen)}
+            style={{
+              width: 36, height: 36, borderRadius: '50%',
+              border: '1px solid #E8E6E1', backgroundColor: '#ffffff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', padding: 0,
+            }}
+            aria-label="Поиск"
+          >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <circle cx="6.5" cy="6.5" r="4.5" stroke="#6B6966" strokeWidth="1.3"/>
               <line x1="10" y1="10" x2="14" y2="14" stroke="#6B6966"
                 strokeWidth="1.3" strokeLinecap="round"/>
             </svg>
-          </div>
+          </button>
         </div>
 
         {/* Строка поиска */}
-        <input
-          type='text'
-          placeholder={t.catalog.searchPlaceholder}
-          value={cuisineInput}
-          onChange={e => setCuisineInput(e.target.value)}
-          style={{
-            width: '100%', marginTop: 10, padding: '9px 14px',
-            borderRadius: 12, border: '1px solid #E8E6E1',
-            fontSize: 14, color: '#1A1917', backgroundColor: '#F7F6F3',
-            outline: 'none', fontFamily: 'inherit',
-          }}
-        />
+        {searchOpen && (
+          <input
+            type='text'
+            placeholder={t.catalog.searchPlaceholder}
+            value={cuisineInput}
+            onChange={e => setCuisineInput(e.target.value)}
+            style={{
+              width: '100%', marginTop: 10, padding: '9px 14px',
+              borderRadius: 12, border: '1px solid #E8E6E1',
+              fontSize: 14, color: '#1A1917', backgroundColor: '#F7F6F3',
+              outline: 'none', fontFamily: 'inherit',
+            }}
+            autoFocus
+          />
+        )}
       </div>
 
       {/* ФИЛЬТРЫ */}
@@ -217,15 +236,15 @@ export default function CatalogPage() {
           marginBottom: 10,
         }}>
           {([
-            { label: 'Все города', value: undefined },
+            { label: 'Все города', value: null },
             { label: 'Тбилиси',    value: 'Тбилиси' },
             { label: 'Батуми',     value: 'Батуми' },
           ] as const).map(opt => {
-            const active = query.city === opt.value;
+            const active = cityFilter === opt.value;
             return (
               <button
                 key={String(opt.value)}
-                onClick={() => setQuery(q => ({ ...q, city: opt.value }))}
+                onClick={() => setCityFilter(opt.value)}
                 style={{
                   flex: 1, padding: '7px 4px',
                   borderRadius: 8, border: 'none',
@@ -246,15 +265,15 @@ export default function CatalogPage() {
         {/* Чипы — формат */}
         <div style={{ display: 'flex', gap: 6 }}>
           {([
-            { label: 'Все форматы', value: undefined },
+            { label: 'Все форматы', value: null },
             { label: 'На дом',      value: 'home_visit' },
             { label: 'Доставка',    value: 'delivery' },
           ] as const).map(opt => {
-            const active = query.format === opt.value;
+            const active = formatFilter === opt.value;
             return (
               <button
                 key={String(opt.value)}
-                onClick={() => setQuery(q => ({ ...q, format: opt.value as ChefsQuery['format'] }))}
+                onClick={() => setFormatFilter(opt.value)}
                 style={{
                   padding: '6px 14px', borderRadius: 20,
                   border: `1px solid ${active ? '#D85A30' : '#E8E6E1'}`,
