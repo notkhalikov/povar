@@ -203,118 +203,134 @@ export default function CatalogPage() {
 
       {/* ФИЛЬТРЫ */}
       <div style={{
-        display: 'flex', gap: 6, overflowX: 'auto',
-        padding: '10px 16px',
-        borderBottom: '1px solid #E8E6E1',
         backgroundColor: '#ffffff',
-        scrollbarWidth: 'none',
+        borderBottom: '1px solid #E8E6E1',
+        padding: '10px 14px',
       }}>
-        {/* City filters */}
-        <button
-          onClick={() => setQuery(q => ({ ...q, city: undefined }))}
-          style={{
-            padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
-            whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
-            backgroundColor: !query.city ? '#D85A30' : '#ffffff',
-            color: !query.city ? '#fff' : '#6B6966',
-            borderWidth: !query.city ? 0 : 1,
-            borderColor: !query.city ? 'transparent' : '#E8E6E1',
-          }}
-        >
-          {t.catalog.allCities}
-        </button>
-        {CITIES.map(c => (
-          <button
-            key={c}
-            onClick={() => setQuery(q => ({ ...q, city: c }))}
-            style={{
-              padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
-              whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
-              backgroundColor: query.city === c ? '#D85A30' : '#ffffff',
-              color: query.city === c ? '#fff' : '#6B6966',
-              borderWidth: query.city === c ? 0 : 1,
-              borderColor: query.city === c ? 'transparent' : '#E8E6E1',
-            }}
-          >
-            {c}
-          </button>
-        ))}
 
-        {/* Format filters */}
-        {([
-          { value: undefined, label: t.catalog.allFormats },
-          { value: 'home_visit', label: t.catalog.homeVisit },
-          { value: 'delivery', label: t.catalog.delivery },
-        ] as const).map(f => (
-          <button
-            key={String(f.value)}
-            onClick={() => setQuery(q => ({ ...q, format: f.value as ChefsQuery['format'] }))}
-            style={{
-              padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
-              whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
-              backgroundColor: query.format === f.value ? '#D85A30' : '#ffffff',
-              color: query.format === f.value ? '#fff' : '#6B6966',
-              borderWidth: query.format === f.value ? 0 : 1,
-              borderColor: query.format === f.value ? 'transparent' : '#E8E6E1',
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
+        {/* Город — сегментированный контрол */}
+        <div style={{
+          display: 'flex',
+          backgroundColor: '#F7F6F3',
+          borderRadius: 10,
+          padding: 3,
+          marginBottom: 10,
+        }}>
+          {[
+            { label: t.catalog.allCities, value: undefined },
+            { label: 'Тбилиси', value: 'Тбилиси' },
+            { label: 'Батуми', value: 'Батуми' },
+          ].map(opt => {
+            const active = query.city === opt.value
+            return (
+              <button
+                key={String(opt.value)}
+                onClick={() => setQuery(q => ({ ...q, city: opt.value }))}
+                style={{
+                  flex: 1,
+                  padding: '7px 0',
+                  borderRadius: 8,
+                  border: 'none',
+                  fontSize: 13,
+                  fontWeight: active ? 500 : 400,
+                  cursor: 'pointer',
+                  backgroundColor: active ? '#D85A30' : 'transparent',
+                  color: active ? '#ffffff' : '#6B6966',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Формат — чипы */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+          {[
+            { label: t.catalog.allFormats, value: undefined },
+            { label: t.catalog.homeVisit, value: 'home_visit' },
+            { label: t.catalog.delivery, value: 'delivery' },
+          ].map(opt => {
+            const active = query.format === opt.value
+            return (
+              <button
+                key={String(opt.value)}
+                onClick={() => setQuery(q => ({ ...q, format: opt.value as ChefsQuery['format'] }))}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 20,
+                  border: `1px solid ${active ? '#D85A30' : '#E8E6E1'}`,
+                  backgroundColor: active ? '#D85A30' : '#ffffff',
+                  color: active ? '#ffffff' : '#6B6966',
+                  fontSize: 13,
+                  fontWeight: active ? 500 : 400,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
 
         {/* Rating + Sort + Reset */}
-        {RATING_CHIPS.map(r => (
-          <button
-            key={String(r.value)}
-            onClick={() => setQuery(q => ({ ...q, minRating: r.value }))}
-            style={{
-              padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
-              whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
-              backgroundColor: query.minRating === r.value ? '#D85A30' : '#ffffff',
-              color: query.minRating === r.value ? '#fff' : '#6B6966',
-              borderWidth: query.minRating === r.value ? 0 : 1,
-              borderColor: query.minRating === r.value ? 'transparent' : '#E8E6E1',
-            }}
-          >
-            {'label' in r ? r.label : t.catalog.anyRating}
-          </button>
-        ))}
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {RATING_CHIPS.map(r => (
+            <button
+              key={String(r.value)}
+              onClick={() => setQuery(q => ({ ...q, minRating: r.value }))}
+              style={{
+                padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
+                whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
+                backgroundColor: query.minRating === r.value ? '#D85A30' : '#ffffff',
+                color: query.minRating === r.value ? '#fff' : '#6B6966',
+                borderWidth: query.minRating === r.value ? 0 : 1,
+                borderColor: query.minRating === r.value ? 'transparent' : '#E8E6E1',
+              }}
+            >
+              {'label' in r ? r.label : t.catalog.anyRating}
+            </button>
+          ))}
 
-        <div style={{ width: 1, background: '#6B6966', opacity: .25, flexShrink: 0 }} />
+          <div style={{ width: 1, background: '#6B6966', opacity: .25, flexShrink: 0 }} />
 
-        {([
-          { value: 'rating', label: t.catalog.sortByRating },
-          { value: 'price', label: t.catalog.sortByPrice },
-        ] as const).map(s => (
-          <button
-            key={s.value}
-            onClick={() => setQuery(q => ({ ...q, sort: s.value }))}
-            style={{
-              padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
-              whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
-              backgroundColor: (query.sort ?? 'rating') === s.value ? '#D85A30' : '#ffffff',
-              color: (query.sort ?? 'rating') === s.value ? '#fff' : '#6B6966',
-              borderWidth: (query.sort ?? 'rating') === s.value ? 0 : 1,
-              borderColor: (query.sort ?? 'rating') === s.value ? 'transparent' : '#E8E6E1',
-            }}
-          >
-            {s.label}
-          </button>
-        ))}
+          {([
+            { value: 'rating', label: t.catalog.sortByRating },
+            { value: 'price', label: t.catalog.sortByPrice },
+          ] as const).map(s => (
+            <button
+              key={s.value}
+              onClick={() => setQuery(q => ({ ...q, sort: s.value }))}
+              style={{
+                padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
+                whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
+                backgroundColor: (query.sort ?? 'rating') === s.value ? '#D85A30' : '#ffffff',
+                color: (query.sort ?? 'rating') === s.value ? '#fff' : '#6B6966',
+                borderWidth: (query.sort ?? 'rating') === s.value ? 0 : 1,
+                borderColor: (query.sort ?? 'rating') === s.value ? 'transparent' : '#E8E6E1',
+              }}
+            >
+              {s.label}
+            </button>
+          ))}
 
-        {hasActiveFilters && (
-          <button
-            onClick={resetFilters}
-            style={{
-              padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
-              whiteSpace: 'nowrap', cursor: 'pointer',
-              backgroundColor: '#ffffff', border: '1px solid #E24B4A',
-              color: '#E24B4A',
-            }}
-          >
-            {t.catalog.resetFilters}
-          </button>
-        )}
+          {hasActiveFilters && (
+            <button
+              onClick={resetFilters}
+              style={{
+                padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 500,
+                whiteSpace: 'nowrap', cursor: 'pointer',
+                backgroundColor: '#ffffff', border: '1px solid #E24B4A',
+                color: '#E24B4A',
+              }}
+            >
+              {t.catalog.resetFilters}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* СПИСОК ПОВАРОВ */}
