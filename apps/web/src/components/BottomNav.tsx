@@ -66,11 +66,11 @@ export function BottomNav() {
       bottom: 0,
       left: 0,
       right: 0,
-      height: 64,
       backgroundColor: '#ffffff',
       borderTop: '1px solid #E8E6E1',
       display: 'flex',
       zIndex: 100,
+      paddingBottom: 'env(safe-area-inset-bottom)',
     }}>
       {TABS.map(tab => {
         const active = isActive(tab.path);
