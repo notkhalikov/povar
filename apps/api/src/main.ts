@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import Fastify from 'fastify'
 import rateLimit from '@fastify/rate-limit'
+import multipart from '@fastify/multipart'
 import * as Sentry from '@sentry/node'
 
 import { eq, isNull, lt, sql, and } from 'drizzle-orm'
@@ -21,6 +22,7 @@ import requestsRoutes from './routes/requests.js'
 import adminRoutes from './routes/admin.js'
 import devRoutes from './routes/dev.js'
 import systemRoutes from './routes/system.js'
+import { uploadRoutes } from './routes/upload.js'
 
 // Fail fast if required env vars are missing
 const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET', 'BOT_TOKEN'] as const
@@ -89,6 +91,7 @@ async function bootstrap() {
   await app.register(dbPlugin)
   await app.register(authPlugin)
   await app.register(chatWsPlugin)
+  await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } })
 
   // Routes
   await app.register(authRoutes)
@@ -101,6 +104,7 @@ async function bootstrap() {
   await app.register(adminRoutes)
   await app.register(devRoutes)
   await app.register(systemRoutes)
+  await app.register(uploadRoutes)
 
   app.get('/health', async () => {
     let dbOk = false
