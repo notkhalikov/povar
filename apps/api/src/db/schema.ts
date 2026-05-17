@@ -46,6 +46,7 @@ export const users = pgTable('users', {
   utmCampaign: varchar('utm_campaign', { length: 100 }),
   utmContent: varchar('utm_content', { length: 100 }),
   utmTerm: varchar('utm_term', { length: 100 }),
+  avatarUrl: text('avatar_url'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
