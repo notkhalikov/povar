@@ -209,6 +209,14 @@ export default async function authRoutes(app: FastifyInstance) {
         return reply.code(403).send({ error: 'Account is banned' })
       }
 
+      if (tgUser.photo_url) {
+        await app.db.update(users)
+          .set({ avatarUrl: tgUser.photo_url })
+          .where(eq(users.id, user.id))
+
+        user = { ...user, avatarUrl: tgUser.photo_url }
+      }
+
       const token = app.jwt.sign(
         { sub: user.id, role: user.role, telegramId: user.telegramId },
         { expiresIn: '1d' },
@@ -216,7 +224,7 @@ export default async function authRoutes(app: FastifyInstance) {
 
       return {
         token,
-        user: { id: user.id, role: user.role, name: user.name },
+        user: { id: user.id, role: user.role, name: user.name, avatarUrl: user.avatarUrl },
       }
     },
   )
