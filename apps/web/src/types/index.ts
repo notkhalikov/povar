@@ -2,6 +2,7 @@ export interface ApiUser {
   id: number
   role: 'customer' | 'chef' | 'support' | 'admin'
   name: string
+  avatarUrl?: string | null
 }
 
 export interface ChefListItem {

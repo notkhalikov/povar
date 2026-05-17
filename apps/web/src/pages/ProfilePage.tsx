@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { getMyChef, patchMyChef } from '../api/chefs'
 import type { MyChefProfile } from '../types'
 import { useT } from '../i18n'
+import { Avatar } from '../components/Avatar'
 
 const AVATAR_COLORS = [
   '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
@@ -66,15 +67,8 @@ export default function ProfilePage() {
 
         {/* ── Avatar + name ───────────────────────────────────────── */}
         <div style={{ textAlign: 'center', marginBottom: 24, backgroundColor: '#ffffff', borderRadius: 12, border: '1px solid #E8E6E1', padding: '20px 16px' }}>
-          <div
-            style={{
-              width: 80, height: 80, borderRadius: 12, margin: '0 auto 12px',
-              background: avatarColor(fullName),
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 32, fontWeight: 700, color: '#ffffff',
-            }}
-          >
-            {initials(fullName)}
+          <div style={{ margin: '0 auto 12px', display: 'flex', justifyContent: 'center' }}>
+            <Avatar src={apiUser?.avatarUrl} name={fullName} size={80} />
           </div>
           <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 4, color: '#1A1917' }}>{fullName}</div>
           {tgUser?.username && (
