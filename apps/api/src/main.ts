@@ -23,6 +23,7 @@ import adminRoutes from './routes/admin.js'
 import devRoutes from './routes/dev.js'
 import systemRoutes from './routes/system.js'
 import { uploadRoutes } from './routes/upload.js'
+import usersRoutes from './routes/users.js'
 
 // Fail fast if required env vars are missing
 const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET', 'BOT_TOKEN'] as const
@@ -105,6 +106,7 @@ async function bootstrap() {
   await app.register(devRoutes)
   await app.register(systemRoutes)
   await app.register(uploadRoutes)
+  await app.register(usersRoutes)
 
   app.get('/health', async () => {
     let dbOk = false

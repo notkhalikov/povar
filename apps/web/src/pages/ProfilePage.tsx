@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTelegram } from '../hooks/useTelegram'
 import { useAuth } from '../context/AuthContext'
@@ -6,6 +6,7 @@ import { getMyChef, patchMyChef } from '../api/chefs'
 import type { MyChefProfile } from '../types'
 import { useT } from '../i18n'
 import { Avatar } from '../components/Avatar'
+import { apiFetch } from '../api/client'
 
 const AVATAR_COLORS = [
   '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
@@ -27,6 +28,9 @@ export default function ProfilePage() {
   const navigate            = useNavigate()
   const [chefProfile, setChefProfile]     = useState<MyChefProfile | null>(null)
   const [togglingActive, setTogglingActive] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(apiUser?.avatarUrl ?? null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (apiUser?.role !== 'chef') return
@@ -44,6 +48,32 @@ export default function ProfilePage() {
       const updated = await patchMyChef({ isActive: !chefProfile.isActive })
       setChefProfile(updated)
     } finally { setTogglingActive(false) }
+  }
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const { url } = await apiFetch<{ url: string }>('/upload', {
+        method: 'POST',
+        body: form,
+      })
+      setAvatarUrl(url)
+      // Persist to user profile
+      await apiFetch('/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ avatarUrl: url }),
+      })
+    } catch (err) {
+      console.error('Avatar upload failed:', err)
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   const fullName = [tgUser?.first_name, tgUser?.last_name].filter(Boolean).join(' ') || '—'
@@ -68,7 +98,26 @@ export default function ProfilePage() {
         {/* ── Avatar + name ───────────────────────────────────────── */}
         <div style={{ textAlign: 'center', marginBottom: 24, backgroundColor: '#ffffff', borderRadius: 12, border: '1px solid #E8E6E1', padding: '20px 16px' }}>
           <div style={{ margin: '0 auto 12px', display: 'flex', justifyContent: 'center' }}>
-            <Avatar src={apiUser?.avatarUrl} name={fullName} size={80} />
+            <div onClick={() => fileInputRef.current?.click()} style={{ cursor: 'pointer', position: 'relative' }}>
+              <Avatar src={avatarUrl} name={fullName} size={80} />
+              <div style={{
+                position: 'absolute', bottom: 0, right: 0,
+                width: 28, height: 28, borderRadius: '50%',
+                backgroundColor: '#D85A30', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 14, lineHeight: 1, opacity: uploading ? 0.6 : 1,
+              }}>
+                {uploading ? '⏳' : '✏️'}
+              </div>
+            </div>
+            <input
+              ref={fileInputRef}
+              type='file'
+              accept='image/*'
+              style={{ display: 'none' }}
+              onChange={handleAvatarUpload}
+              disabled={uploading}
+            />
           </div>
           <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 4, color: '#1A1917' }}>{fullName}</div>
           {tgUser?.username && (
