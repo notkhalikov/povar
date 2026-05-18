@@ -500,4 +500,107 @@ async function requestsRoutes(app) {
             .returning({ id: schema_js_1.messages.id });
         return { updated: updated.length };
     });
+    // ─── PATCH /requests/:id/status ──────────────────────────────────────────────
+    // Chef-only. Accept or decline a direct request.
+    app.patch('/requests/:id/status', {
+        onRequest: [app.authenticate],
+        schema: {
+            params: {
+                type: 'object',
+                required: ['id'],
+                properties: { id: { type: 'integer' } },
+            },
+            body: {
+                type: 'object',
+                required: ['status'],
+                properties: {
+                    status: { type: 'string', enum: ['accepted', 'declined'] },
+                },
+            },
+        },
+    }, async (request, reply) => {
+        const userId = request.user.sub;
+        const { id } = request.params;
+        const { status: responseStatus } = request.body;
+        const BOT_TOKEN = process.env.BOT_TOKEN;
+        const FRONTEND_URL = process.env.FRONTEND_URL;
+        const [req] = await app.db
+            .select()
+            .from(schema_js_1.requests)
+            .where((0, drizzle_orm_1.eq)(schema_js_1.requests.id, id))
+            .limit(1);
+        if (!req)
+            return reply.code(404).send({ error: 'Request not found' });
+        if (req.chefId !== userId)
+            return reply.code(403).send({ error: 'Forbidden' });
+        // If accepted, create an order; if declined, just close the request
+        if (responseStatus === 'accepted') {
+            await app.db.transaction(async (tx) => {
+                var _a, _b;
+                // Create order from request
+                await tx.insert(schema_js_1.orders).values({
+                    customerId: req.customerId,
+                    chefId: userId,
+                    type: req.format,
+                    city: req.city,
+                    district: (_a = req.district) !== null && _a !== void 0 ? _a : undefined,
+                    scheduledAt: req.scheduledAt,
+                    persons: req.persons,
+                    description: (_b = req.description) !== null && _b !== void 0 ? _b : undefined,
+                    agreedPrice: undefined,
+                    status: 'awaiting_payment',
+                });
+                // Close the request
+                await tx
+                    .update(schema_js_1.requests)
+                    .set({ status: 'closed' })
+                    .where((0, drizzle_orm_1.eq)(schema_js_1.requests.id, id));
+            });
+        }
+        else {
+            // Just close the request without creating an order
+            await app.db
+                .update(schema_js_1.requests)
+                .set({ status: 'closed' })
+                .where((0, drizzle_orm_1.eq)(schema_js_1.requests.id, id));
+        }
+        // Notify customer via Telegram
+        try {
+            const customer = await app.db.query.users.findFirst({
+                where: (0, drizzle_orm_1.eq)(schema_js_1.users.id, req.customerId),
+                columns: { telegramId: true },
+            });
+            if (customer === null || customer === void 0 ? void 0 : customer.telegramId) {
+                const emoji = responseStatus === 'accepted' ? '✅' : '❌';
+                const text = responseStatus === 'accepted'
+                    ? `${emoji} Ваш запрос принят! Повар готов работать с вами.`
+                    : `${emoji} К сожалению, повар не может выполнить этот запрос.`;
+                const keyboard = responseStatus === 'accepted'
+                    ? {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: '💬 Открыть чат',
+                                    web_app: { url: `${FRONTEND_URL}/requests/${id}` },
+                                },
+                            ],
+                        ],
+                    }
+                    : undefined;
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: customer.telegramId,
+                        text,
+                        reply_markup: keyboard,
+                    }),
+                }).catch(err => app.log.error({ err }, 'Failed to notify customer'));
+            }
+        }
+        catch (err) {
+            app.log.error({ err, requestId: id }, 'Failed to send customer notification');
+        }
+        return { ok: true };
+    });
 }

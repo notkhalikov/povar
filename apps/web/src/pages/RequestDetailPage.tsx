@@ -4,6 +4,8 @@ import WebApp from '@twa-dev/sdk'
 import { getRequest, acceptResponse, closeRequest } from '../api/requests'
 import { useAuth } from '../components/AuthProvider'
 import { ChatBox } from '../components/ChatBox'
+import { Avatar } from '../components/Avatar'
+import { apiFetch } from '../api/client'
 import type { RequestDetail, ChefResponseItem } from '../types'
 import { useT } from '../i18n'
 
@@ -17,13 +19,36 @@ export default function RequestDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [accepting, setAccepting] = useState<number | null>(null)
   const [closing, setClosing] = useState(false)
+  const [updatingStatus, setUpdatingStatus] = useState(false)
+  const [requestAuthor, setRequestAuthor] = useState<any>(null)
 
   useEffect(() => {
     if (!id) return
-    getRequest(Number(id))
-      .then(setReq)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+    const fetchData = async () => {
+      try {
+        const data = await getRequest(Number(id))
+        setReq(data)
+
+        // Fetch request author if available
+        if (data.customerId) {
+          try {
+            const token = localStorage.getItem('token')
+            const author = await apiFetch<any>(`/users/${data.customerId}`, {
+              method: 'GET',
+              headers: { Authorization: `Bearer ${token}` },
+            })
+            setRequestAuthor(author)
+          } catch {
+            // Author fetch is optional
+          }
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Error loading request')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
   }, [id])
 
   async function handleAccept(responseId: number) {
@@ -52,11 +77,29 @@ export default function RequestDetailPage() {
     }
   }
 
+  async function updateRequestStatus(status: 'accepted' | 'declined') {
+    if (!id) return
+    setUpdatingStatus(true)
+    try {
+      await apiFetch(`/requests/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      })
+      setReq(prev => prev ? { ...prev, status: 'closed' } : prev)
+    } catch (e: unknown) {
+      WebApp.showAlert(e instanceof Error ? e.message : 'Error updating status')
+    } finally {
+      setUpdatingStatus(false)
+    }
+  }
+
   if (loading) return <div style={{ padding: 24, textAlign: 'center', color: '#6B6966' }}>{t.common.loading}</div>
   if (error)   return <div style={{ padding: 24, color: '#E24B4A' }}>{t.common.error}: {error}</div>
   if (!req)    return null
 
   const isOwner = user?.id === req.customerId
+  const isChef = user?.role === 'chef'
+  const isDirectChefRequest = (req as any).chefId === user?.id && !isOwner
   const date = new Date(req.scheduledAt).toLocaleString('ru-RU', {
     day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
@@ -101,7 +144,18 @@ export default function RequestDetailPage() {
         </span>
       </div>
 
-      <div style={{ padding: '12px 16px' }}>
+      <div style={{ padding: '12px 16px 100px' }}>
+
+        {/* CUSTOMER INFO - Show if direct chef request */}
+        {isDirectChefRequest && requestAuthor && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+            <Avatar src={requestAuthor.avatarUrl} name={requestAuthor.name} size={48} />
+            <div>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>{requestAuthor.name}</p>
+              <p style={{ margin: 0, fontSize: 13, color: '#888' }}>Клиент</p>
+            </div>
+          </div>
+        )}
 
         {/* ДЕТАЛИ ЗАПРОСА */}
         <div style={{
@@ -136,31 +190,33 @@ export default function RequestDetailPage() {
           ))}
         </div>
 
-        {/* ОТВЕТЫ */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12, color: '#1A1917' }}>
-            {t.requests.responses} ({req.responses.length})
-          </div>
-
-          {req.responses.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '32px 16px', backgroundColor: '#ffffff', borderRadius: 12, border: '1px solid #E8E6E1', color: '#9E9B97', fontSize: 14 }}>
-              {t.requests.noResponses}
+        {/* ОТВЕТЫ - Only show for open requests (not direct chef requests) */}
+        {!isDirectChefRequest && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12, color: '#1A1917' }}>
+              {t.requests.responses} ({req.responses.length})
             </div>
-          )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {req.responses.map(r => (
-              <ResponseCard
-                key={r.id}
-                response={r}
-                isOwner={isOwner}
-                isOpen={req.status === 'open'}
-                accepting={accepting === r.id}
-                onAccept={() => handleAccept(r.id)}
-              />
-            ))}
+            {req.responses.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '32px 16px', backgroundColor: '#ffffff', borderRadius: 12, border: '1px solid #E8E6E1', color: '#9E9B97', fontSize: 14 }}>
+                {t.requests.noResponses}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {req.responses.map(r => (
+                <ResponseCard
+                  key={r.id}
+                  response={r}
+                  isOwner={isOwner}
+                  isOpen={req.status === 'open'}
+                  accepting={accepting === r.id}
+                  onAccept={() => handleAccept(r.id)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ЧАТ */}
         {isOwner && req.responses.length > 0 && (
@@ -174,7 +230,7 @@ export default function RequestDetailPage() {
           </div>
         )}
 
-        {/* КНОПКА ОТМЕНЫ */}
+        {/* КНОПКА ОТМЕНЫ - for customer */}
         {isOwner && req.status === 'open' && (
           <button
             style={{
@@ -190,6 +246,60 @@ export default function RequestDetailPage() {
           </button>
         )}
       </div>
+
+      {/* ACTION BUTTONS - for chef on direct request */}
+      {isDirectChefRequest && req.status === 'open' && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: '16px 16px 32px',
+            backgroundColor: '#fff',
+            borderTop: '1px solid #f0f0f0',
+            display: 'flex',
+            gap: 12,
+          }}
+        >
+          <button
+            onClick={() => updateRequestStatus('declined')}
+            disabled={updatingStatus}
+            style={{
+              flex: 1,
+              padding: '14px',
+              borderRadius: 14,
+              border: '2px solid #eee',
+              backgroundColor: '#fff',
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: updatingStatus ? 'not-allowed' : 'pointer',
+              color: '#666',
+              opacity: updatingStatus ? 0.6 : 1,
+            }}
+          >
+            Отклонить
+          </button>
+          <button
+            onClick={() => updateRequestStatus('accepted')}
+            disabled={updatingStatus}
+            style={{
+              flex: 2,
+              padding: '14px',
+              borderRadius: 14,
+              border: 'none',
+              backgroundColor: '#D85A30',
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: updatingStatus ? 'not-allowed' : 'pointer',
+              color: '#fff',
+              opacity: updatingStatus ? 0.6 : 1,
+            }}
+          >
+            {updatingStatus ? 'Обновление...' : 'Принять запрос ✓'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
