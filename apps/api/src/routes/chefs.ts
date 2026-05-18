@@ -173,7 +173,11 @@ export default async function chefsRoutes(app: FastifyInstance) {
     const { id } = request.params
 
     const [row] = await app.db
-      .select({ ...chefSelectFields, portfolioMediaIds: chefProfiles.portfolioMediaIds })
+      .select({
+        ...chefSelectFields,
+        portfolioMediaIds: chefProfiles.portfolioMediaIds,
+        portfolioPhotos: users.portfolioPhotos,
+      })
       .from(chefProfiles)
       .innerJoin(users, eq(chefProfiles.userId, users.id))
       .where(eq(chefProfiles.id, id))

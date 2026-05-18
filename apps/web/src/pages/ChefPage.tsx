@@ -198,7 +198,7 @@ export default function ChefPage() {
       )}
 
       {/* ПОРТФОЛИО */}
-      {chef.portfolioMediaIds.length > 0 && (
+      {((chef.portfolioMediaIds && chef.portfolioMediaIds.length > 0) || (chef.portfolioPhotos && chef.portfolioPhotos.length > 0)) && (
         <div style={{
           backgroundColor: '#ffffff', margin: '8px 0',
           padding: '16px 16px',
@@ -208,8 +208,18 @@ export default function ChefPage() {
             Портфолио
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-            {chef.portfolioMediaIds.map((fileId: string, i: number) => (
-              <div key={i} style={{
+            {chef.portfolioPhotos?.map((url: string, i: number) => (
+              <div key={`photo-${i}`} style={{
+                aspectRatio: '1', borderRadius: 8, overflow: 'hidden',
+                backgroundColor: '#FAECE7',
+              }}>
+                <img src={url} alt="" style={{
+                  width: '100%', height: '100%', objectFit: 'cover',
+                }} />
+              </div>
+            ))}
+            {chef.portfolioMediaIds?.map((fileId: string, i: number) => (
+              <div key={`media-${i}`} style={{
                 aspectRatio: '1', borderRadius: 8, overflow: 'hidden',
                 backgroundColor: '#FAECE7',
               }}>

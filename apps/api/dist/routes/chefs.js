@@ -113,7 +113,11 @@ async function chefsRoutes(app) {
     }, async (request, reply) => {
         const { id } = request.params;
         const [row] = await app.db
-            .select({ ...chefSelectFields, portfolioMediaIds: schema_js_1.chefProfiles.portfolioMediaIds })
+            .select({
+            ...chefSelectFields,
+            portfolioMediaIds: schema_js_1.chefProfiles.portfolioMediaIds,
+            portfolioPhotos: schema_js_1.users.portfolioPhotos,
+        })
             .from(schema_js_1.chefProfiles)
             .innerJoin(schema_js_1.users, (0, drizzle_orm_1.eq)(schema_js_1.chefProfiles.userId, schema_js_1.users.id))
             .where((0, drizzle_orm_1.eq)(schema_js_1.chefProfiles.id, id))

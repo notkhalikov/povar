@@ -27,6 +27,7 @@ export interface ChefListItem {
 
 export interface ChefProfile extends ChefListItem {
   portfolioMediaIds: string[]
+  portfolioPhotos?: string[]
   verificationStatus: 'pending' | 'approved' | 'rejected'
 }
 
