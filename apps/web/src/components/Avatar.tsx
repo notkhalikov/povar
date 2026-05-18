@@ -4,9 +4,10 @@ interface AvatarProps {
   src?: string | null;
   name: string;
   size?: number;
+  style?: React.CSSProperties;
 }
 
-export function Avatar({ src, name, size = 40 }: AvatarProps) {
+export function Avatar({ src, name, size = 40, style }: AvatarProps) {
   const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
   if (src) {
@@ -19,6 +20,7 @@ export function Avatar({ src, name, size = 40 }: AvatarProps) {
           borderRadius: '50%',
           objectFit: 'cover',
           flexShrink: 0,
+          ...style,
         }}
       />
     );
@@ -33,6 +35,7 @@ export function Avatar({ src, name, size = 40 }: AvatarProps) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: size * 0.38, fontWeight: 600,
       flexShrink: 0,
+      ...style,
     }}>
       {initials}
     </div>

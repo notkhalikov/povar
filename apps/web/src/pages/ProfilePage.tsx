@@ -21,6 +21,9 @@ function initials(name: string): string {
   return name.split(' ').map(w => w[0] ?? '').slice(0, 2).join('').toUpperCase() || '?'
 }
 
+const MAX_SIZE_MB = 5
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
 export default function ProfilePage() {
   const t = useT()
   const { user: tgUser }    = useTelegram()
@@ -30,6 +33,8 @@ export default function ProfilePage() {
   const [togglingActive, setTogglingActive] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState(apiUser?.avatarUrl ?? null)
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploadSuccess, setUploadSuccess] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -54,6 +59,20 @@ export default function ProfilePage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Validate type
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setUploadError('Формат не поддерживается. Используйте JPG, PNG или WebP')
+      return
+    }
+
+    // Validate size
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      setUploadError(`Файл слишком большой. Максимум ${MAX_SIZE_MB} МБ`)
+      return
+    }
+
+    setUploadError(null)
+    setUploadSuccess(false)
     setUploading(true)
     try {
       const form = new FormData()
@@ -68,7 +87,11 @@ export default function ProfilePage() {
         method: 'PATCH',
         body: JSON.stringify({ avatarUrl: url }),
       })
-    } catch (err) {
+      setUploadSuccess(true)
+      setTimeout(() => setUploadSuccess(false), 2000)
+    } catch (err: any) {
+      const message = err?.message || 'Ошибка загрузки'
+      setUploadError(message)
       console.error('Avatar upload failed:', err)
     } finally {
       setUploading(false)
@@ -98,28 +121,93 @@ export default function ProfilePage() {
         {/* ── Avatar + name ───────────────────────────────────────── */}
         <div style={{ textAlign: 'center', marginBottom: 24, backgroundColor: '#ffffff', borderRadius: 12, border: '1px solid #E8E6E1', padding: '20px 16px' }}>
           <div style={{ margin: '0 auto 12px', display: 'flex', justifyContent: 'center' }}>
-            <div onClick={() => fileInputRef.current?.click()} style={{ cursor: 'pointer', position: 'relative' }}>
-              <Avatar src={avatarUrl} name={fullName} size={80} />
-              <div style={{
-                position: 'absolute', bottom: 0, right: 0,
-                width: 28, height: 28, borderRadius: '50%',
-                backgroundColor: '#D85A30', color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 14, lineHeight: 1, opacity: uploading ? 0.6 : 1,
-              }}>
-                {uploading ? '⏳' : '✏️'}
-              </div>
+            <div
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              style={{
+                cursor: uploading ? 'not-allowed' : 'pointer',
+                position: 'relative',
+              }}
+            >
+              <Avatar
+                src={avatarUrl}
+                name={fullName}
+                size={72}
+                style={{ opacity: uploading ? 0.5 : 1 }}
+              />
+              {uploading && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'rgba(255,255,255,0.7)',
+                    fontSize: 18,
+                  }}
+                >
+                  ⏳
+                </div>
+              )}
+              {!uploading && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    width: 22,
+                    height: 22,
+                    borderRadius: '50%',
+                    backgroundColor: '#D85A30',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 12,
+                  }}
+                >
+                  ✏️
+                </div>
+              )}
             </div>
             <input
               ref={fileInputRef}
               type='file'
-              accept='image/*'
+              accept='image/jpeg,image/png,image/webp'
               style={{ display: 'none' }}
               onChange={handleAvatarUpload}
               disabled={uploading}
             />
           </div>
-          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 4, color: '#1A1917' }}>{fullName}</div>
+
+          {/* Upload hints */}
+          <div style={{ textAlign: 'center', marginTop: 8 }}>
+            <p style={{ fontSize: 12, color: '#aaa', margin: 0 }}>
+              Нажмите на фото чтобы изменить
+            </p>
+            <p style={{ fontSize: 11, color: '#bbb', margin: '2px 0 0' }}>
+              JPG, PNG, WebP · до {MAX_SIZE_MB} МБ
+            </p>
+          </div>
+
+          {/* Error feedback */}
+          {uploadError && (
+            <p style={{ fontSize: 12, color: '#D85A30', textAlign: 'center', marginTop: 6, margin: '6px 0 0' }}>
+              {uploadError}
+            </p>
+          )}
+
+          {/* Success feedback */}
+          {uploadSuccess && (
+            <p style={{ fontSize: 12, color: '#22c55e', textAlign: 'center', marginTop: 6, margin: '6px 0 0' }}>
+              ✓ Фото обновлено
+            </p>
+          )}
+
+          <div style={{ fontSize: 18, fontWeight: 600, marginTop: 16, marginBottom: 4, color: '#1A1917' }}>
+            {fullName}
+          </div>
           {tgUser?.username && (
             <div style={{ fontSize: 13, color: '#6B6966', marginBottom: 12 }}>
               @{tgUser.username}

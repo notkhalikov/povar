@@ -92,7 +92,7 @@ async function bootstrap() {
   await app.register(dbPlugin)
   await app.register(authPlugin)
   await app.register(chatWsPlugin)
-  await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } })
+  await app.register(multipart, { limits: { fileSize: 5 * 1024 * 1024 } })
 
   // Routes
   await app.register(authRoutes)
