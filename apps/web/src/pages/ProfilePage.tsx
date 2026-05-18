@@ -36,6 +36,9 @@ export default function ProfilePage() {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const portfolioInputRef = useRef<HTMLInputElement>(null)
+  const [portfolioPhotos, setPortfolioPhotos] = useState<string[]>(apiUser?.portfolioPhotos ?? [])
+  const [portfolioError, setPortfolioError] = useState<string | null>(null)
 
   useEffect(() => {
     if (apiUser?.role !== 'chef') return
@@ -96,6 +99,67 @@ export default function ProfilePage() {
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  async function handlePortfolioUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+
+    const MAX = MAX_SIZE_MB * 1024 * 1024
+    for (const file of files) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        setPortfolioError('Формат не поддерживается. JPG, PNG, WebP, HEIC')
+        return
+      }
+      if (file.size > MAX) {
+        setPortfolioError(`Файл слишком большой. Максимум ${MAX_SIZE_MB} МБ`)
+        return
+      }
+    }
+
+    setPortfolioError(null)
+    const uploaded: string[] = []
+
+    try {
+      for (const file of files) {
+        const form = new FormData()
+        form.append('file', file)
+        const { url } = await apiFetch<{ url: string }>('/upload', {
+          method: 'POST',
+          body: form,
+        })
+        uploaded.push(url)
+      }
+
+      const updated = [...portfolioPhotos, ...uploaded]
+      setPortfolioPhotos(updated)
+
+      // Save to backend
+      await apiFetch('/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ portfolioPhotos: updated }),
+      })
+    } catch (err: any) {
+      const message = err?.message || 'Ошибка загрузки'
+      setPortfolioError(message)
+      console.error('Portfolio upload failed:', err)
+    } finally {
+      if (portfolioInputRef.current) portfolioInputRef.current.value = ''
+    }
+  }
+
+  async function removePortfolioPhoto(urlToRemove: string) {
+    const updated = portfolioPhotos.filter(u => u !== urlToRemove)
+    setPortfolioPhotos(updated)
+    try {
+      await apiFetch('/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ portfolioPhotos: updated }),
+      })
+    } catch (err: any) {
+      console.error('Failed to remove portfolio photo:', err)
+      setPortfolioPhotos(portfolioPhotos)
     }
   }
 
@@ -311,6 +375,82 @@ export default function ProfilePage() {
                 </div>
                 <div style={{ fontSize: 12, color: '#6B6966' }}>{t.profile.verification}</div>
               </div>
+            </div>
+
+            {/* Portfolio section */}
+            <div style={{ padding: '0 0 24px' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center',
+                justifyContent: 'space-between', marginBottom: 12
+              }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Портфолио</h3>
+                <button
+                  onClick={() => portfolioInputRef.current?.click()}
+                  style={{
+                    backgroundColor: '#FEF0EB', color: '#D85A30',
+                    border: 'none', borderRadius: 10, padding: '6px 14px',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  + Добавить фото
+                </button>
+              </div>
+
+              {/* Grid of portfolio photos */}
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 4, borderRadius: 12, overflow: 'hidden'
+              }}>
+                {portfolioPhotos.map((url, i) => (
+                  <div key={i} style={{ position: 'relative', aspectRatio: '1' }}>
+                    <img
+                      src={url} alt=""
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                    <button
+                      onClick={() => removePortfolioPhoto(url)}
+                      style={{
+                        position: 'absolute', top: 4, right: 4,
+                        width: 22, height: 22, borderRadius: '50%',
+                        backgroundColor: 'rgba(0,0,0,0.5)', color: '#fff',
+                        border: 'none', cursor: 'pointer', fontSize: 12,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+
+                {portfolioPhotos.length === 0 && (
+                  <div
+                    onClick={() => portfolioInputRef.current?.click()}
+                    style={{
+                      aspectRatio: '1', border: '2px dashed #eee',
+                      borderRadius: 12, display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', color: '#ccc', fontSize: 12,
+                      gridColumn: 'span 3', padding: 32,
+                    }}
+                  >
+                    <span style={{ fontSize: 32, marginBottom: 8 }}>📸</span>
+                    <span>Добавьте фото своих блюд</span>
+                  </div>
+                )}
+              </div>
+
+              <input
+                ref={portfolioInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                multiple
+                style={{ display: 'none' }}
+                onChange={handlePortfolioUpload}
+              />
+
+              {portfolioError && (
+                <p style={{ fontSize: 12, color: '#D85A30', marginTop: 8 }}>{portfolioError}</p>
+              )}
             </div>
 
             <button

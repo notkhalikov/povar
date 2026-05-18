@@ -3,19 +3,23 @@ import { eq } from 'drizzle-orm'
 import { users } from '../db/schema.js'
 
 export default async function usersRoutes(app: FastifyInstance) {
-  app.patch<{ Body: { avatarUrl: string } }>(
+  app.patch<{ Body: { avatarUrl?: string; portfolioPhotos?: string[] } }>(
     '/users/me',
     { onRequest: [app.authenticate] },
     async (request, reply) => {
-      const { avatarUrl } = request.body
+      const { avatarUrl, portfolioPhotos } = request.body
       const userId = (request.user as any).id
 
-      if (!avatarUrl || typeof avatarUrl !== 'string') {
-        return reply.status(400).send({ error: 'avatarUrl is required' })
+      const updates: any = {}
+      if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl
+      if (portfolioPhotos !== undefined) updates.portfolioPhotos = portfolioPhotos
+
+      if (Object.keys(updates).length === 0) {
+        return reply.status(400).send({ error: 'At least one field is required' })
       }
 
       await app.db.update(users)
-        .set({ avatarUrl })
+        .set(updates)
         .where(eq(users.id, userId))
 
       return { ok: true }
@@ -33,9 +37,8 @@ export default async function usersRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'role must be "chef" or "customer"' })
       }
 
-      const isChef = role === 'chef'
       await app.db.update(users)
-        .set({ role, isChef })
+        .set({ role })
         .where(eq(users.id, userId))
 
       return { ok: true }

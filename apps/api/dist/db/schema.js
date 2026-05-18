@@ -31,6 +31,10 @@ exports.users = (0, pg_core_1.pgTable)('users', {
     utmCampaign: (0, pg_core_1.varchar)('utm_campaign', { length: 100 }),
     utmContent: (0, pg_core_1.varchar)('utm_content', { length: 100 }),
     utmTerm: (0, pg_core_1.varchar)('utm_term', { length: 100 }),
+    avatarUrl: (0, pg_core_1.text)('avatar_url'),
+    onboardingDone: (0, pg_core_1.boolean)('onboarding_done').default(false),
+    portfolioPhotos: (0, pg_core_1.text)('portfolio_photos').array().default([]),
+    rating: (0, pg_core_1.numeric)('rating', { precision: 3, scale: 2 }),
     createdAt: (0, pg_core_1.timestamp)('created_at').defaultNow().notNull(),
 });
 // ─── chefprofiles ─────────────────────────────────────────────────────────────

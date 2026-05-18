@@ -1,9 +1,31 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = authRoutes;
 const drizzle_orm_1 = require("drizzle-orm");
+const crypto_1 = __importDefault(require("crypto"));
 const schema_js_1 = require("../db/schema.js");
 const telegram_auth_js_1 = require("../services/telegram-auth.js");
+function verifyTelegramInitData(initData, botToken) {
+    const params = new URLSearchParams(initData);
+    const hash = params.get('hash');
+    if (!hash)
+        return false;
+    params.delete('hash');
+    const dataCheckString = [...params.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => `${k}=${v}`)
+        .join('\n');
+    const secretKey = crypto_1.default.createHmac('sha256', 'WebAppData')
+        .update(botToken)
+        .digest();
+    const expectedHash = crypto_1.default.createHmac('sha256', secretKey)
+        .update(dataCheckString)
+        .digest('hex');
+    return expectedHash === hash;
+}
 async function authRoutes(app) {
     /**
      * POST /auth/telegram
@@ -99,7 +121,15 @@ async function authRoutes(app) {
         const token = app.jwt.sign({ sub: user.id, role: user.role, telegramId: user.telegramId }, { expiresIn: '1d' });
         return {
             token,
-            user: { id: user.id, role: user.role, name: user.name },
+            user: {
+                id: user.id,
+                role: user.role,
+                name: user.name,
+                telegramId: user.telegramId,
+                isChef: user.role === 'chef',
+                avatarUrl: user.avatarUrl,
+                onboardingDone: user.onboardingDone,
+            },
         };
     });
     /**
@@ -160,10 +190,129 @@ async function authRoutes(app) {
         if (user.status === 'banned') {
             return reply.code(403).send({ error: 'Account is banned' });
         }
+        if (tgUser.photo_url) {
+            await app.db.update(schema_js_1.users)
+                .set({ avatarUrl: tgUser.photo_url })
+                .where((0, drizzle_orm_1.eq)(schema_js_1.users.id, user.id));
+            user = { ...user, avatarUrl: tgUser.photo_url };
+        }
         const token = app.jwt.sign({ sub: user.id, role: user.role, telegramId: user.telegramId }, { expiresIn: '1d' });
         return {
             token,
-            user: { id: user.id, role: user.role, name: user.name },
+            user: {
+                id: user.id,
+                role: user.role,
+                name: user.name,
+                telegramId: user.telegramId,
+                isChef: user.role === 'chef',
+                avatarUrl: user.avatarUrl,
+                onboardingDone: user.onboardingDone,
+            },
         };
+    });
+    /**
+     * POST /auth/telegram-miniapp
+     *
+     * Body: { initData: string }  — Telegram.WebApp.initData for Mini App auth
+     * Returns: { token: string, user: { id, role, name, avatarUrl } }
+     */
+    app.post('/auth/telegram-miniapp', {
+        schema: {
+            body: {
+                type: 'object',
+                required: ['initData'],
+                properties: {
+                    initData: { type: 'string', minLength: 1 },
+                },
+            },
+        },
+    }, async (request, reply) => {
+        var _a;
+        try {
+            const { initData } = request.body;
+            app.log.info({ initDataLength: initData === null || initData === void 0 ? void 0 : initData.length }, 'telegram-miniapp auth attempt');
+            if (!initData) {
+                return reply.status(400).send({ error: 'Missing initData' });
+            }
+            const botToken = process.env.BOT_TOKEN;
+            app.log.info({ hasBotToken: !!botToken }, 'bot token check');
+            if (!botToken) {
+                app.log.error('BOT_TOKEN is not set');
+                return reply.code(500).send({ error: 'Server misconfiguration' });
+            }
+            const isValid = verifyTelegramInitData(initData, botToken);
+            app.log.info({ hashValid: isValid }, 'hash verification result');
+            if (!isValid) {
+                return reply.code(401).send({ error: 'Invalid initData hash' });
+            }
+            const params = new URLSearchParams(initData);
+            const userJson = params.get('user');
+            app.log.info({ hasUserJson: !!userJson }, 'user json check');
+            if (!userJson) {
+                return reply.code(400).send({ error: 'No user data in initData' });
+            }
+            let tgUser;
+            try {
+                tgUser = JSON.parse(userJson);
+                app.log.info({ tgUserId: tgUser.id, tgUserName: tgUser.first_name }, 'tg user parsed');
+            }
+            catch (e) {
+                app.log.error(e, 'failed to parse user json');
+                return reply.code(400).send({ error: 'Invalid user JSON' });
+            }
+            const telegramId = tgUser.id;
+            const existing = await app.db
+                .select()
+                .from(schema_js_1.users)
+                .where((0, drizzle_orm_1.eq)(schema_js_1.users.telegramId, telegramId))
+                .limit(1);
+            app.log.info({ userExists: !!existing[0], telegramId }, 'user lookup result');
+            let user = existing[0];
+            if (!user) {
+                const name = [tgUser.first_name, tgUser.last_name]
+                    .filter(Boolean)
+                    .join(' ');
+                app.log.info({ telegramId, name }, 'creating new user');
+                const [created] = await app.db
+                    .insert(schema_js_1.users)
+                    .values({
+                    telegramId,
+                    name,
+                    lang: (_a = tgUser.language_code) !== null && _a !== void 0 ? _a : 'ru',
+                })
+                    .returning();
+                user = created;
+                app.log.info({ userId: user.id }, 'user created');
+            }
+            if (user.status === 'banned') {
+                app.log.warn({ userId: user.id }, 'banned user login attempt');
+                return reply.code(403).send({ error: 'Account is banned' });
+            }
+            if (tgUser.photo_url) {
+                app.log.info({ userId: user.id }, 'updating avatar');
+                await app.db.update(schema_js_1.users)
+                    .set({ avatarUrl: tgUser.photo_url })
+                    .where((0, drizzle_orm_1.eq)(schema_js_1.users.id, user.id));
+                user = { ...user, avatarUrl: tgUser.photo_url };
+            }
+            const token = app.jwt.sign({ sub: user.id, role: user.role, telegramId: user.telegramId }, { expiresIn: '1d' });
+            app.log.info({ userId: user.id, isChef: user.role === 'chef' }, 'auth success');
+            return {
+                token,
+                user: {
+                    id: user.id,
+                    role: user.role,
+                    name: user.name,
+                    telegramId: user.telegramId,
+                    isChef: user.role === 'chef',
+                    avatarUrl: user.avatarUrl,
+                    onboardingDone: user.onboardingDone,
+                },
+            };
+        }
+        catch (e) {
+            app.log.error(e, 'telegram-miniapp auth error');
+            return reply.status(500).send({ error: 'Auth failed' });
+        }
     });
 }

@@ -9,6 +9,7 @@ interface AuthUser {
   role?: string | null
   avatarUrl?: string | null
   onboardingDone?: boolean
+  portfolioPhotos?: string[]
 }
 
 interface AuthContextType {

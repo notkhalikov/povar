@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "portfolio_photos" text[] DEFAULT '{}';

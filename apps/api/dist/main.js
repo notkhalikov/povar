@@ -40,6 +40,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
 const fastify_1 = __importDefault(require("fastify"));
 const rate_limit_1 = __importDefault(require("@fastify/rate-limit"));
+const multipart_1 = __importDefault(require("@fastify/multipart"));
 const Sentry = __importStar(require("@sentry/node"));
 const drizzle_orm_1 = require("drizzle-orm");
 const schema_js_1 = require("./db/schema.js");
@@ -59,6 +60,8 @@ const requests_js_1 = __importDefault(require("./routes/requests.js"));
 const admin_js_1 = __importDefault(require("./routes/admin.js"));
 const dev_js_1 = __importDefault(require("./routes/dev.js"));
 const system_js_1 = __importDefault(require("./routes/system.js"));
+const upload_js_1 = require("./routes/upload.js");
+const users_js_1 = __importDefault(require("./routes/users.js"));
 // Fail fast if required env vars are missing
 const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET', 'BOT_TOKEN'];
 for (const key of REQUIRED_ENV) {
@@ -112,6 +115,7 @@ async function bootstrap() {
     await app.register(db_js_1.default);
     await app.register(auth_js_1.default);
     await app.register(chat_ws_js_1.default);
+    await app.register(multipart_1.default, { limits: { fileSize: 15 * 1024 * 1024 } });
     // Routes
     await app.register(auth_js_2.default);
     await app.register(chefs_js_1.default);
@@ -123,6 +127,8 @@ async function bootstrap() {
     await app.register(admin_js_1.default);
     await app.register(dev_js_1.default);
     await app.register(system_js_1.default);
+    await app.register(upload_js_1.uploadRoutes);
+    await app.register(users_js_1.default);
     app.get('/health', async () => {
         let dbOk = false;
         try {
