@@ -88,9 +88,11 @@ export default function SplashPage() {
         </>
       )}
 
-      <p style={{ position: 'absolute', bottom: 24, color: '#ccc', fontSize: 12 }}>
-        @povarissimobot
-      </p>
+      {!loading && !authError && (
+        <p style={{ position: 'absolute', bottom: 24, color: '#ccc', fontSize: 12 }}>
+          @povarissimobot
+        </p>
+      )}
     </div>
   )
 }

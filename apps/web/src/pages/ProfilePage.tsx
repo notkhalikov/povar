@@ -120,7 +120,8 @@ export default function ProfilePage() {
 
         {/* ── Avatar + name ───────────────────────────────────────── */}
         <div style={{ textAlign: 'center', marginBottom: 24, backgroundColor: '#ffffff', borderRadius: 12, border: '1px solid #E8E6E1', padding: '20px 16px' }}>
-          <div style={{ margin: '0 auto 12px', display: 'flex', justifyContent: 'center' }}>
+          {/* Avatar with upload */}
+          <div style={{ margin: '0 auto 16px', display: 'flex', justifyContent: 'center' }}>
             <div
               onClick={() => !uploading && fileInputRef.current?.click()}
               style={{
@@ -181,31 +182,8 @@ export default function ProfilePage() {
             />
           </div>
 
-          {/* Upload hints */}
-          <div style={{ textAlign: 'center', marginTop: 8 }}>
-            <p style={{ fontSize: 12, color: '#aaa', margin: 0 }}>
-              Нажмите на фото чтобы изменить
-            </p>
-            <p style={{ fontSize: 11, color: '#bbb', margin: '2px 0 0' }}>
-              JPG, PNG, WebP · до {MAX_SIZE_MB} МБ
-            </p>
-          </div>
-
-          {/* Error feedback */}
-          {uploadError && (
-            <p style={{ fontSize: 12, color: '#D85A30', textAlign: 'center', marginTop: 6, margin: '6px 0 0' }}>
-              {uploadError}
-            </p>
-          )}
-
-          {/* Success feedback */}
-          {uploadSuccess && (
-            <p style={{ fontSize: 12, color: '#22c55e', textAlign: 'center', marginTop: 6, margin: '6px 0 0' }}>
-              ✓ Фото обновлено
-            </p>
-          )}
-
-          <div style={{ fontSize: 18, fontWeight: 600, marginTop: 16, marginBottom: 4, color: '#1A1917' }}>
+          {/* User info */}
+          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 4, color: '#1A1917' }}>
             {fullName}
           </div>
           {tgUser?.username && (
@@ -219,8 +197,59 @@ export default function ProfilePage() {
               padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
               background: apiUser.role === 'chef' ? '#C0DD97' : '#F7F6F3',
               color: apiUser.role === 'chef' ? '#3B6D11' : '#6B6966',
+              marginBottom: 12,
             }}>
               {t.profile.role[apiUser.role as keyof typeof t.profile.role] ?? t.profile.role.customer}
+            </div>
+          )}
+
+          {/* Upload section with specs */}
+          <div style={{
+            backgroundColor: '#F7F6F3',
+            borderRadius: 8,
+            padding: '12px',
+            marginTop: 8,
+          }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: '#1A1917', margin: '0 0 8px' }}>
+              📸 Фото профиля
+            </p>
+            <p style={{ fontSize: 12, color: '#6B6966', margin: '0 0 8px', lineHeight: 1.5 }}>
+              Нажмите на аватар чтобы загрузить новое фото
+            </p>
+            <div style={{ fontSize: 11, color: '#9E9B97', margin: 0, lineHeight: 1.4 }}>
+              <div>✓ Форматы: JPG, PNG, WebP</div>
+              <div>✓ Максимум: {MAX_SIZE_MB} МБ</div>
+              <div>✓ Рекомендуем: квадратное фото</div>
+            </div>
+          </div>
+
+          {/* Error feedback */}
+          {uploadError && (
+            <div style={{
+              marginTop: 8,
+              padding: '8px 12px',
+              backgroundColor: '#FFF5F2',
+              borderRadius: 8,
+              borderLeft: '3px solid #D85A30',
+            }}>
+              <p style={{ fontSize: 12, color: '#D85A30', margin: 0 }}>
+                ⚠️ {uploadError}
+              </p>
+            </div>
+          )}
+
+          {/* Success feedback */}
+          {uploadSuccess && (
+            <div style={{
+              marginTop: 8,
+              padding: '8px 12px',
+              backgroundColor: '#F0FDF4',
+              borderRadius: 8,
+              borderLeft: '3px solid #22c55e',
+            }}>
+              <p style={{ fontSize: 12, color: '#22c55e', margin: 0 }}>
+                ✓ Фото обновлено
+              </p>
             </div>
           )}
         </div>
