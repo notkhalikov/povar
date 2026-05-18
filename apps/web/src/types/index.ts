@@ -2,7 +2,10 @@ export interface ApiUser {
   id: number
   role: 'customer' | 'chef' | 'support' | 'admin'
   name: string
+  telegramId: string
+  isChef: boolean
   avatarUrl?: string | null
+  onboardingDone?: boolean
 }
 
 export interface ChefListItem {

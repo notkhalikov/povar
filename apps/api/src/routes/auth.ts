@@ -160,7 +160,15 @@ export default async function authRoutes(app: FastifyInstance) {
 
       return {
         token,
-        user: { id: user.id, role: user.role, name: user.name },
+        user: {
+          id: user.id,
+          role: user.role,
+          name: user.name,
+          telegramId: user.telegramId,
+          isChef: user.role === 'chef',
+          avatarUrl: user.avatarUrl,
+          onboardingDone: user.onboardingDone,
+        },
       }
     },
   )
@@ -250,7 +258,15 @@ export default async function authRoutes(app: FastifyInstance) {
 
       return {
         token,
-        user: { id: user.id, role: user.role, name: user.name, avatarUrl: user.avatarUrl },
+        user: {
+          id: user.id,
+          role: user.role,
+          name: user.name,
+          telegramId: user.telegramId,
+          isChef: user.role === 'chef',
+          avatarUrl: user.avatarUrl,
+          onboardingDone: user.onboardingDone,
+        },
       }
     },
   )
@@ -338,7 +354,15 @@ export default async function authRoutes(app: FastifyInstance) {
 
       return {
         token,
-        user: { id: user.id, role: user.role, name: user.name, avatarUrl: user.avatarUrl },
+        user: {
+          id: user.id,
+          role: user.role,
+          name: user.name,
+          telegramId: user.telegramId,
+          isChef: user.role === 'chef',
+          avatarUrl: user.avatarUrl,
+          onboardingDone: user.onboardingDone,
+        },
       }
     },
   )

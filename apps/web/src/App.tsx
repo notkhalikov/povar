@@ -1,16 +1,14 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
-import { AuthProvider } from './context/AuthContext'
-import { useAuth } from './context/AuthContext'
+import { AuthProvider } from './components/AuthProvider'
+import { useAuth } from './components/AuthProvider'
 import { useT } from './i18n'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AppLayout } from './components/AppLayout'
 import CatalogPage from './pages/CatalogPage'
 import OnboardingPage from './pages/OnboardingPage'
-import { ProtectedRoute } from './components/ProtectedRoute'
-
-const LoginPage         = lazy(() => import('./pages/LoginPage'))
+import SplashPage from './pages/SplashPage'
 const ChefPage           = lazy(() => import('./pages/ChefPage'))
 const OrdersPage         = lazy(() => import('./pages/OrdersPage'))
 const OrderNewPage       = lazy(() => import('./pages/OrderNewPage'))
@@ -94,45 +92,55 @@ function AnimatedRoutes() {
     <div key={location.key} className={animClass} style={{ flex: 1 }}>
       <Suspense fallback={<PageFallback />}>
         <Routes location={location}>
-          <Route path='/login' element={
-            <AppLayout showNav={false}><LoginPage /></AppLayout>
+          <Route path='/' element={
+            <AppLayout showNav={false}><SplashPage /></AppLayout>
           } />
-          <Route element={<ProtectedRoute />}>
-            <Route path='/' element={<AppLayout><CatalogPage /></AppLayout>} />
-            <Route path='/chefs/:id' element={<AppLayout><ChefPage /></AppLayout>} />
-            <Route path='/orders' element={<AppLayout><OrdersPage /></AppLayout>} />
-            <Route path='/orders/new' element={<AppLayout><OrderNewPage /></AppLayout>} />
-            <Route path='/orders/:id' element={<AppLayout><OrderDetailPage /></AppLayout>} />
-            <Route path='/profile' element={<AppLayout><ProfilePage /></AppLayout>} />
-            <Route path='/chef/onboarding' element={
-              <AppLayout showNav={false}><ChefOnboardingPage /></AppLayout>
-            } />
-            <Route path='/chef/requests' element={<AppLayout><ChefRequestsPage /></AppLayout>} />
-            <Route path='/disputes/:id' element={<AppLayout><DisputePage /></AppLayout>} />
-            <Route path='/requests' element={<AppLayout><RequestsPage /></AppLayout>} />
-            <Route path='/requests/:id' element={<AppLayout><RequestDetailPage /></AppLayout>} />
-            <Route path='/onboarding' element={
-              <AppLayout showNav={false}><OnboardingPage /></AppLayout>
-            } />
-          </Route>
+          <Route path='/catalog' element={<AppLayout><CatalogPage /></AppLayout>} />
+          <Route path='/chefs/:id' element={<AppLayout><ChefPage /></AppLayout>} />
+          <Route path='/orders' element={<AppLayout><OrdersPage /></AppLayout>} />
+          <Route path='/orders/new' element={<AppLayout><OrderNewPage /></AppLayout>} />
+          <Route path='/orders/:id' element={<AppLayout><OrderDetailPage /></AppLayout>} />
+          <Route path='/profile' element={<AppLayout><ProfilePage /></AppLayout>} />
+          <Route path='/chef/onboarding' element={
+            <AppLayout showNav={false}><ChefOnboardingPage /></AppLayout>
+          } />
+          <Route path='/chef/requests' element={<AppLayout><ChefRequestsPage /></AppLayout>} />
+          <Route path='/disputes/:id' element={<AppLayout><DisputePage /></AppLayout>} />
+          <Route path='/requests' element={<AppLayout><RequestsPage /></AppLayout>} />
+          <Route path='/requests/:id' element={<AppLayout><RequestDetailPage /></AppLayout>} />
+          <Route path='/onboarding' element={
+            <AppLayout showNav={false}><OnboardingPage /></AppLayout>
+          } />
         </Routes>
       </Suspense>
     </div>
   )
 }
 
-// ─── Onboarding gate ─────────────────────────────────────────────────────────
+// ─── Auth gate ──────────────────────────────────────────────────────────────
 
-function OnboardingGate() {
-  const { needsOnboarding } = useAuth()
-  const navigate  = useNavigate()
-  const location  = useLocation()
+function AuthGate() {
+  const { user, loading } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
-    if (needsOnboarding && location.pathname !== '/onboarding') {
-      navigate('/onboarding', { replace: true })
+    // If loading, stay on splash page
+    if (loading) return
+
+    // If not authenticated, redirect to splash
+    if (!user) {
+      if (location.pathname !== '/') {
+        navigate('/', { replace: true })
+      }
+      return
     }
-  }, [needsOnboarding, location.pathname, navigate])
+
+    // If on splash page and authenticated, redirect to appropriate page
+    if (location.pathname === '/') {
+      navigate(user.isChef ? '/profile' : '/catalog', { replace: true })
+    }
+  }, [user, loading, location.pathname, navigate])
 
   return null
 }
@@ -211,16 +219,16 @@ export default function App() {
       isolation: 'isolate',
     }}>
       <ErrorBoundary>
-        <AuthProvider>
-          <BrowserRouter>
+        <BrowserRouter>
+          <AuthProvider>
             <NotificationPermissionGate />
             <BackButtonManager />
-            <OnboardingGate />
+            <AuthGate />
             <DeepLinkRedirect />
             <OfflineToast />
             <AnimatedRoutes />
-          </BrowserRouter>
-        </AuthProvider>
+          </AuthProvider>
+        </BrowserRouter>
       </ErrorBoundary>
     </div>
   )
