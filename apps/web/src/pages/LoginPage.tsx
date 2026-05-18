@@ -4,66 +4,46 @@ import { apiFetch } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import type { ApiUser } from '../types'
 
-interface TelegramAuthUser {
-  id: number
-  first_name: string
-  last_name?: string
-  username?: string
-  photo_url?: string
-  auth_date: number
-  hash: string
-}
-
-declare global {
-  interface Window {
-    onTelegramAuth?: (user: TelegramAuthUser) => void
-  }
-}
-
-const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'povarissimobot'
-
 export default function LoginPage() {
   const navigate = useNavigate()
   const { token, signIn } = useAuth()
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [inTelegram, setInTelegram] = useState(false)
 
   // Already signed in — go straight to the app
   useEffect(() => {
     if (token) navigate('/orders', { replace: true })
   }, [token, navigate])
 
+  // Auto-login via Mini App initData
   useEffect(() => {
-    window.onTelegramAuth = async (tgUser: TelegramAuthUser) => {
-      setError(null)
-      try {
-        const { token: jwt, user } = await apiFetch<{ token: string; user: ApiUser }>(
-          '/auth/telegram-widget',
-          { method: 'POST', body: JSON.stringify(tgUser) },
-        )
+    const tg = window.Telegram?.WebApp
+    const initData = tg?.initData
+
+    if (!initData) {
+      // Not inside Telegram Mini App
+      setInTelegram(false)
+      setLoading(false)
+      return
+    }
+
+    setInTelegram(true)
+    setError(null)
+
+    apiFetch<{ token: string; user: ApiUser }>(
+      '/auth/telegram-miniapp',
+      { method: 'POST', body: JSON.stringify({ initData }) },
+    )
+      .then(({ token: jwt, user }) => {
         signIn(jwt, user)
         navigate('/orders', { replace: true })
-      } catch {
-        setError('Не удалось войти, попробуйте снова')
-      }
-    }
-
-    const container = document.getElementById('tg-login-btn')
-    if (!container) return
-
-    const script = document.createElement('script')
-    script.src = 'https://telegram.org/js/telegram-widget.js?22'
-    script.setAttribute('data-telegram-login', BOT_USERNAME)
-    script.setAttribute('data-size', 'large')
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)')
-    script.setAttribute('data-request-access', 'write')
-    container.appendChild(script)
-
-    return () => {
-      window.onTelegramAuth = undefined
-      if (container.contains(script)) container.removeChild(script)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+      })
+      .catch(err => {
+        setError(err.message || 'Не удалось войти')
+        setLoading(false)
+      })
+  }, [signIn, navigate])
 
   return (
     <div style={{
@@ -112,13 +92,24 @@ export default function LoginPage() {
         Домашние повара<br />Тбилиси · Батуми
       </p>
 
-      {/* Кнопка Telegram */}
-      <div style={{ width: '100%', maxWidth: 320, marginBottom: 16 }}>
-        <div id='tg-login-btn' style={{ display: 'flex', justifyContent: 'center' }} />
-      </div>
-
-      {/* Ошибка */}
-      {error && (
+      {/* Loading или статус */}
+      {loading ? (
+        <div style={{
+          fontSize: 16, color: '#6B6966',
+          marginBottom: 16, minHeight: 48,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          ⏳ Загрузка...
+        </div>
+      ) : !inTelegram ? (
+        <div style={{
+          fontSize: 16, color: '#E24B4A', fontWeight: 500,
+          marginBottom: 16, minHeight: 48,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          Открой приложение в Telegram
+        </div>
+      ) : error ? (
         <div style={{
           color: '#E24B4A',
           fontSize: 14,
@@ -128,7 +119,7 @@ export default function LoginPage() {
         }}>
           {error}
         </div>
-      )}
+      ) : null}
 
       {/* Дисклеймер */}
       <p style={{ fontSize: 12, color: '#9E9B97', lineHeight: 1.6 }}>

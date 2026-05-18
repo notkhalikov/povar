@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { eq } from 'drizzle-orm'
+import crypto from 'crypto'
 import { users } from '../db/schema.js'
 import { validateInitData, validateWidgetData } from '../services/telegram-auth.js'
 
@@ -20,6 +21,31 @@ interface WidgetAuthBody {
   photo_url?: string
   auth_date: number
   hash: string
+}
+
+interface MiniAppAuthBody {
+  initData: string
+}
+
+function verifyTelegramInitData(initData: string, botToken: string): boolean {
+  const params = new URLSearchParams(initData)
+  const hash = params.get('hash')
+  if (!hash) return false
+
+  params.delete('hash')
+  const dataCheckString = [...params.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join('\n')
+
+  const secretKey = crypto.createHmac('sha256', 'WebAppData')
+    .update(botToken)
+    .digest()
+  const expectedHash = crypto.createHmac('sha256', secretKey)
+    .update(dataCheckString)
+    .digest('hex')
+
+  return expectedHash === hash
 }
 
 export default async function authRoutes(app: FastifyInstance) {
@@ -199,6 +225,94 @@ export default async function authRoutes(app: FastifyInstance) {
             telegramId,
             name,
             lang: 'ru',
+          })
+          .returning()
+
+        user = created
+      }
+
+      if (user.status === 'banned') {
+        return reply.code(403).send({ error: 'Account is banned' })
+      }
+
+      if (tgUser.photo_url) {
+        await app.db.update(users)
+          .set({ avatarUrl: tgUser.photo_url })
+          .where(eq(users.id, user.id))
+
+        user = { ...user, avatarUrl: tgUser.photo_url }
+      }
+
+      const token = app.jwt.sign(
+        { sub: user.id, role: user.role, telegramId: user.telegramId },
+        { expiresIn: '1d' },
+      )
+
+      return {
+        token,
+        user: { id: user.id, role: user.role, name: user.name, avatarUrl: user.avatarUrl },
+      }
+    },
+  )
+
+  /**
+   * POST /auth/telegram-miniapp
+   *
+   * Body: { initData: string }  — Telegram.WebApp.initData for Mini App auth
+   * Returns: { token: string, user: { id, role, name, avatarUrl } }
+   */
+  app.post<{ Body: MiniAppAuthBody }>(
+    '/auth/telegram-miniapp',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['initData'],
+          properties: {
+            initData: { type: 'string', minLength: 1 },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const botToken = process.env.BOT_TOKEN
+      if (!botToken) {
+        app.log.error('BOT_TOKEN is not set')
+        return reply.code(500).send({ error: 'Server misconfiguration' })
+      }
+
+      if (!verifyTelegramInitData(request.body.initData, botToken)) {
+        return reply.code(401).send({ error: 'Invalid initData hash' })
+      }
+
+      const params = new URLSearchParams(request.body.initData)
+      const userJson = params.get('user')
+      if (!userJson) {
+        return reply.code(400).send({ error: 'No user data in initData' })
+      }
+
+      const tgUser = JSON.parse(userJson)
+      const telegramId = tgUser.id
+
+      const existing = await app.db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, telegramId))
+        .limit(1)
+
+      let user = existing[0]
+
+      if (!user) {
+        const name = [tgUser.first_name, tgUser.last_name]
+          .filter(Boolean)
+          .join(' ')
+
+        const [created] = await app.db
+          .insert(users)
+          .values({
+            telegramId,
+            name,
+            lang: tgUser.language_code ?? 'ru',
           })
           .returning()
 
