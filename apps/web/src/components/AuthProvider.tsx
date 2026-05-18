@@ -27,6 +27,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
 
   useEffect(() => {
+    console.log('[Auth] VITE_API_URL:', import.meta.env.VITE_API_URL)
+    console.log('[Auth] Telegram WebApp:', !!(window as any).Telegram?.WebApp)
+    console.log('[Auth] initData length:', (window as any).Telegram?.WebApp?.initData?.length ?? 0)
+    console.log('[Auth] saved token:', !!localStorage.getItem('token'))
+
     const tg = (window as any).Telegram?.WebApp
     tg?.ready()
     tg?.expand()
@@ -35,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const savedUser = localStorage.getItem('user')
 
     if (savedToken && savedUser) {
+      console.log('[Auth] using saved token and user')
       setToken(savedToken)
       setUser(JSON.parse(savedUser))
       setLoading(false)
@@ -42,35 +48,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (!tg?.initData) {
+      console.log('[Auth] no initData, not in Telegram')
       setAuthError('no_telegram')
       setLoading(false)
       return
     }
 
-    fetch(`${import.meta.env.VITE_API_URL}/auth/telegram-miniapp`, {
+    const url = `${import.meta.env.VITE_API_URL}/auth/telegram-miniapp`
+    console.log('[Auth] fetching:', url)
+    console.log('[Auth] initData length:', tg.initData.length)
+
+    fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ initData: tg.initData }),
     })
-      .then(r => r.json())
+      .then(r => {
+        console.log('[Auth] fetch response status:', r.status)
+        return r.json()
+      })
       .then(({ token, user }) => {
+        console.log('[Auth] auth response received, token:', !!token, 'user:', !!user)
         if (token && user) {
+          console.log('[Auth] token and user present, saving to localStorage')
           localStorage.setItem('token', token)
           localStorage.setItem('user', JSON.stringify(user))
           setToken(token)
           setUser(user)
           // New user (no role yet) → onboarding, existing → catalog/profile
-          if (!user.isChef && !user.onboardingDone) {
-            navigate('/onboarding', { replace: true })
-          } else {
-            navigate(user.isChef ? '/profile' : '/catalog', { replace: true })
-          }
+          const destination = !user.isChef && !user.onboardingDone
+            ? '/onboarding'
+            : user.isChef ? '/profile' : '/catalog'
+          console.log('[Auth] navigating to:', destination)
+          navigate(destination, { replace: true })
         } else {
+          console.error('[Auth] invalid response: missing token or user')
           setAuthError('fetch_failed')
         }
       })
-      .catch(() => setAuthError('fetch_failed'))
-      .finally(() => setLoading(false))
+      .catch((e) => {
+        console.error('[Auth] fetch error:', e)
+        setAuthError('fetch_failed')
+      })
+      .finally(() => {
+        console.log('[Auth] auth attempt finished, loading=false')
+        setLoading(false)
+      })
   }, [navigate])
 
   return (
