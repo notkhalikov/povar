@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../components/AuthProvider'
 import { useChat } from '../hooks/useChat'
 
 interface ChatBoxProps {

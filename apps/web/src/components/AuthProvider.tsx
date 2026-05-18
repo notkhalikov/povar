@@ -5,8 +5,10 @@ interface AuthUser {
   id: number
   name: string
   telegramId: string
+  role: 'chef' | 'customer'
   isChef: boolean
   avatarUrl?: string | null
+  onboardingDone: boolean
 }
 
 interface AuthContextType {
@@ -14,17 +16,38 @@ interface AuthContextType {
   loading: boolean
   token: string | null
   authError: 'no_telegram' | 'fetch_failed' | null
+  setUser: (user: AuthUser) => void
+  completeOnboarding: () => void
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true, token: null, authError: null })
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
+  token: null,
+  authError: null,
+  setUser: () => {},
+  completeOnboarding: () => {},
+})
 export const useAuth = () => useContext(AuthContext)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null)
+  const [user, setUserState] = useState<AuthUser | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [authError, setAuthError] = useState<'no_telegram' | 'fetch_failed' | null>(null)
   const navigate = useNavigate()
+
+  function setUser(newUser: AuthUser) {
+    setUserState(newUser)
+    localStorage.setItem('user', JSON.stringify(newUser))
+  }
+
+  function completeOnboarding() {
+    if (user) {
+      const updated = { ...user, onboardingDone: true }
+      setUser(updated)
+    }
+  }
 
   useEffect(() => {
     console.log('[Auth] VITE_API_URL:', import.meta.env.VITE_API_URL)
@@ -42,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (savedToken && savedUser) {
       console.log('[Auth] using saved token and user')
       setToken(savedToken)
-      setUser(JSON.parse(savedUser))
+      setUserState(JSON.parse(savedUser))
       setLoading(false)
       return
     }
@@ -74,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('token', token)
           localStorage.setItem('user', JSON.stringify(user))
           setToken(token)
-          setUser(user)
+          setUserState(user)
           // New user (no role yet) → onboarding, existing → catalog/profile
           const destination = !user.isChef && !user.onboardingDone
             ? '/onboarding'
@@ -97,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [navigate])
 
   return (
-    <AuthContext.Provider value={{ user, loading, token, authError }}>
+    <AuthContext.Provider value={{ user, loading, token, authError, setUser, completeOnboarding }}>
       {children}
     </AuthContext.Provider>
   )

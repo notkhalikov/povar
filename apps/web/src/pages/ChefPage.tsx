@@ -4,7 +4,7 @@ import WebApp from '@twa-dev/sdk'
 import { useT } from '../i18n'
 import { getChef, getChefReviews, chefPhotoUrl } from '../api/chefs'
 import { reportReview, replyToReview } from '../api/reviews'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../components/AuthProvider'
 import { StarRating } from '../components/StarRating'
 import type { ChefProfile, ReviewItem } from '../types'
 

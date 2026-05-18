@@ -7,7 +7,7 @@ import { getOrder, createInvoice, completeOrder, setOrderPrice, patchOrderStatus
 import { ApiError } from '../api/client'
 import { createReview } from '../api/reviews'
 import { createDispute, getDisputeByOrder } from '../api/disputes'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../components/AuthProvider'
 import { StarRating } from '../components/StarRating'
 import { BottomSheet } from '../components/BottomSheet'
 import { ChatBox } from '../components/ChatBox'

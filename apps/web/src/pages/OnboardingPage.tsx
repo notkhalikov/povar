@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useT } from '../i18n'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../components/AuthProvider'
 
 // ─── SVG Illustrations ────────────────────────────────────────────────────────
 

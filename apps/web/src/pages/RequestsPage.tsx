@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getRequests, createRequest } from '../api/requests'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../components/AuthProvider'
 import type { RequestItem } from '../types'
 import { useT } from '../i18n'
 
@@ -223,11 +223,22 @@ export default function RequestsPage() {
 
       {/* List */}
       {items.length === 0 && !showForm && (
-        <div style={{ textAlign: 'center', padding: '48px 0', color: '#9E9B97', fontSize: 15 }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>📩</div>
-          <div style={{ fontWeight: 600, marginBottom: 8, color: '#1A1917' }}>{t.requests.noRequests}</div>
-          <div style={{ color: '#6B6966', fontSize: 14 }}>
-            {t.requests.noRequestsHint}
+        <div style={{ textAlign: 'center', padding: '32px 16px', backgroundColor: '#ffffff', borderRadius: 12, border: '1px solid #E8E6E1' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>📩</div>
+          <div style={{ fontWeight: 600, marginBottom: 12, color: '#1A1917', fontSize: 16 }}>Создайте запрос</div>
+          <div style={{ color: '#6B6966', fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
+            <div>Опишите, что вы хотите готовить, указав:</div>
+            <div style={{ marginTop: 12, fontSize: 13 }}>
+              <div>• Дату и время</div>
+              <div>• Количество персон</div>
+              <div>• Бюджет и особые пожелания</div>
+            </div>
+          </div>
+          <div style={{ backgroundColor: '#FEF0EB', borderRadius: 10, padding: '12px', marginTop: 16, fontSize: 13, color: '#D85A30' }}>
+            <div style={{ fontWeight: 500, marginBottom: 8 }}>Что будет дальше:</div>
+            <div style={{ fontSize: 12, color: '#8B5A39', lineHeight: 1.6 }}>
+              Повара получат уведомление о вашем запросе и смогут ответить своей ценой. Вы сможете обсудить детали и выбрать лучшего повара.
+            </div>
           </div>
         </div>
       )}
