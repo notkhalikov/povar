@@ -1,4 +1,6 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from './AuthProvider'
 
 const TABS = [
   {
@@ -52,11 +54,25 @@ const TABS = [
 ];
 
 export function BottomNav() {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    if (user?.role !== 'chef') return
+
+    const token = localStorage.getItem('token')
+    fetch(`${import.meta.env.VITE_API_URL}/requests/pending-count`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(({ count }) => setPendingCount(count))
+      .catch(() => {})
+  }, [user])
 
   function isActive(path: string) {
-    return location.pathname.startsWith(path);
+    return location.pathname.startsWith(path)
   }
 
   return (
@@ -68,7 +84,9 @@ export function BottomNav() {
       borderTop: '1px solid #E8E6E1',
     }}>
       {TABS.map(tab => {
-        const active = isActive(tab.path);
+        const active = isActive(tab.path)
+        const showBadge = tab.path === '/requests' && pendingCount > 0
+
         return (
           <button
             key={tab.path}
@@ -87,12 +105,36 @@ export function BottomNav() {
               fontSize: 10,
               fontWeight: active ? 500 : 400,
               cursor: 'pointer',
+              position: 'relative',
             }}
           >
-            {tab.icon(active)}
+            <div style={{ position: 'relative' }}>
+              {tab.icon(active)}
+              {showBadge && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: -4,
+                    right: -8,
+                    backgroundColor: '#D85A30',
+                    color: '#fff',
+                    borderRadius: '50%',
+                    width: 16,
+                    height: 16,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {pendingCount > 9 ? '9+' : pendingCount}
+                </span>
+              )}
+            </div>
             {tab.label}
           </button>
-        );
+        )
       })}
     </nav>
   );

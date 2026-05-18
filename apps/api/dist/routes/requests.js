@@ -23,16 +23,21 @@ async function requestsRoutes(app) {
                     persons: { type: 'integer', minimum: 1, maximum: 50 },
                     description: { type: 'string', maxLength: 2000 },
                     budget: { type: 'number', minimum: 0 },
+                    chefId: { type: 'integer' },
                 },
             },
         },
     }, async (request, reply) => {
+        var _a, _b;
         const customerId = request.user.sub;
-        const { city, district, scheduledAt, format, persons, description, budget } = request.body;
+        const { city, district, scheduledAt, format, persons, description, budget, chefId } = request.body;
+        const BOT_TOKEN = process.env.BOT_TOKEN;
+        const FRONTEND_URL = process.env.FRONTEND_URL;
         const [created] = await app.db
             .insert(schema_js_1.requests)
             .values({
             customerId,
+            chefId,
             city,
             district,
             scheduledAt: new Date(scheduledAt),
@@ -43,6 +48,51 @@ async function requestsRoutes(app) {
             status: 'open',
         })
             .returning();
+        // Notify chef if chefId provided
+        if (chefId) {
+            try {
+                const chef = await app.db.query.users.findFirst({
+                    where: (0, drizzle_orm_1.eq)(schema_js_1.users.id, chefId),
+                    columns: { telegramId: true, name: true },
+                });
+                if (chef === null || chef === void 0 ? void 0 : chef.telegramId) {
+                    const customer = await app.db.query.users.findFirst({
+                        where: (0, drizzle_orm_1.eq)(schema_js_1.users.id, customerId),
+                        columns: { name: true },
+                    });
+                    const text = [
+                        `🆕 *Новый запрос!*`,
+                        ``,
+                        `👤 От: ${(_a = customer === null || customer === void 0 ? void 0 : customer.name) !== null && _a !== void 0 ? _a : 'Клиент'}`,
+                        `📝 ${description === null || description === void 0 ? void 0 : description.slice(0, 150)}${((_b = description === null || description === void 0 ? void 0 : description.length) !== null && _b !== void 0 ? _b : 0) > 150 ? '...' : ''}`,
+                        `👥 Гостей: ${persons}`,
+                        budget ? `💰 Бюджет: ${budget} GEL` : '',
+                        scheduledAt ? `📅 Дата: ${new Date(scheduledAt).toLocaleDateString('ru-RU')}` : '',
+                    ].filter(Boolean).join('\n');
+                    const keyboard = {
+                        inline_keyboard: [[
+                                {
+                                    text: '👀 Посмотреть запрос',
+                                    web_app: { url: `${FRONTEND_URL}/requests/${created.id}` },
+                                },
+                            ]],
+                    };
+                    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: chef.telegramId,
+                            text,
+                            parse_mode: 'Markdown',
+                            reply_markup: keyboard,
+                        }),
+                    }).catch(err => app.log.error({ err }, 'Failed to notify chef'));
+                }
+            }
+            catch (err) {
+                app.log.error({ err, chefId }, 'Failed to send chef notification');
+            }
+        }
         return reply.code(201).send(created);
     });
     // ─── GET /requests ────────────────────────────────────────────────────────────
@@ -116,6 +166,23 @@ async function requestsRoutes(app) {
             .where((0, drizzle_orm_1.eq)(schema_js_1.requests.customerId, userId))
             .orderBy((0, drizzle_orm_1.desc)(schema_js_1.requests.createdAt));
         return { data: rows };
+    });
+    // ─── GET /requests/pending-count ────────────────────────────────────────────────
+    // Authenticated (chef only). Returns count of pending requests for the chef.
+    app.get('/requests/pending-count', {
+        onRequest: [app.authenticate],
+    }, async (request, reply) => {
+        var _a;
+        const userId = request.user.sub;
+        const role = request.user.role;
+        if (role !== 'chef') {
+            return reply.code(403).send({ error: 'Only chefs can view pending count' });
+        }
+        const [result] = await app.db
+            .select({ count: (0, drizzle_orm_1.sql) `count(*)::int` })
+            .from(schema_js_1.requests)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_js_1.requests.chefId, userId), (0, drizzle_orm_1.eq)(schema_js_1.requests.status, 'open')));
+        return { count: (_a = result === null || result === void 0 ? void 0 : result.count) !== null && _a !== void 0 ? _a : 0 };
     });
     // ─── GET /requests/:id ────────────────────────────────────────────────────────
     // Authenticated. Returns request details + all responses with chef name & rating.

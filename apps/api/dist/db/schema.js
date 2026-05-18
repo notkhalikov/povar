@@ -169,6 +169,7 @@ exports.requestStatusEnum = (0, pg_core_1.pgEnum)('request_status', ['open', 'cl
 exports.requests = (0, pg_core_1.pgTable)('requests', {
     id: (0, pg_core_1.serial)('id').primaryKey(),
     customerId: (0, pg_core_1.integer)('customer_id').notNull().references(() => exports.users.id),
+    chefId: (0, pg_core_1.integer)('chef_id').references(() => exports.users.id),
     city: (0, pg_core_1.varchar)('city', { length: 100 }).notNull(),
     district: (0, pg_core_1.varchar)('district', { length: 100 }),
     scheduledAt: (0, pg_core_1.timestamp)('scheduled_at').notNull(),

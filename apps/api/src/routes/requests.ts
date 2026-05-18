@@ -13,6 +13,7 @@ interface CreateRequestBody {
   persons: number
   description?: string
   budget?: number
+  chefId?: number
 }
 
 interface RespondBody {
@@ -45,17 +46,21 @@ export default async function requestsRoutes(app: FastifyInstance) {
           persons:     { type: 'integer', minimum: 1, maximum: 50 },
           description: { type: 'string', maxLength: 2000 },
           budget:      { type: 'number', minimum: 0 },
+          chefId:      { type: 'integer' },
         },
       },
     },
   }, async (request, reply) => {
     const customerId = request.user.sub
-    const { city, district, scheduledAt, format, persons, description, budget } = request.body
+    const { city, district, scheduledAt, format, persons, description, budget, chefId } = request.body
+    const BOT_TOKEN = process.env.BOT_TOKEN!
+    const FRONTEND_URL = process.env.FRONTEND_URL!
 
     const [created] = await app.db
       .insert(requests)
       .values({
         customerId,
+        chefId,
         city,
         district,
         scheduledAt: new Date(scheduledAt),
@@ -66,6 +71,55 @@ export default async function requestsRoutes(app: FastifyInstance) {
         status: 'open',
       })
       .returning()
+
+    // Notify chef if chefId provided
+    if (chefId) {
+      try {
+        const chef = await app.db.query.users.findFirst({
+          where: eq(users.id, chefId),
+          columns: { telegramId: true, name: true },
+        })
+
+        if (chef?.telegramId) {
+          const customer = await app.db.query.users.findFirst({
+            where: eq(users.id, customerId),
+            columns: { name: true },
+          })
+
+          const text = [
+            `🆕 *Новый запрос!*`,
+            ``,
+            `👤 От: ${customer?.name ?? 'Клиент'}`,
+            `📝 ${description?.slice(0, 150)}${(description?.length ?? 0) > 150 ? '...' : ''}`,
+            `👥 Гостей: ${persons}`,
+            budget ? `💰 Бюджет: ${budget} GEL` : '',
+            scheduledAt ? `📅 Дата: ${new Date(scheduledAt).toLocaleDateString('ru-RU')}` : '',
+          ].filter(Boolean).join('\n')
+
+          const keyboard = {
+            inline_keyboard: [[
+              {
+                text: '👀 Посмотреть запрос',
+                web_app: { url: `${FRONTEND_URL}/requests/${created.id}` },
+              },
+            ]],
+          }
+
+          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: chef.telegramId,
+              text,
+              parse_mode: 'Markdown',
+              reply_markup: keyboard,
+            }),
+          }).catch(err => app.log.error({ err }, 'Failed to notify chef'))
+        }
+      } catch (err) {
+        app.log.error({ err, chefId }, 'Failed to send chef notification')
+      }
+    }
 
     return reply.code(201).send(created)
   })
@@ -153,6 +207,27 @@ export default async function requestsRoutes(app: FastifyInstance) {
       .orderBy(desc(requests.createdAt))
 
     return { data: rows }
+  })
+
+  // ─── GET /requests/pending-count ────────────────────────────────────────────────
+  // Authenticated (chef only). Returns count of pending requests for the chef.
+
+  app.get('/requests/pending-count', {
+    onRequest: [app.authenticate],
+  }, async (request, reply) => {
+    const userId = request.user.sub
+    const role = request.user.role
+
+    if (role !== 'chef') {
+      return reply.code(403).send({ error: 'Only chefs can view pending count' })
+    }
+
+    const [result] = await app.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(requests)
+      .where(and(eq(requests.chefId, userId), eq(requests.status, 'open')))
+
+    return { count: result?.count ?? 0 }
   })
 
   // ─── GET /requests/:id ────────────────────────────────────────────────────────

@@ -222,6 +222,7 @@ export const requestStatusEnum = pgEnum('request_status', ['open', 'closed'])
 export const requests = pgTable('requests', {
   id: serial('id').primaryKey(),
   customerId: integer('customer_id').notNull().references(() => users.id),
+  chefId: integer('chef_id').references(() => users.id),
   city: varchar('city', { length: 100 }).notNull(),
   district: varchar('district', { length: 100 }),
   scheduledAt: timestamp('scheduled_at').notNull(),
