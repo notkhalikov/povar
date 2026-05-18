@@ -99,9 +99,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setToken(token)
           setUserState(user)
           // New user (no role yet) → onboarding, existing → catalog/profile
-          const destination = !user.isChef && !user.onboardingDone
+          const destination = !user.role
             ? '/onboarding'
-            : user.isChef ? '/profile' : '/catalog'
+            : user.role === 'chef' ? '/profile' : '/catalog'
           console.log('[Auth] navigating to:', destination)
           navigate(destination, { replace: true })
         } else {

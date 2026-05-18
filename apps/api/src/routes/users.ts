@@ -21,4 +21,24 @@ export default async function usersRoutes(app: FastifyInstance) {
       return { ok: true }
     }
   )
+
+  app.patch<{ Body: { role: 'chef' | 'customer' } }>(
+    '/users/me/role',
+    { onRequest: [app.authenticate] },
+    async (request, reply) => {
+      const { role } = request.body
+      const userId = (request.user as any).id
+
+      if (!role || !['chef', 'customer'].includes(role)) {
+        return reply.status(400).send({ error: 'role must be "chef" or "customer"' })
+      }
+
+      const isChef = role === 'chef'
+      await app.db.update(users)
+        .set({ role, isChef })
+        .where(eq(users.id, userId))
+
+      return { ok: true }
+    }
+  )
 }

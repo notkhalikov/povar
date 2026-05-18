@@ -136,9 +136,17 @@ function AuthGate() {
       return
     }
 
-    // If on splash page and authenticated, redirect to appropriate page
+    // Allow access to /onboarding for users without a role
+    if (!user.role) {
+      if (location.pathname !== '/onboarding') {
+        navigate('/onboarding', { replace: true })
+      }
+      return
+    }
+
+    // If on splash page and authenticated with role, redirect to appropriate page
     if (location.pathname === '/') {
-      navigate(user.isChef ? '/profile' : '/catalog', { replace: true })
+      navigate(user.role === 'chef' ? '/profile' : '/catalog', { replace: true })
     }
   }, [user, loading, location.pathname, navigate])
 
