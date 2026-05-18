@@ -149,6 +149,7 @@ async function requestsRoutes(app) {
         const rows = await app.db
             .select({
             id: schema_js_1.requests.id,
+            chefId: schema_js_1.requests.chefId,
             city: schema_js_1.requests.city,
             district: schema_js_1.requests.district,
             scheduledAt: schema_js_1.requests.scheduledAt,
@@ -165,23 +166,45 @@ async function requestsRoutes(app) {
             .from(schema_js_1.requests)
             .where((0, drizzle_orm_1.eq)(schema_js_1.requests.customerId, userId))
             .orderBy((0, drizzle_orm_1.desc)(schema_js_1.requests.createdAt));
-        return { data: rows };
+        // Fetch chef info for direct requests
+        const chefIds = [...new Set(rows.filter(r => r.chefId).map(r => r.chefId))];
+        const chefMap = new Map();
+        if (chefIds.length > 0) {
+            const chefs = await app.db
+                .select({ id: schema_js_1.users.id, name: schema_js_1.users.name, avatarUrl: schema_js_1.users.avatarUrl })
+                .from(schema_js_1.users)
+                .where((0, drizzle_orm_1.inArray)(schema_js_1.users.id, chefIds));
+            chefs.forEach(c => chefMap.set(c.id, c));
+        }
+        const data = rows.map(r => ({
+            ...r,
+            chef: r.chefId ? chefMap.get(r.chefId) : null,
+        }));
+        return { data };
     });
     // ─── GET /requests/pending-count ────────────────────────────────────────────────
-    // Authenticated (chef only). Returns count of pending requests for the chef.
+    // Authenticated. Returns pending count:
+    // - Chef: direct requests to them (chefId=userId, status=open)
+    // - Customer: pending open requests (customerId=userId, status=open)
     app.get('/requests/pending-count', {
         onRequest: [app.authenticate],
-    }, async (request, reply) => {
+    }, async (request) => {
         var _a;
         const userId = request.user.sub;
         const role = request.user.role;
-        if (role !== 'chef') {
-            return reply.code(403).send({ error: 'Only chefs can view pending count' });
+        let condition;
+        if (role === 'chef') {
+            // Chef: count direct requests to them that are open
+            condition = (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_js_1.requests.chefId, userId), (0, drizzle_orm_1.eq)(schema_js_1.requests.status, 'open'));
+        }
+        else {
+            // Customer: count their open requests
+            condition = (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_js_1.requests.customerId, userId), (0, drizzle_orm_1.eq)(schema_js_1.requests.status, 'open'));
         }
         const [result] = await app.db
             .select({ count: (0, drizzle_orm_1.sql) `count(*)::int` })
             .from(schema_js_1.requests)
-            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_js_1.requests.chefId, userId), (0, drizzle_orm_1.eq)(schema_js_1.requests.status, 'open')));
+            .where(condition);
         return { count: (_a = result === null || result === void 0 ? void 0 : result.count) !== null && _a !== void 0 ? _a : 0 };
     });
     // ─── GET /requests/:id ────────────────────────────────────────────────────────

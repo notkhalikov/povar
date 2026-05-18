@@ -357,7 +357,7 @@ export default function CatalogPage() {
               fontWeight: 500, letterSpacing: '0.06em' }}>ГОРОД</p>
             <div style={{ display: 'flex', backgroundColor: '#F0EEE9',
               borderRadius: 10, padding: 3, border: '1px solid #E8E6E1', marginBottom: 20 }}>
-              {[{l:'Все',v:null},{l:'Тбилиси',v:'Tbilisi'},{l:'Батуми',v:'Batumi'}]
+              {[{l:'Все',v:null},{l:'Тбилиси',v:'Тбилиси'},{l:'Батуми',v:'Батуми'}]
                 .map(o => {
                   const on = cityFilter === o.v;
                   return <button key={String(o.v)} onClick={() => setCityFilter(o.v)}

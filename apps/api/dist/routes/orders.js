@@ -118,10 +118,11 @@ async function ordersRoutes(app) {
         const customerIds = [...new Set(rows.map(r => r.customerId))];
         const allIds = [...new Set([...chefIds, ...customerIds])];
         const nameRows = await app.db
-            .select({ id: schema_js_1.users.id, name: schema_js_1.users.name })
+            .select({ id: schema_js_1.users.id, name: schema_js_1.users.name, avatarUrl: schema_js_1.users.avatarUrl })
             .from(schema_js_1.users)
             .where((0, drizzle_orm_1.inArray)(schema_js_1.users.id, allIds));
         const nameMap = new Map(nameRows.map(u => [u.id, u.name]));
+        const avatarMap = new Map(nameRows.map(u => [u.id, u.avatarUrl]));
         // Unread inbound message counts per order, in one batch query
         const orderIds = rows.map(r => r.id);
         const unreadRows = await app.db
@@ -142,7 +143,9 @@ async function ordersRoutes(app) {
             return ({
                 ...r,
                 chefName: (_a = nameMap.get(r.chefId)) !== null && _a !== void 0 ? _a : null,
+                chefAvatarUrl: avatarMap.get(r.chefId),
                 customerName: (_b = nameMap.get(r.customerId)) !== null && _b !== void 0 ? _b : null,
+                customerAvatarUrl: avatarMap.get(r.customerId),
                 unreadCount: (_c = unreadMap.get(r.id)) !== null && _c !== void 0 ? _c : 0,
             });
         });
@@ -404,7 +407,7 @@ async function ordersRoutes(app) {
         }
         const [updated] = await app.db
             .update(schema_js_1.orders)
-            .set({ status: 'completed', updatedAt: new Date() })
+            .set({ status: 'completed', updatedAt: new Date(), completedAt: new Date() })
             .where((0, drizzle_orm_1.eq)(schema_js_1.orders.id, id))
             .returning();
         // Increment chef's completed orders counter
@@ -459,9 +462,13 @@ async function ordersRoutes(app) {
         if (err) {
             return reply.code(err.code === 'FORBIDDEN' ? 403 : 422).send({ error: err.message });
         }
+        const updates = { status: nextStatus, updatedAt: new Date() };
+        if (nextStatus === 'completed') {
+            updates.completedAt = new Date();
+        }
         const [updated] = await app.db
             .update(schema_js_1.orders)
-            .set({ status: nextStatus, updatedAt: new Date() })
+            .set(updates)
             .where((0, drizzle_orm_1.eq)(schema_js_1.orders.id, id))
             .returning();
         // Notify the other party (fire-and-forget)

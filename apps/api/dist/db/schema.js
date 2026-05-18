@@ -95,6 +95,7 @@ exports.orders = (0, pg_core_1.pgTable)('orders', {
     chatEnabled: (0, pg_core_1.boolean)('chat_enabled').default(false).notNull(),
     createdAt: (0, pg_core_1.timestamp)('created_at').defaultNow().notNull(),
     updatedAt: (0, pg_core_1.timestamp)('updated_at').defaultNow().notNull(),
+    completedAt: (0, pg_core_1.timestamp)('completed_at'),
     reviewReminderSentAt: (0, pg_core_1.timestamp)('review_reminder_sent_at'),
 });
 // ─── payments ─────────────────────────────────────────────────────────────────
