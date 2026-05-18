@@ -398,7 +398,7 @@ export default function ChefOnboardingPage() {
           <input
             ref={fileInputRef}
             type='file'
-            accept='image/*'
+            accept='image/jpeg,image/png,image/webp,image/heic,image/heif'
             style={{ display: 'none' }}
             onChange={handlePhotoSelect}
           />
@@ -460,7 +460,7 @@ export default function ChefOnboardingPage() {
               <input
                 ref={docInputRef}
                 type='file'
-                accept='image/*'
+                accept='image/jpeg,image/png,image/webp,image/heic,image/heif'
                 style={{ display: 'none' }}
                 onChange={e => handleVerifyPhotoSelect(e, setDocFileId)}
               />
@@ -473,7 +473,7 @@ export default function ChefOnboardingPage() {
               <input
                 ref={selfieInputRef}
                 type='file'
-                accept='image/*'
+                accept='image/jpeg,image/png,image/webp,image/heic,image/heif'
                 style={{ display: 'none' }}
                 onChange={e => handleVerifyPhotoSelect(e, setSelfieFileId)}
               />

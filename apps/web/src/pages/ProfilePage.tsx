@@ -21,8 +21,8 @@ function initials(name: string): string {
   return name.split(' ').map(w => w[0] ?? '').slice(0, 2).join('').toUpperCase() || '?'
 }
 
-const MAX_SIZE_MB = 5
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_SIZE_MB = 15
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
 
 export default function ProfilePage() {
   const t = useT()
@@ -175,7 +175,7 @@ export default function ProfilePage() {
             <input
               ref={fileInputRef}
               type='file'
-              accept='image/jpeg,image/png,image/webp'
+              accept='image/jpeg,image/png,image/webp,image/heic,image/heif'
               style={{ display: 'none' }}
               onChange={handleAvatarUpload}
               disabled={uploading}
@@ -217,7 +217,7 @@ export default function ProfilePage() {
               Нажмите на аватар чтобы загрузить новое фото
             </p>
             <div style={{ fontSize: 11, color: '#9E9B97', margin: 0, lineHeight: 1.4 }}>
-              <div>✓ Форматы: JPG, PNG, WebP</div>
+              <div>✓ Форматы: JPG, PNG, WebP, HEIC</div>
               <div>✓ Максимум: {MAX_SIZE_MB} МБ</div>
               <div>✓ Рекомендуем: квадратное фото</div>
             </div>
