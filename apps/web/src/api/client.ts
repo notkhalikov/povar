@@ -15,7 +15,7 @@ export async function apiFetch<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
-  const token = sessionStorage.getItem('jwt')
+  const token = localStorage.getItem('token')
 
   let res: Response
   try {
