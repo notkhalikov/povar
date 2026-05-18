@@ -99,10 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('user', JSON.stringify(user))
           setToken(token)
           setUserState(user)
-          // New user (no role yet) → onboarding, existing → catalog/profile
-          const destination = !user.role
-            ? '/onboarding'
-            : user.role === 'chef' ? '/profile' : '/catalog'
+          // Redirect based on isChef flag
+          const destination = user.isChef ? '/profile' : '/catalog'
           console.log('[Auth] navigating to:', destination)
           navigate(destination, { replace: true })
         } else {

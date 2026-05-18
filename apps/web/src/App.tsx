@@ -7,7 +7,6 @@ import { useT } from './i18n'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AppLayout } from './components/AppLayout'
 import CatalogPage from './pages/CatalogPage'
-import OnboardingPage from './pages/OnboardingPage'
 import SplashPage from './pages/SplashPage'
 const ChefPage           = lazy(() => import('./pages/ChefPage'))
 const OrdersPage         = lazy(() => import('./pages/OrdersPage'))
@@ -112,9 +111,6 @@ function AnimatedRoutes() {
           <Route path='/disputes/:id' element={<AppLayout><DisputePage /></AppLayout>} />
           <Route path='/requests' element={<AppLayout><RequestsPage /></AppLayout>} />
           <Route path='/requests/:id' element={<AppLayout><RequestDetailPage /></AppLayout>} />
-          <Route path='/onboarding' element={
-            <AppLayout showNav={false}><OnboardingPage /></AppLayout>
-          } />
         </Routes>
       </Suspense>
     </div>
@@ -140,17 +136,9 @@ function AuthGate() {
       return
     }
 
-    // Allow access to /onboarding for users without a role
-    if (!user.role) {
-      if (location.pathname !== '/onboarding') {
-        navigate('/onboarding', { replace: true })
-      }
-      return
-    }
-
-    // If on splash page and authenticated with role, redirect to appropriate page
+    // If on splash page and authenticated, redirect to appropriate page
     if (location.pathname === '/') {
-      navigate(user.role === 'chef' ? '/profile' : '/catalog', { replace: true })
+      navigate(user.isChef ? '/profile' : '/catalog', { replace: true })
     }
   }, [user, loading, location.pathname, navigate])
 

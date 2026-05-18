@@ -349,7 +349,7 @@ export default async function authRoutes(app: FastifyInstance) {
             .filter(Boolean)
             .join(' ')
 
-          app.log.info({ telegramId, name }, 'creating new user')
+          app.log.info({ telegramId, name }, 'creating new user (no role set, admins will assign)')
 
           const [created] = await app.db
             .insert(users)
@@ -361,7 +361,7 @@ export default async function authRoutes(app: FastifyInstance) {
             .returning()
 
           user = created
-          app.log.info({ userId: user.id }, 'user created')
+          app.log.info({ userId: user.id }, 'user created without role')
         }
 
         if (user.status === 'banned') {
