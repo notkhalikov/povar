@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTelegram } from '../hooks/useTelegram'
 import { useAuth } from '../components/AuthProvider'
 import { getMyChef, patchMyChef } from '../api/chefs'
-import type { MyChefProfile } from '../types'
+import type { MyChefProfile, ApiUser } from '../types'
 import { useT } from '../i18n'
 import { Avatar } from '../components/Avatar'
 import { apiFetch } from '../api/client'
@@ -29,6 +29,7 @@ export default function ProfilePage() {
   const { user: tgUser }    = useTelegram()
   const { user: apiUser }   = useAuth()
   const navigate            = useNavigate()
+  const [profile, setProfile]             = useState<ApiUser | null>(null)
   const [chefProfile, setChefProfile]     = useState<MyChefProfile | null>(null)
   const [togglingActive, setTogglingActive] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState(apiUser?.avatarUrl ?? null)
@@ -39,6 +40,30 @@ export default function ProfilePage() {
   const portfolioInputRef = useRef<HTMLInputElement>(null)
   const [portfolioPhotos, setPortfolioPhotos] = useState<string[]>(apiUser?.portfolioPhotos ?? [])
   const [portfolioError, setPortfolioError] = useState<string | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [bio, setBio] = useState('')
+  const [city, setCity] = useState('')
+  const [savingEdits, setSavingEdits] = useState(false)
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    // Fetch fresh user data
+    fetch(`${import.meta.env.VITE_API_URL}/users/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(data => {
+        setProfile(data)
+        setAvatarUrl(data.avatarUrl)
+        setPortfolioPhotos(data.portfolioPhotos ?? [])
+        setBio(data.bio ?? '')
+        setCity(data.city ?? '')
+        localStorage.setItem('user', JSON.stringify(data))
+      })
+      .catch(err => console.error('Failed to fetch user profile:', err))
+  }, [])
 
   useEffect(() => {
     if (apiUser?.role !== 'chef') return
@@ -56,6 +81,29 @@ export default function ProfilePage() {
       const updated = await patchMyChef({ isActive: !chefProfile.isActive })
       setChefProfile(updated)
     } finally { setTogglingActive(false) }
+  }
+
+  async function saveProfileEdits() {
+    setSavingEdits(true)
+    try {
+      const token = localStorage.getItem('token')
+      await apiFetch('/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ bio, city }),
+      })
+      setEditing(false)
+      // Refresh profile data
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const updated = await response.json()
+      setProfile(updated)
+      localStorage.setItem('user', JSON.stringify(updated))
+    } catch (err) {
+      console.error('Failed to save profile edits:', err)
+    } finally {
+      setSavingEdits(false)
+    }
   }
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -248,23 +296,30 @@ export default function ProfilePage() {
 
           {/* User info */}
           <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 4, color: '#1A1917' }}>
-            {fullName}
+            {profile?.name ?? fullName}
           </div>
           {tgUser?.username && (
             <div style={{ fontSize: 13, color: '#6B6966', marginBottom: 12 }}>
               @{tgUser.username}
             </div>
           )}
-          {apiUser && (
-            <div style={{
-              display: 'inline-block',
-              padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-              background: apiUser.role === 'chef' ? '#C0DD97' : '#F7F6F3',
-              color: apiUser.role === 'chef' ? '#3B6D11' : '#6B6966',
-              marginBottom: 12,
-            }}>
-              {t.profile.role[apiUser.role as keyof typeof t.profile.role] ?? t.profile.role.customer}
-            </div>
+          {profile && (
+            <>
+              <div style={{
+                display: 'inline-block',
+                padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                background: profile.role === 'chef' ? '#C0DD97' : '#F7F6F3',
+                color: profile.role === 'chef' ? '#3B6D11' : '#6B6966',
+                marginBottom: 12,
+              }}>
+                {t.profile.role[profile.role as keyof typeof t.profile.role] ?? t.profile.role.customer}
+              </div>
+              {profile.city && (
+                <div style={{ fontSize: 13, color: '#6B6966', marginBottom: 12 }}>
+                  📍 {profile.city}
+                </div>
+              )}
+            </>
           )}
 
           {/* Upload section with specs */}
@@ -319,7 +374,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ── Chef management ─────────────────────────────────────── */}
-        {apiUser?.role === 'chef' && chefProfile && (
+        {profile?.role === 'chef' && chefProfile && (
           <>
             {/* Status toggle */}
             <div style={{ marginBottom: 12, backgroundColor: '#ffffff', border: '1px solid #E8E6E1', borderRadius: 12, padding: '16px' }}>
@@ -375,6 +430,104 @@ export default function ProfilePage() {
                 </div>
                 <div style={{ fontSize: 12, color: '#6B6966' }}>{t.profile.verification}</div>
               </div>
+            </div>
+
+            {/* Bio and City section */}
+            <div style={{ marginBottom: 12, backgroundColor: '#ffffff', border: '1px solid #E8E6E1', borderRadius: 12, padding: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#1A1917' }}>О себе</h3>
+                {!editing && (
+                  <button
+                    onClick={() => setEditing(true)}
+                    style={{
+                      backgroundColor: 'transparent', border: 'none', color: '#D85A30',
+                      fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0,
+                    }}
+                  >
+                    ✏️ Изменить
+                  </button>
+                )}
+              </div>
+
+              {editing ? (
+                <>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ fontSize: 13, fontWeight: 500, color: '#6B6966', display: 'block', marginBottom: 6 }}>
+                      Город
+                    </label>
+                    <input
+                      type="text"
+                      value={city}
+                      onChange={e => setCity(e.target.value)}
+                      placeholder="Введите город"
+                      style={{
+                        width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #E8E6E1',
+                        fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit',
+                      }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ fontSize: 13, fontWeight: 500, color: '#6B6966', display: 'block', marginBottom: 6 }}>
+                      О себе
+                    </label>
+                    <textarea
+                      value={bio}
+                      onChange={e => setBio(e.target.value)}
+                      placeholder="Расскажите о себе"
+                      rows={3}
+                      style={{
+                        width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #E8E6E1',
+                        fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical',
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => {
+                        setEditing(false)
+                        setBio(profile?.bio ?? '')
+                        setCity(profile?.city ?? '')
+                      }}
+                      style={{
+                        flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #E8E6E1',
+                        backgroundColor: '#ffffff', color: '#6B6966',
+                        fontSize: 14, fontWeight: 500, cursor: 'pointer',
+                      }}
+                    >
+                      Отменить
+                    </button>
+                    <button
+                      onClick={saveProfileEdits}
+                      disabled={savingEdits}
+                      style={{
+                        flex: 1, padding: '10px', borderRadius: 8, border: 'none',
+                        backgroundColor: '#D85A30', color: '#ffffff',
+                        fontSize: 14, fontWeight: 500, cursor: 'pointer', opacity: savingEdits ? 0.6 : 1,
+                      }}
+                    >
+                      {savingEdits ? 'Сохраняем...' : 'Сохранить'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {city && (
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 12, color: '#6B6966', marginBottom: 2 }}>📍 Город</div>
+                      <div style={{ fontSize: 14, color: '#1A1917', fontWeight: 500 }}>{city}</div>
+                    </div>
+                  )}
+                  {bio && (
+                    <div>
+                      <div style={{ fontSize: 12, color: '#6B6966', marginBottom: 2 }}>📝 О себе</div>
+                      <div style={{ fontSize: 14, color: '#1A1917', lineHeight: 1.5 }}>{bio}</div>
+                    </div>
+                  )}
+                  {!city && !bio && (
+                    <div style={{ fontSize: 13, color: '#9E9B97' }}>Информация не заполнена</div>
+                  )}
+                </>
+              )}
             </div>
 
             {/* Portfolio section */}
@@ -467,7 +620,7 @@ export default function ProfilePage() {
         )}
 
         {/* ── Become chef CTA ─────────────────────────────────────── */}
-        {apiUser?.role === 'customer' && (
+        {profile?.role === 'customer' && (
           <div style={{ textAlign: 'center', padding: '28px 16px', backgroundColor: '#ffffff', border: '1px solid #E8E6E1', borderRadius: 12 }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>👨‍🍳</div>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: '#1A1917' }}>{t.profile.becomeChefTitle}</div>
@@ -487,7 +640,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {!apiUser && (
+        {!profile && (
           <div style={{ textAlign: 'center', padding: '32px 0', color: '#6B6966', fontSize: 14 }}>
             {t.profile.noAuth}
           </div>

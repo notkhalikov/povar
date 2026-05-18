@@ -6,6 +6,9 @@ export interface ApiUser {
   isChef: boolean
   avatarUrl?: string | null
   onboardingDone?: boolean
+  city?: string | null
+  bio?: string | null
+  portfolioPhotos?: string[]
 }
 
 export interface ChefListItem {
