@@ -13,15 +13,17 @@ interface AuthContextType {
   user: AuthUser | null
   loading: boolean
   token: string | null
+  authError: 'no_telegram' | 'fetch_failed' | null
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true, token: null })
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true, token: null, authError: null })
 export const useAuth = () => useContext(AuthContext)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [authError, setAuthError] = useState<'no_telegram' | 'fetch_failed' | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -40,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (!tg?.initData) {
+      setAuthError('no_telegram')
       setLoading(false)
       return
     }
@@ -62,14 +65,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             navigate(user.isChef ? '/profile' : '/catalog', { replace: true })
           }
+        } else {
+          setAuthError('fetch_failed')
         }
       })
-      .catch(console.error)
+      .catch(() => setAuthError('fetch_failed'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [navigate])
 
   return (
-    <AuthContext.Provider value={{ user, loading, token }}>
+    <AuthContext.Provider value={{ user, loading, token, authError }}>
       {children}
     </AuthContext.Provider>
   )
