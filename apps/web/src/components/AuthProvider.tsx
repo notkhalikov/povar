@@ -66,23 +66,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (savedToken && savedUser) {
       console.log('[Auth] using saved token, fetching fresh user data')
       setToken(savedToken)
+      const cachedUser = JSON.parse(savedUser)
 
       // Fetch fresh user data to ensure role and avatar are current
       fetch(`${import.meta.env.VITE_API_URL}/users/me`, {
         headers: { Authorization: `Bearer ${savedToken}` },
       })
         .then(r => {
-          if (!r.ok) throw new Error('Failed to fetch user')
+          console.log('[Auth] /users/me response status:', r.status)
+          if (!r.ok) throw new Error(`Failed to fetch user: ${r.status}`)
           return r.json()
         })
         .then(freshUser => {
-          console.log('[Auth] fresh user data loaded')
+          console.log('[Auth] fresh user data loaded:', {
+            id: freshUser.id,
+            role: freshUser.role,
+            isChef: freshUser.isChef,
+            hasAvatar: !!freshUser.avatarUrl,
+          })
           setUserState(freshUser)
           localStorage.setItem('user', JSON.stringify(freshUser))
         })
         .catch(err => {
-          console.error('[Auth] failed to fetch fresh user, using cached:', err)
-          setUserState(JSON.parse(savedUser))
+          console.error('[Auth] failed to fetch fresh user, using cached:', err.message)
+          console.log('[Auth] cached user has:', {
+            id: cachedUser.id,
+            role: cachedUser.role,
+            hasAvatar: !!cachedUser.avatarUrl,
+          })
+          setUserState(cachedUser)
         })
         .finally(() => setLoading(false))
       return

@@ -50,11 +50,21 @@ export default function ProfilePage() {
     if (!token) return
 
     // Fetch fresh user data
+    console.log('[ProfilePage] fetching /users/me')
     fetch(`${import.meta.env.VITE_API_URL}/users/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(r => r.json())
+      .then(r => {
+        console.log('[ProfilePage] /users/me response:', r.status)
+        if (!r.ok) throw new Error(`Response ${r.status}`)
+        return r.json()
+      })
       .then(data => {
+        console.log('[ProfilePage] user data received:', {
+          id: data.id,
+          role: data.role,
+          avatarUrl: !!data.avatarUrl,
+        })
         setProfile(data)
         setAvatarUrl(data.avatarUrl)
         setPortfolioPhotos(data.portfolioPhotos ?? [])
@@ -62,7 +72,7 @@ export default function ProfilePage() {
         setCity(data.city ?? '')
         localStorage.setItem('user', JSON.stringify(data))
       })
-      .catch(err => console.error('Failed to fetch user profile:', err))
+      .catch(err => console.error('[ProfilePage] Failed to fetch user profile:', err))
   }, [])
 
   useEffect(() => {
