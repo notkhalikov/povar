@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 const TABS = [
   {
     label: 'Повара',
-    path: '/',
+    path: '/catalog',
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
         <path d="M2 9.5L11 2.5L20 9.5V20H14.5V14H7.5V20H2V9.5Z"
@@ -56,7 +56,6 @@ export function BottomNav() {
   const navigate = useNavigate();
 
   function isActive(path: string) {
-    if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
   }
 
