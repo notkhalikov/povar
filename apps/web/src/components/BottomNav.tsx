@@ -60,7 +60,7 @@ export function BottomNav() {
   const [pendingCount, setPendingCount] = useState(0)
 
   useEffect(() => {
-    if (user?.role !== 'chef') return
+    if (!user) return
 
     const token = localStorage.getItem('token')
     fetch(`${import.meta.env.VITE_API_URL}/requests/pending-count`, {

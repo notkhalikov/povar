@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { eq, and, or, sql, desc, isNull, ne } from 'drizzle-orm'
+import { eq, and, or, sql, desc, isNull, ne, inArray } from 'drizzle-orm'
 import { requests, chefResponses, chefProfiles, orders, users, messages } from '../db/schema.js'
 import { notifyNewResponse } from '../services/notify.js'
 
@@ -189,6 +189,7 @@ export default async function requestsRoutes(app: FastifyInstance) {
     const rows = await app.db
       .select({
         id:          requests.id,
+        chefId:      requests.chefId,
         city:        requests.city,
         district:    requests.district,
         scheduledAt: requests.scheduledAt,
@@ -206,26 +207,49 @@ export default async function requestsRoutes(app: FastifyInstance) {
       .where(eq(requests.customerId, userId))
       .orderBy(desc(requests.createdAt))
 
-    return { data: rows }
+    // Fetch chef info for direct requests
+    const chefIds = [...new Set(rows.filter(r => r.chefId).map(r => r.chefId!))]
+    const chefMap = new Map()
+    if (chefIds.length > 0) {
+      const chefs = await app.db
+        .select({ id: users.id, name: users.name, avatarUrl: users.avatarUrl })
+        .from(users)
+        .where(inArray(users.id, chefIds))
+      chefs.forEach(c => chefMap.set(c.id, c))
+    }
+
+    const data = rows.map(r => ({
+      ...r,
+      chef: r.chefId ? chefMap.get(r.chefId) : null,
+    }))
+
+    return { data }
   })
 
   // ─── GET /requests/pending-count ────────────────────────────────────────────────
-  // Authenticated (chef only). Returns count of pending requests for the chef.
+  // Authenticated. Returns pending count:
+  // - Chef: direct requests to them (chefId=userId, status=open)
+  // - Customer: pending open requests (customerId=userId, status=open)
 
   app.get('/requests/pending-count', {
     onRequest: [app.authenticate],
-  }, async (request, reply) => {
+  }, async (request) => {
     const userId = request.user.sub
     const role = request.user.role
 
-    if (role !== 'chef') {
-      return reply.code(403).send({ error: 'Only chefs can view pending count' })
+    let condition
+    if (role === 'chef') {
+      // Chef: count direct requests to them that are open
+      condition = and(eq(requests.chefId, userId), eq(requests.status, 'open'))
+    } else {
+      // Customer: count their open requests
+      condition = and(eq(requests.customerId, userId), eq(requests.status, 'open'))
     }
 
     const [result] = await app.db
       .select({ count: sql<number>`count(*)::int` })
       .from(requests)
-      .where(and(eq(requests.chefId, userId), eq(requests.status, 'open')))
+      .where(condition)
 
     return { count: result?.count ?? 0 }
   })

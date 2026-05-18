@@ -85,6 +85,9 @@ export interface ReviewItem {
 
 export interface RequestItem {
   id: number
+  customerId?: number
+  chefId?: number | null
+  chef?: { id: number; name: string; avatarUrl?: string | null }
   city: string
   district: string | null
   scheduledAt: string

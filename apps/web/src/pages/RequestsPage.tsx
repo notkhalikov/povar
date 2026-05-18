@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getRequests, createRequest } from '../api/requests'
 import { useAuth } from '../components/AuthProvider'
+import { Avatar } from '../components/Avatar'
 import type { RequestItem } from '../types'
 import { useT } from '../i18n'
 
@@ -221,31 +222,38 @@ export default function RequestsPage() {
         </form>
       )}
 
-      {/* List */}
-      {items.length === 0 && !showForm && (
-        <div style={{ textAlign: 'center', padding: '32px 16px', backgroundColor: '#ffffff', borderRadius: 12, border: '1px solid #E8E6E1' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>📩</div>
-          <div style={{ fontWeight: 600, marginBottom: 12, color: '#1A1917', fontSize: 16 }}>Создайте запрос</div>
-          <div style={{ color: '#6B6966', fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
-            <div>Опишите, что вы хотите готовить, указав:</div>
-            <div style={{ marginTop: 12, fontSize: 13 }}>
-              <div>• Дату и время</div>
-              <div>• Количество персон</div>
-              <div>• Бюджет и особые пожелания</div>
-            </div>
-          </div>
-          <div style={{ backgroundColor: '#FEF0EB', borderRadius: 10, padding: '12px', marginTop: 16, fontSize: 13, color: '#D85A30' }}>
-            <div style={{ fontWeight: 500, marginBottom: 8 }}>Что будет дальше:</div>
-            <div style={{ fontSize: 12, color: '#8B5A39', lineHeight: 1.6 }}>
-              Повара получат уведомление о вашем запросе и смогут ответить своей ценой. Вы сможете обсудить детали и выбрать лучшего повара.
-            </div>
-          </div>
+      {/* Empty state for customers */}
+      {user?.role !== 'chef' && items.length === 0 && !showForm && (
+        <div style={{ textAlign: 'center', padding: '60px 24px' }}>
+          <p style={{ fontSize: 40, margin: 0 }}>📋</p>
+          <p style={{ fontSize: 16, fontWeight: 600, color: '#666', marginBottom: 8 }}>
+            Нет запросов
+          </p>
+          <p style={{ fontSize: 14, color: '#aaa', marginBottom: 24 }}>
+            Найдите повара и отправьте запрос
+          </p>
+          <button onClick={() => navigate('/catalog')}
+            style={{
+              padding: '12px 28px', borderRadius: 12,
+              backgroundColor: '#D85A30', color: '#fff',
+              border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            Найти повара
+          </button>
         </div>
       )}
 
+      {/* List of requests */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {items.map(item => (
-          <RequestCard key={item.id} item={item} onClick={() => navigate(`/requests/${item.id}`)} />
+          user?.role === 'chef' ? (
+            // Chef view: open requests to respond to
+            <RequestCard key={item.id} item={item} onClick={() => navigate(`/requests/${item.id}`)} />
+          ) : (
+            // Customer view: their own requests
+            <CustomerRequestCard key={item.id} req={item} onClick={() => navigate(`/requests/${item.id}`)} />
+          )
         ))}
       </div>
       </div>
@@ -285,6 +293,106 @@ function RequestCard({ item, onClick }: { item: RequestItem; onClick: () => void
         {item.budget && <span>💰 {t.common.upTo} {item.budget} {t.common.currency}</span>}
         <span>💬 {item.responseCount} {plural(item.responseCount, t.requests.responseCount.one, t.requests.responseCount.few, t.requests.responseCount.many)}</span>
       </div>
+    </div>
+  )
+}
+
+function CustomerRequestCard({ req, onClick }: { req: RequestItem; onClick: () => void }) {
+  const t = useT()
+  const dateStr = new Date(req.createdAt).toLocaleDateString('ru-RU', {
+    day: 'numeric', month: 'short',
+  })
+
+  const isDirectRequest = (req as any).chefId !== null && (req as any).chefId !== undefined
+  const chef = (req as any).chef
+
+  return (
+    <div onClick={onClick}
+      style={{
+        padding: '16px', backgroundColor: '#fff',
+        borderRadius: 16, marginBottom: 12,
+        border: '1.5px solid #f0f0f0', cursor: 'pointer',
+      }}
+    >
+      {isDirectRequest && chef ? (
+        // Direct request - show chef info
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+              <Avatar src={chef.avatarUrl} name={chef.name ?? '?'} size={44} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: '#1A1917' }}>{chef.name}</p>
+                <p style={{ margin: 0, fontSize: 12, color: '#888' }}>{dateStr}</p>
+              </div>
+            </div>
+            <span style={{
+              fontSize: 11, fontWeight: 500, padding: '4px 10px', borderRadius: 8,
+              backgroundColor: req.status === 'open' ? '#B5D4F4' : '#C0DD97',
+              color: req.status === 'open' ? '#185FA5' : '#3B6D11',
+              flexShrink: 0, marginLeft: 8,
+            }}>
+              {req.status === 'open' ? 'Ожидание' : 'Принят'}
+            </span>
+          </div>
+
+          {req.description && (
+            <p style={{
+              margin: 0, fontSize: 14, color: '#555',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              marginBottom: 8,
+            }}>
+              {req.description}
+            </p>
+          )}
+
+          {req.status === 'open' && (
+            <div style={{
+              marginTop: 10, padding: '8px 12px',
+              backgroundColor: '#fffbeb', borderRadius: 10,
+              fontSize: 13, color: '#d97706', fontWeight: 500,
+            }}>
+              ⏳ Ожидаем ответа повара
+            </div>
+          )}
+
+          {req.status === 'closed' && (
+            <div style={{
+              marginTop: 10, padding: '8px 12px',
+              backgroundColor: '#f0fdf4', borderRadius: 10,
+              fontSize: 13, color: '#16a34a', fontWeight: 600,
+            }}>
+              ✓ Запрос принят
+            </div>
+          )}
+        </>
+      ) : (
+        // Open request - show location and response count
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 15, color: '#1A1917' }}>
+                {req.city}{req.district ? `, ${req.district}` : ''}
+              </div>
+              <div style={{ fontSize: 13, color: '#6B6966', marginTop: 2 }}>
+                {req.format === 'home_visit' ? t.chef.homeVisitFull : t.chef.deliveryFull} · 👥 {req.persons}
+              </div>
+            </div>
+            <span style={{
+              padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, flexShrink: 0,
+              backgroundColor: req.status === 'open' ? '#C0DD9722' : '#D3D1C722',
+              color: req.status === 'open' ? '#3B6D11' : '#5F5E5A',
+            }}>
+              {req.status === 'open' ? t.requests.open : t.requests.closed}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, fontSize: 13, color: '#9E9B97' }}>
+            <span>📅 {dateStr}</span>
+            {req.budget && <span>💰 {t.common.upTo} {req.budget} {t.common.currency}</span>}
+            <span>💬 {req.responseCount}</span>
+          </div>
+        </>
+      )}
     </div>
   )
 }
