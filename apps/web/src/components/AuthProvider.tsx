@@ -64,10 +64,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const savedUser = localStorage.getItem('user')
 
     if (savedToken && savedUser) {
-      console.log('[Auth] using saved token and user')
+      console.log('[Auth] using saved token, fetching fresh user data')
       setToken(savedToken)
-      setUserState(JSON.parse(savedUser))
-      setLoading(false)
+
+      // Fetch fresh user data to ensure role and avatar are current
+      fetch(`${import.meta.env.VITE_API_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${savedToken}` },
+      })
+        .then(r => {
+          if (!r.ok) throw new Error('Failed to fetch user')
+          return r.json()
+        })
+        .then(freshUser => {
+          console.log('[Auth] fresh user data loaded')
+          setUserState(freshUser)
+          localStorage.setItem('user', JSON.stringify(freshUser))
+        })
+        .catch(err => {
+          console.error('[Auth] failed to fetch fresh user, using cached:', err)
+          setUserState(JSON.parse(savedUser))
+        })
+        .finally(() => setLoading(false))
       return
     }
 
