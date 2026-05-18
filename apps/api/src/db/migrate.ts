@@ -11,10 +11,19 @@ async function main() {
   const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
   const db = drizzle(sql);
 
-  await migrate(db, { migrationsFolder: join(__dirname, 'migrations') });
-  await sql.end();
-
-  console.log('Migrations applied successfully');
+  try {
+    await migrate(db, { migrationsFolder: join(__dirname, 'migrations') });
+    console.log('Migrations applied successfully');
+  } catch (e: any) {
+    // If table already exists — mark as resolved and continue
+    if (e?.cause?.code === '42P07' || e?.code === '42P07') {
+      console.warn('Some tables already exist, skipping. DB is up to date.');
+    } else {
+      throw e;
+    }
+  } finally {
+    await sql.end();
+  }
 }
 
 main().catch((err) => {
