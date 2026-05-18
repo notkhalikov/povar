@@ -291,78 +291,115 @@ export default async function authRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const botToken = process.env.BOT_TOKEN
-      if (!botToken) {
-        app.log.error('BOT_TOKEN is not set')
-        return reply.code(500).send({ error: 'Server misconfiguration' })
-      }
+      try {
+        const { initData } = request.body as { initData: string }
 
-      if (!verifyTelegramInitData(request.body.initData, botToken)) {
-        return reply.code(401).send({ error: 'Invalid initData hash' })
-      }
+        app.log.info({ initDataLength: initData?.length }, 'telegram-miniapp auth attempt')
 
-      const params = new URLSearchParams(request.body.initData)
-      const userJson = params.get('user')
-      if (!userJson) {
-        return reply.code(400).send({ error: 'No user data in initData' })
-      }
+        if (!initData) {
+          return reply.status(400).send({ error: 'Missing initData' })
+        }
 
-      const tgUser = JSON.parse(userJson)
-      const telegramId = tgUser.id
+        const botToken = process.env.BOT_TOKEN
+        app.log.info({ hasBotToken: !!botToken }, 'bot token check')
 
-      const existing = await app.db
-        .select()
-        .from(users)
-        .where(eq(users.telegramId, telegramId))
-        .limit(1)
+        if (!botToken) {
+          app.log.error('BOT_TOKEN is not set')
+          return reply.code(500).send({ error: 'Server misconfiguration' })
+        }
 
-      let user = existing[0]
+        const isValid = verifyTelegramInitData(initData, botToken)
+        app.log.info({ hashValid: isValid }, 'hash verification result')
 
-      if (!user) {
-        const name = [tgUser.first_name, tgUser.last_name]
-          .filter(Boolean)
-          .join(' ')
+        if (!isValid) {
+          return reply.code(401).send({ error: 'Invalid initData hash' })
+        }
 
-        const [created] = await app.db
-          .insert(users)
-          .values({
-            telegramId,
-            name,
-            lang: tgUser.language_code ?? 'ru',
-          })
-          .returning()
+        const params = new URLSearchParams(initData)
+        const userJson = params.get('user')
+        app.log.info({ hasUserJson: !!userJson }, 'user json check')
 
-        user = created
-      }
+        if (!userJson) {
+          return reply.code(400).send({ error: 'No user data in initData' })
+        }
 
-      if (user.status === 'banned') {
-        return reply.code(403).send({ error: 'Account is banned' })
-      }
+        let tgUser
+        try {
+          tgUser = JSON.parse(userJson)
+          app.log.info({ tgUserId: tgUser.id, tgUserName: tgUser.first_name }, 'tg user parsed')
+        } catch (e) {
+          app.log.error(e, 'failed to parse user json')
+          return reply.code(400).send({ error: 'Invalid user JSON' })
+        }
 
-      if (tgUser.photo_url) {
-        await app.db.update(users)
-          .set({ avatarUrl: tgUser.photo_url })
-          .where(eq(users.id, user.id))
+        const telegramId = tgUser.id
 
-        user = { ...user, avatarUrl: tgUser.photo_url }
-      }
+        const existing = await app.db
+          .select()
+          .from(users)
+          .where(eq(users.telegramId, telegramId))
+          .limit(1)
 
-      const token = app.jwt.sign(
-        { sub: user.id, role: user.role, telegramId: user.telegramId },
-        { expiresIn: '1d' },
-      )
+        app.log.info({ userExists: !!existing[0], telegramId }, 'user lookup result')
 
-      return {
-        token,
-        user: {
-          id: user.id,
-          role: user.role,
-          name: user.name,
-          telegramId: user.telegramId,
-          isChef: user.role === 'chef',
-          avatarUrl: user.avatarUrl,
-          onboardingDone: user.onboardingDone,
-        },
+        let user = existing[0]
+
+        if (!user) {
+          const name = [tgUser.first_name, tgUser.last_name]
+            .filter(Boolean)
+            .join(' ')
+
+          app.log.info({ telegramId, name }, 'creating new user')
+
+          const [created] = await app.db
+            .insert(users)
+            .values({
+              telegramId,
+              name,
+              lang: tgUser.language_code ?? 'ru',
+            })
+            .returning()
+
+          user = created
+          app.log.info({ userId: user.id }, 'user created')
+        }
+
+        if (user.status === 'banned') {
+          app.log.warn({ userId: user.id }, 'banned user login attempt')
+          return reply.code(403).send({ error: 'Account is banned' })
+        }
+
+        if (tgUser.photo_url) {
+          app.log.info({ userId: user.id }, 'updating avatar')
+          await app.db.update(users)
+            .set({ avatarUrl: tgUser.photo_url })
+            .where(eq(users.id, user.id))
+
+          user = { ...user, avatarUrl: tgUser.photo_url }
+        }
+
+        const token = app.jwt.sign(
+          { sub: user.id, role: user.role, telegramId: user.telegramId },
+          { expiresIn: '1d' },
+        )
+
+        app.log.info({ userId: user.id, isChef: user.role === 'chef' }, 'auth success')
+
+        return {
+          token,
+          user: {
+            id: user.id,
+            role: user.role,
+            name: user.name,
+            telegramId: user.telegramId,
+            isChef: user.role === 'chef',
+            avatarUrl: user.avatarUrl,
+            onboardingDone: user.onboardingDone,
+          },
+        }
+      } catch (e) {
+        app.log.error(e, 'telegram-miniapp auth error')
+        return reply.status(500).send({ error: 'Auth failed' })
       }
     },
   )
