@@ -5,10 +5,10 @@ interface AuthUser {
   id: number
   name: string
   telegramId: string
-  role: 'chef' | 'customer'
   isChef: boolean
+  role?: string | null
   avatarUrl?: string | null
-  onboardingDone: boolean
+  onboardingDone?: boolean
 }
 
 interface AuthContextType {
