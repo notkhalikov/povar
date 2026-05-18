@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTelegram } from '../hooks/useTelegram'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../components/AuthProvider'
 import { getMyChef, patchMyChef } from '../api/chefs'
 import type { MyChefProfile } from '../types'
 import { useT } from '../i18n'
