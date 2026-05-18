@@ -233,22 +233,22 @@ export default async function authRoutes(app: FastifyInstance) {
             telegramId,
             name,
             lang: 'ru',
+            avatarUrl: tgUser.photo_url ?? null,
           })
           .returning()
 
         user = created
-      }
-
-      if (user.status === 'banned') {
-        return reply.code(403).send({ error: 'Account is banned' })
-      }
-
-      if (tgUser.photo_url) {
+      } else if (tgUser.photo_url && tgUser.photo_url !== user.avatarUrl) {
+        // Update avatar for existing users if it changed
         await app.db.update(users)
           .set({ avatarUrl: tgUser.photo_url })
           .where(eq(users.id, user.id))
 
         user = { ...user, avatarUrl: tgUser.photo_url }
+      }
+
+      if (user.status === 'banned') {
+        return reply.code(403).send({ error: 'Account is banned' })
       }
 
       const token = app.jwt.sign(
@@ -357,25 +357,25 @@ export default async function authRoutes(app: FastifyInstance) {
               telegramId,
               name,
               lang: tgUser.language_code ?? 'ru',
+              avatarUrl: tgUser.photo_url ?? null,
             })
             .returning()
 
           user = created
           app.log.info({ userId: user.id }, 'user created without role')
-        }
-
-        if (user.status === 'banned') {
-          app.log.warn({ userId: user.id }, 'banned user login attempt')
-          return reply.code(403).send({ error: 'Account is banned' })
-        }
-
-        if (tgUser.photo_url) {
-          app.log.info({ userId: user.id }, 'updating avatar')
+        } else if (tgUser.photo_url && tgUser.photo_url !== user.avatarUrl) {
+          // Update avatar for existing users if it changed
+          app.log.info({ userId: user.id }, 'updating avatar for existing user')
           await app.db.update(users)
             .set({ avatarUrl: tgUser.photo_url })
             .where(eq(users.id, user.id))
 
           user = { ...user, avatarUrl: tgUser.photo_url }
+        }
+
+        if (user.status === 'banned') {
+          app.log.warn({ userId: user.id }, 'banned user login attempt')
+          return reply.code(403).send({ error: 'Account is banned' })
         }
 
         const token = app.jwt.sign(
