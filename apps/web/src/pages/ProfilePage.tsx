@@ -87,11 +87,20 @@ export default function ProfilePage() {
     setSavingEdits(true)
     try {
       const token = localStorage.getItem('token')
+
+      // Save city to general user profile
       await apiFetch('/users/me', {
         method: 'PATCH',
-        body: JSON.stringify({ bio, city }),
+        body: JSON.stringify({ city }),
       })
+
+      // For chefs, save bio to chef profile
+      if (apiUser?.role === 'chef') {
+        await patchMyChef({ bio })
+      }
+
       setEditing(false)
+
       // Refresh profile data
       const response = await fetch(`${import.meta.env.VITE_API_URL}/users/me`, {
         headers: { Authorization: `Bearer ${token}` },
