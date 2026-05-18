@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "rating" numeric(3, 2);

@@ -48,6 +48,7 @@ export const users = pgTable('users', {
   utmTerm: varchar('utm_term', { length: 100 }),
   avatarUrl: text('avatar_url'),
   onboardingDone: boolean('onboarding_done').default(false),
+  rating: numeric('rating', { precision: 3, scale: 2 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
