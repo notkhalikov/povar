@@ -383,7 +383,13 @@ export default async function authRoutes(app: FastifyInstance) {
           { expiresIn: '1d' },
         )
 
-        app.log.info({ userId: user.id, isChef: user.role === 'chef' }, 'auth success')
+        app.log.info({
+          userId: user.id,
+          role: user.role,
+          isChef: user.role === 'chef',
+          hasAvatar: !!user.avatarUrl,
+          avatarUrl: user.avatarUrl?.substring(0, 50),
+        }, 'auth success')
 
         return {
           token,
