@@ -368,19 +368,23 @@ export default function ChefPage() {
       )}
 
       {/* CTA КНОПКА */}
-      <div style={{ padding: '16px 16px' }}>
+      <div style={{ padding: '16px 16px 32px' }}>
         <button
-          onClick={() => navigate(`/orders/new?chefId=${chef.id}`)}
+          onClick={() => navigate(`/chefs/${chef.id}/request`, { state: { chefName: chef.name } })}
           disabled={chef.isOnVacation}
           style={{
-            width: '100%', padding: 14,
-            borderRadius: 12, border: 'none',
+            width: '100%',
+            padding: '16px',
+            borderRadius: 14,
+            border: 'none',
             backgroundColor: chef.isOnVacation ? '#D0CEC9' : '#D85A30',
-            color: '#ffffff', fontSize: 16, fontWeight: 500,
+            color: '#ffffff',
+            fontSize: 16,
+            fontWeight: 700,
             cursor: chef.isOnVacation ? 'not-allowed' : 'pointer',
           }}
         >
-          {chef.isOnVacation ? 'Повар сейчас в отпуске' : `Оставить заявку ${chef.name.split(' ')[0]}`}
+          {chef.isOnVacation ? 'Повар сейчас в отпуске' : 'Отправить запрос'}
         </button>
       </div>
     </div>

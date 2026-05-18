@@ -19,6 +19,7 @@ const DisputePage        = lazy(() => import('./pages/DisputePage'))
 const RequestsPage       = lazy(() => import('./pages/RequestsPage'))
 const RequestDetailPage  = lazy(() => import('./pages/RequestDetailPage'))
 const ChefRequestsPage   = lazy(() => import('./pages/ChefRequestsPage'))
+const CreateRequestPage  = lazy(() => import('./pages/CreateRequestPage'))
 
 function PageFallback() {
   return (
@@ -105,6 +106,9 @@ function AnimatedRoutes() {
             <AppLayout showNav={false}><ChefOnboardingPage /></AppLayout>
           } />
           <Route path='/chef/requests' element={<AppLayout><ChefRequestsPage /></AppLayout>} />
+          <Route path='/chefs/:chefId/request' element={
+            <AppLayout showNav={false}><CreateRequestPage /></AppLayout>
+          } />
           <Route path='/disputes/:id' element={<AppLayout><DisputePage /></AppLayout>} />
           <Route path='/requests' element={<AppLayout><RequestsPage /></AppLayout>} />
           <Route path='/requests/:id' element={<AppLayout><RequestDetailPage /></AppLayout>} />
