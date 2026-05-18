@@ -4,6 +4,8 @@ import { getOrders } from '../api/orders'
 import { OrderCardSkeleton } from '../components/LoadingSkeleton'
 import { ErrorScreen } from '../components/ErrorScreen'
 import { EmptyState } from '../components/EmptyState'
+import { Avatar } from '../components/Avatar'
+import { useAuth } from '../components/AuthProvider'
 import type { Order, OrderStatus } from '../types'
 import { useT } from '../i18n'
 
@@ -13,6 +15,7 @@ const DONE_STATUSES:   OrderStatus[] = ['completed', 'refunded', 'cancelled']
 export default function OrdersPage() {
   const t = useT()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
@@ -114,103 +117,82 @@ export default function OrdersPage() {
         )}
 
         {!loading && !error && shown.length === 0 && (
-          tab === 'active' ? (
-            <EmptyState
-              title={t.order.noneActive}
-              subtitle={t.order.noneActiveHint}
-              illustration={<div style={{ fontSize: 64 }}>📋</div>}
-            />
-          ) : (
-            <EmptyState
-              title={t.order.noneDone}
-              illustration={<div style={{ fontSize: 64 }}>✅</div>}
-            />
-          )
+          <div style={{ textAlign: 'center', padding: '60px 24px', color: '#aaa' }}>
+            <p style={{ fontSize: 40, margin: 0 }}>
+              {tab === 'active' ? '📭' : '✅'}
+            </p>
+            <p style={{ fontSize: 16, fontWeight: 600, color: '#666', margin: '12px 0 6px' }}>
+              {tab === 'active' ? t.order.noneActive : t.order.noneDone}
+            </p>
+            {tab === 'active' && (
+              <p style={{ fontSize: 14, color: '#999' }}>
+                {user?.role === 'chef' ? 'Новые заказы появятся здесь' : 'Найдите повара в каталоге'}
+              </p>
+            )}
+          </div>
         )}
 
         {!loading && shown.map(order => {
           const status = statusMap[order.status]
-          const date = new Date(order.scheduledAt).toLocaleString('ru-RU', {
-            day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+          const dateStr = new Date(order.scheduledAt).toLocaleDateString('ru-RU', {
+            day: 'numeric', month: 'short',
           })
-          const unread = order.unreadCount ?? 0
+          const otherParty = user?.id === order.chefId
+            ? { name: order.customerName, avatarUrl: order.customerAvatarUrl }
+            : { name: order.chefName, avatarUrl: order.chefAvatarUrl }
 
           return (
             <div
               key={order.id}
               onClick={() => navigate(`/orders/${order.id}`)}
               style={{
-                backgroundColor: ['completed', 'refunded', 'cancelled'].includes(order.status) ? '#F7F6F3' : '#ffffff',
-                border: '1px solid #E8E6E1',
-                borderRadius: 16,
-                padding: 14,
-                cursor: 'pointer',
+                padding: '16px', backgroundColor: '#fff', borderRadius: 16,
+                marginBottom: 12, border: '1.5px solid #f0f0f0', cursor: 'pointer',
               }}
             >
-              {/* Верхняя строка */}
+              {/* Header with avatar and status */}
               <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: 8,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                marginBottom: 12,
               }}>
-                <div>
-                  <p style={{ fontSize: 15, fontWeight: 500, color: '#1A1917', margin: '0 0 2px' }}>
-                    Заказ #{order.id}
-                  </p>
-                  <p style={{ fontSize: 13, color: '#6B6966', margin: 0 }}>
-                    {order.chefName ?? `Повар #${order.chefId}`}
-                  </p>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                  <span style={{
-                    fontSize: 11, fontWeight: 500,
-                    padding: '3px 9px', borderRadius: 6,
-                    backgroundColor: status.bg, color: status.color,
-                  }}>
-                    {status.label}
-                  </span>
-                  <span style={{ fontSize: 11, color: '#9E9B97' }}>
-                    {date}
-                  </span>
-                </div>
-              </div>
-
-              {/* Нижняя строка */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingTop: 8,
-                borderTop: '1px solid #E8E6E1',
-              }}>
-                <p style={{
-                  fontSize: 13, color: '#9E9B97', margin: 0,
-                  flex: 1, overflow: 'hidden',
-                  whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-                  paddingRight: 8,
-                }}>
-                  {order.agreedPrice ? `${order.agreedPrice} ₾` : `${order.persons} ${t.common.persons}`}
-                </p>
-
-                {/* Бейдж непрочитанных */}
-                {unread > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path d="M1 11L2.5 9H13V2H1V11Z"
-                        stroke="#9E9B97" strokeWidth="1.2" strokeLinejoin="round"/>
-                    </svg>
-                    <div style={{
-                      minWidth: 18, height: 18, borderRadius: 9, padding: '0 4px',
-                      backgroundColor: '#E24B4A', color: '#ffffff',
-                      fontSize: 10, fontWeight: 500,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {unread >= 10 ? '9+' : unread}
-                    </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                  <Avatar src={otherParty.avatarUrl} name={otherParty.name ?? '?'} size={44} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: '#1A1917' }}>
+                      {otherParty.name}
+                    </p>
+                    <p style={{ margin: 0, fontSize: 12, color: '#888' }}>
+                      {dateStr}
+                    </p>
                   </div>
-                )}
+                </div>
+                <span style={{
+                  fontSize: 11, fontWeight: 500, padding: '4px 10px', borderRadius: 8,
+                  backgroundColor: status.bg, color: status.color, flexShrink: 0, marginLeft: 8,
+                }}>
+                  {status.label}
+                </span>
               </div>
+
+              {/* Description if available */}
+              {order.description && (
+                <p style={{
+                  margin: 0, fontSize: 14, color: '#555',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  marginBottom: 8,
+                }}>
+                  {order.description}
+                </p>
+              )}
+
+              {/* Price and persons */}
+              {order.agreedPrice && (
+                <p style={{
+                  margin: 0, fontSize: 13, color: '#D85A30', fontWeight: 600,
+                }}>
+                  {order.agreedPrice} ₾ · {order.persons} гостей
+                </p>
+              )}
             </div>
           )
         })}

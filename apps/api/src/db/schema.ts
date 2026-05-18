@@ -123,6 +123,7 @@ export const orders = pgTable('orders', {
   chatEnabled: boolean('chat_enabled').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
   reviewReminderSentAt: timestamp('review_reminder_sent_at'),
 })
 

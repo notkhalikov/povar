@@ -170,11 +170,12 @@ export default async function ordersRoutes(app: FastifyInstance) {
     const allIds      = [...new Set([...chefIds, ...customerIds])]
 
     const nameRows = await app.db
-      .select({ id: users.id, name: users.name })
+      .select({ id: users.id, name: users.name, avatarUrl: users.avatarUrl })
       .from(users)
       .where(inArray(users.id, allIds))
 
     const nameMap = new Map(nameRows.map(u => [u.id, u.name]))
+    const avatarMap = new Map(nameRows.map(u => [u.id, u.avatarUrl]))
 
     // Unread inbound message counts per order, in one batch query
     const orderIds = rows.map(r => r.id)
@@ -200,9 +201,11 @@ export default async function ordersRoutes(app: FastifyInstance) {
 
     const data = rows.map(r => ({
       ...r,
-      chefName:     nameMap.get(r.chefId)     ?? null,
-      customerName: nameMap.get(r.customerId) ?? null,
-      unreadCount:  unreadMap.get(r.id)        ?? 0,
+      chefName:      nameMap.get(r.chefId)     ?? null,
+      chefAvatarUrl: avatarMap.get(r.chefId),
+      customerName:      nameMap.get(r.customerId) ?? null,
+      customerAvatarUrl: avatarMap.get(r.customerId),
+      unreadCount:   unreadMap.get(r.id)        ?? 0,
     }))
 
     return { data }
@@ -503,7 +506,7 @@ export default async function ordersRoutes(app: FastifyInstance) {
 
     const [updated] = await app.db
       .update(orders)
-      .set({ status: 'completed', updatedAt: new Date() })
+      .set({ status: 'completed', updatedAt: new Date(), completedAt: new Date() })
       .where(eq(orders.id, id))
       .returning()
 
@@ -572,9 +575,14 @@ export default async function ordersRoutes(app: FastifyInstance) {
       return reply.code(err.code === 'FORBIDDEN' ? 403 : 422).send({ error: err.message })
     }
 
+    const updates: Record<string, unknown> = { status: nextStatus, updatedAt: new Date() }
+    if (nextStatus === 'completed') {
+      updates.completedAt = new Date()
+    }
+
     const [updated] = await app.db
       .update(orders)
-      .set({ status: nextStatus, updatedAt: new Date() })
+      .set(updates)
       .where(eq(orders.id, id))
       .returning()
 

@@ -144,6 +144,8 @@ export interface Order {
   updatedAt: string
   chefName?: string
   customerName?: string
+  chefAvatarUrl?: string | null
+  customerAvatarUrl?: string | null
   chatEnabled: boolean
   reviewReminderSentAt: string | null
   unreadCount?: number
